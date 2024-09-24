@@ -1,7 +1,6 @@
 use clap::Parser;
 use std::io;
 use std::io::Read;
-use std::io::Write;
 use std::os::unix::net;
 use std::path::Path;
 
@@ -46,25 +45,9 @@ fn daemon(socket: &String) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_command(socket: &String, cmd: &String) -> Result<(), io::Error> {
-    let res = Path::try_exists(Path::new(socket));
-
-    let mut sender = match res {
-        Ok(true) => net::UnixStream::connect(socket),
-        Ok(false) => Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            "Daemon not running",
-        )),
-        Err(x) => Err(x),
-    }?;
-
-    return sender.write_all(cmd.as_bytes());
-}
-
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-        daemon(&args.socket)
-
+    let res = daemon(&args.socket);
     log::info!("patthern: {:?}, result: {:?}", args.socket, res);
 }
