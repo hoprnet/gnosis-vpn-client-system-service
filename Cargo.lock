@@ -141,6 +141,11 @@ dependencies = [
 [[package]]
 name = "gnosis-vpn-ctl"
 version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "log",
+]
 
 [[package]]
 name = "gnosis_vpn_system_service"
