@@ -130,6 +130,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "gnosis-vpn"
+version = "0.1.0"
+
+[[package]]
+name = "gnosis-vpn-ctl"
+version = "0.1.0"
+
+[[package]]
 name = "gnosis_vpn_system_service"
 version = "0.1.0"
 dependencies = [

@@ -1,3 +1,4 @@
+workspace = { members = [ "gnosis-vpn","gnosis-vpn-ctl"] }
 [package]
 name = "gnosis_vpn_system_service"
 version = "0.1.0"
