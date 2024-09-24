@@ -1,12 +1,1 @@
-workspace = { members = [ "gnosis-vpn","gnosis-vpn-ctl"] }
-[package]
-name = "gnosis_vpn_system_service"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-clap = { version = "4.5.17", features = ["derive"] }
-env_logger = "0.11.5"
-log = "0.4.22"
+workspace = { members = [ "gnosis-vpn","gnosis-vpn-ctl"], resolver = "2" }
