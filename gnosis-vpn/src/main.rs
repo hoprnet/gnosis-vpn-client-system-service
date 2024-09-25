@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use std::fs;
 use std::io;
@@ -16,17 +16,24 @@ struct Cli {
     socket: String,
 }
 
-fn incoming(mut stream: net::UnixStream) -> Result<()> {
+fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
+    let (sender, receiver) = crossbeam_channel::bounded(100);
+    ctrlc::set_handler(move || {
+        let _ = sender.send(());
+    })?;
+
+    Ok(receiver)
+}
+
+fn incoming(mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     log::info!("incoming: {}", String::from_utf8_lossy(&buffer[..size]));
     Ok(())
 }
 
-fn daemon(socket: &String) -> Result<()> {
-    let running = sync::Arc::new(atomic::AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || r.store(false, atomic::Ordering::SeqCst))?;
+fn daemon(socket: &String) -> anyhow::Result<()> {
+    let ctrl_c_events = ctrl_channel()?;
 
     let socket_path = Path::new(socket);
     let res_exists = Path::try_exists(socket_path);
@@ -40,6 +47,16 @@ fn daemon(socket: &String) -> Result<()> {
 
     receiver.set_nonblocking(true)?;
 
+      loop {
+        crossbeam_channel::select! {
+            recv(ctrl_c_events) -> _ => {
+                log::info!("Goodbye!");
+                break;
+            }
+        }
+    }
+
+    /*
     while running.load(atomic::Ordering::SeqCst) {
         _ = match receiver.accept() {
             Ok((stream, addr)) => {
@@ -56,6 +73,7 @@ fn daemon(socket: &String) -> Result<()> {
             }
         };
     }
+    */
 
     fs::remove_file(socket_path)?;
     Ok(())
