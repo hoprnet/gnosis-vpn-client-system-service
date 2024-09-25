@@ -1,12 +1,10 @@
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use std::fs;
-use std::io;
 use std::io::Read;
 use std::os::unix::net;
 use std::path::Path;
-use std::sync;
-use std::sync::atomic;
+use std::thread;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -38,42 +36,48 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
     let socket_path = Path::new(socket);
     let res_exists = Path::try_exists(socket_path);
 
-    let receiver = match res_exists {
+    let listener = match res_exists {
         Ok(true) => Err(anyhow!("Daemon already running")),
         Ok(false) => net::UnixListener::bind(socket)
             .with_context(|| format!("Error binding listener to socket {}", socket)),
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    receiver.set_nonblocking(true)?;
+    let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
 
-      loop {
+    let sender = sender.clone();
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            _ = match stream {
+                Ok(stream) => sender
+                    .send(stream)
+                    .with_context(|| format!("Failed to send stream to channel")),
+                Err(x) => {
+                    log::error!("Error waiting for incoming message: {:?}", x);
+                    Err(anyhow!(x))
+                }
+            };
+        }
+    });
+
+    log::info!("Successfully started daemon in listening mode");
+    loop {
         crossbeam_channel::select! {
             recv(ctrl_c_events) -> _ => {
-                log::info!("Goodbye!");
+                log::info!("Shutting down daemon!");
                 break;
             }
+            recv(receiver) -> stream => {
+                _ = match stream  {
+                    Ok(s) => {
+                incoming(s)
+                    },
+                    Err(x) => Err(anyhow!(x))
+
+                }
+            },
         }
     }
-
-    /*
-    while running.load(atomic::Ordering::SeqCst) {
-        _ = match receiver.accept() {
-            Ok((stream, addr)) => {
-                log::info!("Incoming stream from {:?}: {:?}", addr, stream);
-                incoming(stream)
-            }
-            Err(x) if x.kind() == io::ErrorKind::WouldBlock => {
-                log::info!("WouldBlock on incoming connections");
-                Ok(())
-            }
-            Err(x) => {
-                log::error!("Error waiting for incoming message: {:?}", x);
-                Err(anyhow!(x))
-            }
-        };
-    }
-    */
 
     fs::remove_file(socket_path)?;
     Ok(())
@@ -82,6 +86,5 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    let res = daemon(&args.socket);
-    log::info!("patthern: {:?}, result: {:?}", args.socket, res);
+    daemon(&args.socket).expect("Daemon exited with error");
 }
