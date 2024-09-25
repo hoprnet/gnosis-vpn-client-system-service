@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::error;
+use anyhow::{anyhow, Result};
 use std::io;
 use std::sync;
 use std::sync::atomic;
@@ -16,14 +16,14 @@ struct Cli {
     socket: String,
 }
 
-fn incoming(mut stream: net::UnixStream) -> Result<(), io::Error> {
+fn incoming(mut stream: net::UnixStream) -> Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     log::info!("incoming: {}", String::from_utf8_lossy(&buffer[..size]));
     Ok(())
 }
 
-fn daemon(socket: &String) -> Result<(), Box<dyn error::Error>> {
+fn daemon(socket: &String) -> Result<()> {
      let running = sync::Arc::new(atomic::AtomicBool::new(true));
      let r = running.clone();
      ctrlc::set_handler(move || { r.store(false, atomic::Ordering::SeqCst) })?;
@@ -51,7 +51,7 @@ fn daemon(socket: &String) -> Result<(), Box<dyn error::Error>> {
             },
             Err(x) => {
                 log::error!("Error waiting for incoming message: {:?}", x);
-                Err(x)
+                Err(anyhow!(x))
             },
         };
     };
