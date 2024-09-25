@@ -1,5 +1,5 @@
 use clap::Parser;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use std::io;
 use std::sync;
 use std::sync::atomic;
@@ -32,9 +32,9 @@ fn daemon(socket: &String) -> Result<()> {
     let res_exists = Path::try_exists(socket_path);
 
     let receiver = match res_exists {
-        Ok(true) => Err(io::Error::new(io::ErrorKind::AlreadyExists, "Daemon already running")),
-        Ok(false) => net::UnixListener::bind(socket),
-        Err(x) => Err(x),
+        Ok(true) => Err(anyhow!("Daemon already running")),
+        Ok(false) => net::UnixListener::bind(socket).with_context(|| format!("Error binding listener to socket {}", socket)),
+        Err(x) => Err(anyhow!(x)),
     }?;
 
     receiver.set_nonblocking(true)?;
@@ -46,7 +46,7 @@ fn daemon(socket: &String) -> Result<()> {
                 incoming(stream)
             },
             Err(x) if x.kind() == io::ErrorKind::WouldBlock => {
-                // log::info!("WouldBlock on incoming connections");
+                log::info!("WouldBlock on incoming connections");
                 Ok(())
             },
             Err(x) => {
