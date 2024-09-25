@@ -6,8 +6,6 @@ use std::os::unix::net;
 use std::path::Path;
 use std::thread;
 
-const DAEMON: &str = "GnosisVPN daemon";
-
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
 struct Cli {
@@ -39,7 +37,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
     let res_exists = Path::try_exists(socket_path);
 
     let listener = match res_exists {
-        Ok(true) => Err(anyhow!(format!("{DAEMON} already running"))),
+        Ok(true) => Err(anyhow!(format!("already running"))),
         Ok(false) => net::UnixListener::bind(socket)
             .with_context(|| format!("Error binding listener to socket {}", socket)),
         Err(x) => Err(anyhow!(x)),
@@ -62,11 +60,11 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         }
     });
 
-    log::info!("{DAEMON} started successfully in listening mode");
+    log::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
             recv(ctrl_c_events) -> _ => {
-                log::info!("{DAEMON} shutting down");
+                log::info!("shutting down");
                 break;
             }
             recv(receiver) -> stream => {
@@ -88,5 +86,9 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    daemon(&args.socket).expect(&format!("{DAEMON} exited with error"));
+    let res = daemon(&args.socket);
+    match res {
+        Ok(_) => log::info!("stopped gracefully"),
+        Err(x) => log::error!("stopped with error: {}", x),
+    }
 }

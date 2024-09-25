@@ -1,11 +1,8 @@
 use anyhow::{anyhow, Context};
-use std::io::Write;
 use clap::Parser;
+use std::io::Write;
 use std::os::unix::net;
 use std::path::Path;
-
-const APP: &str = "GnosisVPN control client";
-const DAEMON: &str = "GnosisVPN daemon";
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -22,12 +19,14 @@ fn run_command(socket: &String, cmd: &String) -> anyhow::Result<()> {
     let res = Path::try_exists(Path::new(socket));
 
     let mut sender = match res {
-        Ok(true) => net::UnixStream::connect(socket).with_context(|| format!("{APP} unable to connect to socket")),
-        Ok(false) => Err(anyhow!(format!("{DAEMON} not running"))),
+        Ok(true) => {
+            net::UnixStream::connect(socket).with_context(|| format!("unable to connect to socket"))
+        }
+        Ok(false) => Err(anyhow!(format!("gnosis-vpn not running"))),
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    log::info!("{APP} sending command: {}", cmd);
+    log::info!("sending command: {}", cmd);
     sender.write_all(cmd.as_bytes())?;
     Ok(())
 }
@@ -35,5 +34,9 @@ fn run_command(socket: &String, cmd: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    run_command(&args.socket, &args.cmd).expect(&format!("{APP} exited with error"));
+    let res = run_command(&args.socket, &args.cmd);
+    match res {
+        Ok(_) => log::info!("stopped gracefully"),
+        Err(x) => log::error!("stopped with error: {}", x),
+    }
 }
