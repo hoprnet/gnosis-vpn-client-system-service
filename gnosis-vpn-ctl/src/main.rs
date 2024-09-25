@@ -8,6 +8,7 @@ use std::path::Path;
 #[derive(Parser)]
 struct Cli {
     /// communication socket name - will be created by installer and should be /run/gnosisvpn/service.sock
+    #[arg(short, long)]
     socket: String,
 
     /// command to run

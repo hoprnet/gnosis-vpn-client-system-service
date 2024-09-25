@@ -1,5 +1,9 @@
 use clap::Parser;
+use std::error;
 use std::io;
+use std::sync;
+use std::sync::atomic;
+use std::fs;
 use std::io::Read;
 use std::os::unix::net;
 use std::path::Path;
@@ -8,6 +12,7 @@ use std::path::Path;
 #[derive(Parser)]
 struct Cli {
     /// communication socket name - will be created by installer and should be /run/gnosisvpn/service.sock
+    #[arg(short, long)]
     socket: String,
 }
 
@@ -18,31 +23,42 @@ fn incoming(mut stream: net::UnixStream) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn daemon(socket: &String) -> Result<(), io::Error> {
-    let res = Path::try_exists(Path::new(socket));
+fn daemon(socket: &String) -> Result<(), Box<dyn error::Error>> {
+     let running = sync::Arc::new(atomic::AtomicBool::new(true));
+     let r = running.clone();
+     ctrlc::set_handler(move || { r.store(false, atomic::Ordering::SeqCst) })?;
 
-    let receiver = match res {
-        Ok(true) => Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "Daemon already running",
-        )),
+    let socket_path = Path::new(socket);
+    let res_exists = Path::try_exists(socket_path);
+
+    let receiver = match res_exists {
+        Ok(true) => Err(io::Error::new(io::ErrorKind::AlreadyExists, "Daemon already running")),
         Ok(false) => net::UnixListener::bind(socket),
         Err(x) => Err(x),
     }?;
 
-    for stream in receiver.incoming() {
-        match stream {
-            Ok(stream) => {
-                log::info!("incoming stream {:?}", stream);
-                incoming(stream).expect("FOOBAR");
-            }
-            Err(x) => {
-                log::error!("Error waiting for incoming message: {:?}", x)
-            }
-        }
-    }
+    receiver.set_nonblocking(true)?;
 
-    Ok(())
+    while running.load(atomic::Ordering::SeqCst) {
+        _ = match receiver.accept() {
+            Ok((stream, addr)) =>{
+                log::info!("Incoming stream from {:?}: {:?}", addr, stream);
+                incoming(stream)
+            },
+            Err(x) if x.kind() == io::ErrorKind::WouldBlock => {
+                // log::info!("WouldBlock on incoming connections");
+                Ok(())
+            },
+            Err(x) => {
+                log::error!("Error waiting for incoming message: {:?}", x);
+                Err(x)
+            },
+        };
+    };
+
+
+    fs::remove_file(socket_path)?;
+        Ok(())
 }
 
 fn main() {
