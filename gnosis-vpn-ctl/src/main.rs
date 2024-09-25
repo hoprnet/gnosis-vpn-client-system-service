@@ -19,9 +19,7 @@ fn run_command(socket: &String, cmd: &String) -> anyhow::Result<()> {
     let res = Path::try_exists(Path::new(socket));
 
     let mut sender = match res {
-        Ok(true) => {
-            net::UnixStream::connect(socket).with_context(|| format!("unable to connect to socket"))
-        }
+        Ok(true) => net::UnixStream::connect(socket).with_context(|| "unable to connect to socket"),
         Ok(false) => Err(anyhow!(format!("gnosis-vpn not running"))),
         Err(x) => Err(anyhow!(x)),
     }?;
