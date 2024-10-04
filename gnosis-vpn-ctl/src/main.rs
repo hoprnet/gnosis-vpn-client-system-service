@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Context};
 use clap::{Parser, Subcommand};
-use gnosis_vpn_lib::WgConnect;
 use std::io::Write;
 use std::os::unix::net;
 use std::path::Path;
@@ -39,7 +38,7 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    let solved_cmd = match cmd {
+    let typed_cmd = match cmd {
         Commands::WgConnect {
             peer,
             allowed_ips,
@@ -51,8 +50,9 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
         },
     };
 
-    log::info!("sending command: {}", solved_cmd);
-    sender.write_all(cmd.as_bytes())?;
+    log::info!("sending command: {}", typed_cmd);
+    let ser_cmd = typed_cmd.serialize()?;
+    sender.write_all(ser_cmd.as_bytes())?;
     Ok(())
 }
 
