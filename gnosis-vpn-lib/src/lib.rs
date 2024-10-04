@@ -19,6 +19,7 @@ impl fmt::Display for WgConnect {
         )
     }
 }
+
 impl WgConnect {
     pub fn new(peer: String, allowed_ips: String, endpoint: String) -> WgConnect {
         WgConnect {
@@ -31,5 +32,9 @@ impl WgConnect {
 
     pub fn serialize(&self) -> Result<String> {
         serde_json::to_string(&self)
+    }
+
+    pub fn deserialize(data: &str) -> Result<WgConnect> {
+        serde_json::from_str(data)
     }
 }
