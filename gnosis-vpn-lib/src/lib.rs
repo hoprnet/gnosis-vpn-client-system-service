@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
 use std::fmt;
 
+#[derive(Serialize, Deserialize)]
 pub struct WgConnect {
     pub peer: String,
     pub allowed_ips: String,
@@ -17,6 +20,6 @@ impl fmt::Display for WgConnect {
 }
 impl WgConnect {
     pub fn serialize(&self) -> Result<String> {
-
+        serde_json::to_string(&self)
     }
 }
