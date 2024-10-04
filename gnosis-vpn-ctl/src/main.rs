@@ -43,12 +43,17 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
             peer,
             allowed_ips,
             endpoint,
-        } => gnosis_vpn_lib::WgConnect::new(peer, allowed_ips, endpoint),
+        } => gnosis_vpn_lib::Command::WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+        },
     };
 
-    log::info!("sending command: {}", typed_cmd);
-    let ser_cmd = typed_cmd.serialize()?;
-    sender.write_all(ser_cmd.as_bytes())?;
+    let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
+
+    log::info!("sending command: {}", str_cmd);
+    sender.write_all(str_cmd.as_bytes())?;
     Ok(())
 }
 

@@ -187,6 +187,7 @@ dependencies = [
  "crossbeam-channel",
  "ctrlc",
  "env_logger",
+ "gnosis-vpn-lib",
  "log",
 ]
 
