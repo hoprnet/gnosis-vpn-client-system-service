@@ -197,6 +197,7 @@ dependencies = [
  "anyhow",
  "clap",
  "env_logger",
+ "gnosis-vpn-lib",
  "log",
 ]
 

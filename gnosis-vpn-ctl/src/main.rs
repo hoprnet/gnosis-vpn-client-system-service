@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context};
 use clap::{Parser, Subcommand};
+use gnosis_vpn_lib::WgConnect;
 use std::io::Write;
 use std::os::unix::net;
 use std::path::Path;
@@ -22,8 +23,11 @@ enum Commands {
     WgConnect {
         #[arg(short, long)]
         peer: String,
-
-    }
+        #[arg(short, long)]
+        allowed_ips: String,
+        #[arg(short, long)]
+        endpoint: String,
+    },
 }
 
 fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
@@ -35,8 +39,20 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    // log::info!("sending command: {}", cmd);
-    // sender.write_all(cmd.as_bytes())?;
+    let solved_cmd = match cmd {
+        Commands::WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+        } => gnosis_vpn_lib::WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+        },
+    };
+
+    log::info!("sending command: {}", solved_cmd);
+    sender.write_all(cmd.as_bytes())?;
     Ok(())
 }
 
