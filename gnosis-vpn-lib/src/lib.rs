@@ -7,6 +7,7 @@ pub struct WgConnect {
     pub peer: String,
     pub allowed_ips: String,
     pub endpoint: String,
+    cmd: i8,
 }
 
 impl fmt::Display for WgConnect {
@@ -19,6 +20,15 @@ impl fmt::Display for WgConnect {
     }
 }
 impl WgConnect {
+    pub fn new(peer: String, allowed_ips: String, endpoint: String) -> WgConnect {
+        WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+            cmd: 0,
+        }
+    }
+
     pub fn serialize(&self) -> Result<String> {
         serde_json::to_string(&self)
     }

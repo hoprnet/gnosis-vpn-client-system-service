@@ -43,11 +43,7 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
             peer,
             allowed_ips,
             endpoint,
-        } => gnosis_vpn_lib::WgConnect {
-            peer,
-            allowed_ips,
-            endpoint,
-        },
+        } => gnosis_vpn_lib::WgConnect::new(peer, allowed_ips, endpoint),
     };
 
     log::info!("sending command: {}", typed_cmd);
