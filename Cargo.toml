@@ -1,1 +1,1 @@
-workspace = { members = [ "gnosis-vpn","gnosis-vpn-ctl"], resolver = "2" }
+workspace = { members = [ "gnosis-vpn","gnosis-vpn-ctl", "gnosis-vpn-lib"], resolver = "2" }
