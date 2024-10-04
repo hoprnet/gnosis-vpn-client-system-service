@@ -26,8 +26,39 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
 fn incoming(mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
-    log::info!("incoming: {}", String::from_utf8_lossy(&buffer[..size]));
-    Ok(())
+    let inc = String::from_utf8_lossy(&buffer[..size]);
+    log::info!("incoming: {}", inc);
+    let cmd = gnosis_vpn_lib::to_cmd(inc.as_ref())?;
+    let res = match cmd {
+        gnosis_vpn_lib::Command::WgConnect { .. } => connect(cmd),
+    }?;
+    if res {
+        Ok(())
+    } else {
+        Err(anyhow!("non zero exit code"))
+    }
+}
+
+fn connect(
+    gnosis_vpn_lib::Command::WgConnect {
+        peer,
+        allowed_ips,
+        endpoint,
+    }: gnosis_vpn_lib::Command,
+) -> anyhow::Result<bool> {
+    let status = std::process::Command::new("wg")
+        .args([
+            "set",
+            "wg0",
+            "peer",
+            peer.as_ref(),
+            "allowed-ips",
+            allowed_ips.as_ref(),
+            "endpoint",
+            endpoint.as_ref(),
+        ])
+        .status()?;
+    Ok(status.success())
 }
 
 fn daemon(socket: &String) -> anyhow::Result<()> {
