@@ -3,6 +3,7 @@ use serde_json::Result;
 
 #[derive(Serialize, Deserialize)]
 pub enum Command {
+    // TODO response message
     WgConnect {
         peer: String,
         allowed_ips: String,

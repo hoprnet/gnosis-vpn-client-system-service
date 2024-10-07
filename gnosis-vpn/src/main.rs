@@ -33,6 +33,7 @@ fn incoming(mut stream: net::UnixStream) -> anyhow::Result<()> {
         gnosis_vpn_lib::Command::WgConnect { .. } => connect(cmd),
     }?;
     if res {
+        // TODO return message to ctl request
         Ok(())
     } else {
         Err(anyhow!("non zero exit code"))

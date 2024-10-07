@@ -53,6 +53,7 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
     let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
 
     log::info!("sending command: {}", str_cmd);
+    // TODO implement response mechanism
     sender.write_all(str_cmd.as_bytes())?;
     Ok(())
 }
