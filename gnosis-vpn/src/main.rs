@@ -47,6 +47,8 @@ fn connect(
         endpoint,
     }: gnosis_vpn_lib::Command,
 ) -> anyhow::Result<bool> {
+    // TODO correctly check device state before running wg command
+    // see https://github.com/mullvad/mullvadvpn-app/blob/main/mullvad-daemon/src/lib.rs#L207
     let status = std::process::Command::new("wg")
         .args([
             "set",
