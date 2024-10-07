@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::io::Write;
 use std::os::unix::net;
 use std::path::Path;
@@ -12,10 +12,24 @@ struct Cli {
     socket: String,
 
     /// command to run
-    cmd: String,
+    #[command(subcommand)]
+    cmd: Option<Commands>,
 }
 
-fn run_command(socket: &String, cmd: &String) -> anyhow::Result<()> {
+#[derive(Subcommand)]
+enum Commands {
+    // Connect to wg server
+    WgConnect {
+        #[arg(short, long)]
+        peer: String,
+        #[arg(short, long)]
+        allowed_ips: String,
+        #[arg(short, long)]
+        endpoint: String,
+    },
+}
+
+fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
     let res = Path::try_exists(Path::new(socket));
 
     let mut sender = match res {
@@ -24,17 +38,33 @@ fn run_command(socket: &String, cmd: &String) -> anyhow::Result<()> {
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    log::info!("sending command: {}", cmd);
-    sender.write_all(cmd.as_bytes())?;
+    let typed_cmd = match cmd {
+        Commands::WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+        } => gnosis_vpn_lib::Command::WgConnect {
+            peer,
+            allowed_ips,
+            endpoint,
+        },
+    };
+
+    let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
+
+    log::info!("sending command: {}", str_cmd);
+    // TODO implement response mechanism
+    sender.write_all(str_cmd.as_bytes())?;
     Ok(())
 }
 
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    let res = run_command(&args.socket, &args.cmd);
+    let res = args.cmd.map(|c| run_command(&args.socket, c));
     match res {
-        Ok(_) => log::info!("stopped gracefully"),
-        Err(x) => log::error!("stopped with error: {}", x),
+        Some(Ok(_)) => log::info!("stopped gracefully"),
+        Some(Err(x)) => log::error!("stopped with error: {}", x),
+        None => log::info!("no command specified"),
     }
 }
