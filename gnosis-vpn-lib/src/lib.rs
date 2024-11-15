@@ -3,12 +3,14 @@ use serde_json::Result;
 
 #[derive(Serialize, Deserialize)]
 pub enum Command {
+    Status,
+
     // TODO response message
-    WgConnect {
-        peer: String,
-        allowed_ips: String,
-        endpoint: String,
-    },
+    // WgConnect {
+    //     peer: String,
+    //     allowed_ips: String,
+    //     endpoint: String,
+    // },
 }
 
 pub fn to_cmd(data: &str) -> Result<Command> {

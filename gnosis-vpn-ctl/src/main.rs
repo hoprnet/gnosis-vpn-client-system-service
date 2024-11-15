@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use clap::{Parser, Subcommand};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::os::unix::net;
 use std::path::Path;
 
@@ -18,19 +18,36 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    // Simple status command
+    Status,
     // Connect to wg server
-    WgConnect {
-        #[arg(short, long)]
-        peer: String,
-        #[arg(short, long)]
-        allowed_ips: String,
-        #[arg(short, long)]
-        endpoint: String,
-    },
+//     WgConnect {
+//         #[arg(short, long)]
+//         peer: String,
+//         #[arg(short, long)]
+//         allowed_ips: String,
+//         #[arg(short, long)]
+//         endpoint: String,
+//     },
 }
 
 fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
     let res = Path::try_exists(Path::new(socket));
+
+    let typed_cmd = match cmd {
+        Commands::Status => gnosis_vpn_lib::Command::Status,
+        // Commands::WgConnect {
+        //     peer,
+        //     allowed_ips,
+        //     endpoint,
+        // } => gnosis_vpn_lib::Command::WgConnect {
+        //     peer,
+        //     allowed_ips,
+        //     endpoint,
+        // },
+    };
+
+    let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
 
     let mut sender = match res {
         Ok(true) => net::UnixStream::connect(socket).with_context(|| "unable to connect to socket"),
@@ -38,24 +55,23 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    let typed_cmd = match cmd {
-        Commands::WgConnect {
-            peer,
-            allowed_ips,
-            endpoint,
-        } => gnosis_vpn_lib::Command::WgConnect {
-            peer,
-            allowed_ips,
-            endpoint,
-        },
-    };
-
-    let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
-
     log::info!("sending command: {}", str_cmd);
-    // TODO implement response mechanism
     sender.write_all(str_cmd.as_bytes())?;
+    sender.flush()?;
+    handle_response(typed_cmd, sender)?;
     Ok(())
+}
+
+fn handle_response(cmd: gnosis_vpn_lib::Command, mut sender: net::UnixStream) -> anyhow::Result<()> {
+    match cmd {
+        gnosis_vpn_lib::Command::Status => {
+            let mut response = String::new();
+            sender.read_to_string(&mut response)?;
+            log::info!("response: {}", response);
+            Ok(())
+        }
+
+    }
 }
 
 fn main() {
