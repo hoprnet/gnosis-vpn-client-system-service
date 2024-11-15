@@ -42,6 +42,10 @@ fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow
         // } => connect(peer, allowed_ips, endpoint),
     }?;
 
+    if res.is_empty() {
+        return Ok(());
+    }
+
     stream.write_all(res.as_bytes())?;
     stream.flush()?;
     Ok(())
