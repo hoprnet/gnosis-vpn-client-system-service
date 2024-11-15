@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
@@ -23,45 +23,32 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming(mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming_stream(mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
     log::info!("incoming: {}", inc);
     let cmd = gnosis_vpn_lib::to_cmd(inc.as_ref())?;
-    let res = match cmd {
-        gnosis_vpn_lib::Command::WgConnect { .. } => connect(cmd),
-    }?;
-    if res {
-        // TODO return message to ctl request
-        Ok(())
-    } else {
-        Err(anyhow!("non zero exit code"))
-    }
+    incoming(cmd, stream)
 }
 
-fn connect(
-    gnosis_vpn_lib::Command::WgConnect {
-        peer,
-        allowed_ips,
-        endpoint,
-    }: gnosis_vpn_lib::Command,
-) -> anyhow::Result<bool> {
-    // TODO correctly check device state before running wg command
-    // see https://github.com/mullvad/mullvadvpn-app/blob/main/mullvad-daemon/src/lib.rs#L207
-    let status = std::process::Command::new("wg")
-        .args([
-            "set",
-            "wg0",
-            "peer",
-            peer.as_ref(),
-            "allowed-ips",
-            allowed_ips.as_ref(),
-            "endpoint",
-            endpoint.as_ref(),
-        ])
-        .status()?;
-    Ok(status.success())
+fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow::Result<()> {
+    let res = match cmd {
+        gnosis_vpn_lib::Command::Status => status(),
+        // gnosis_vpn_lib::Command::WgConnect {
+        //     peer,
+        //     allowed_ips,
+        //     endpoint,
+        // } => connect(peer, allowed_ips, endpoint),
+    }?;
+
+    stream.write_all(res.as_bytes())?;
+    stream.flush()?;
+    Ok(())
+}
+
+fn status() -> anyhow::Result<String> {
+    Ok("idle".to_string())
 }
 
 fn daemon(socket: &String) -> anyhow::Result<()> {
@@ -104,7 +91,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
             recv(receiver) -> stream => {
                 _ = match stream  {
                     Ok(s) => {
-                incoming(s)
+                incoming_stream(s)
                     },
                     Err(x) => Err(anyhow!(x))
 
