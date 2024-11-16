@@ -1,4 +1,4 @@
-use anyhow::{Context};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -13,5 +13,5 @@ pub fn to_cmd(data: &str) -> anyhow::Result<Command> {
 }
 
 pub fn to_string(cmd: &Command) -> anyhow::Result<String> {
-    serde_json::to_string(cmd).with_context(|| format!("unable to serialize command"))
+    serde_json::to_string(cmd).with_context(|| "unable to serialize command")
 }

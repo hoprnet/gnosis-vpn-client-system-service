@@ -2,8 +2,8 @@ use anyhow::{anyhow, Context};
 use clap::{Parser, Subcommand};
 use std::io::{Read, Write};
 use std::os::unix::net;
-use url::Url;
 use std::path::Path;
+use url::Url;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -35,7 +35,10 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
 
     let typed_cmd = match cmd {
         Commands::Status => gnosis_vpn_lib::Command::Status,
-        Commands::EntryNode { endpoint, api_token } => gnosis_vpn_lib::Command::EntryNode {
+        Commands::EntryNode {
+            endpoint,
+            api_token,
+        } => gnosis_vpn_lib::Command::EntryNode {
             endpoint: Url::parse(&endpoint).with_context(|| "invalid endpoint URL")?,
             api_token,
         },
@@ -56,7 +59,10 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn handle_response(cmd: gnosis_vpn_lib::Command, mut sender: net::UnixStream) -> anyhow::Result<()> {
+fn handle_response(
+    cmd: gnosis_vpn_lib::Command,
+    mut sender: net::UnixStream,
+) -> anyhow::Result<()> {
     // handle responses only for certain commands
     match cmd {
         gnosis_vpn_lib::Command::Status => {
@@ -66,7 +72,6 @@ fn handle_response(cmd: gnosis_vpn_lib::Command, mut sender: net::UnixStream) ->
             Ok(())
         }
         _ => Ok(()),
-
     }
 }
 
