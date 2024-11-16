@@ -54,7 +54,7 @@ fn incoming(
             .with_context(|| "failed to write response")?;
         stream.flush().with_context(|| "failed to flush response")
     } else {
-        return Ok(());
+        Ok(())
     }
 }
 
