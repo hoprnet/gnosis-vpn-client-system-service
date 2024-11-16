@@ -209,6 +209,7 @@ dependencies = [
  "env_logger",
  "gnosis-vpn-lib",
  "log",
+ "url",
 ]
 
 [[package]]

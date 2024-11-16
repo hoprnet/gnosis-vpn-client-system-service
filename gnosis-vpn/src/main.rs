@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context};
+use url::Url;
 use clap::Parser;
 use std::fs;
 use std::io::{Read, Write};
@@ -35,12 +36,7 @@ fn incoming_stream(mut stream: net::UnixStream) -> anyhow::Result<()> {
 fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow::Result<()> {
     let res = match cmd {
         gnosis_vpn_lib::Command::Status => status(),
-        // gnosis_vpn_lib::Command::WgConnect {
-        //     peer,
-        //     allowed_ips,
-        //     endpoint,
-        // } => connect(peer, allowed_ips, endpoint),
-        _ => Err(anyhow!("unsupported command")),
+        gnosis_vpn_lib::Command::EntryNode{endpoint, api_token} => entry_node(endpoint, api_token),
     }?;
 
     if res.is_empty() {
@@ -55,6 +51,11 @@ fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow
 fn status() -> anyhow::Result<String> {
     Ok("idle".to_string())
 }
+
+fn entry_node(endpoint: url::Url, api_token: String) -> anyhow::Result<String> {
+    Ok("ok".to_string())
+}
+
 
 fn daemon(socket: &String) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
