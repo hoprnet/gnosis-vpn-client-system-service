@@ -40,6 +40,7 @@ fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow
         //     allowed_ips,
         //     endpoint,
         // } => connect(peer, allowed_ips, endpoint),
+        _ => Err(anyhow!("unsupported command")),
     }?;
 
     if res.is_empty() {

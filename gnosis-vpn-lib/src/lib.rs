@@ -1,22 +1,17 @@
+use anyhow::{Context};
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
+use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub enum Command {
     Status,
-
-    // TODO response message
-    // WgConnect {
-    //     peer: String,
-    //     allowed_ips: String,
-    //     endpoint: String,
-    // },
+    EntryNode { endpoint: Url, api_token: String },
 }
 
-pub fn to_cmd(data: &str) -> Result<Command> {
-    serde_json::from_str(data)
+pub fn to_cmd(data: &str) -> anyhow::Result<Command> {
+    serde_json::from_str(data).with_context(|| format!("unable to parse command: {}", data))
 }
 
-pub fn to_string(cmd: &Command) -> Result<String> {
-    serde_json::to_string(cmd)
+pub fn to_string(cmd: &Command) -> anyhow::Result<String> {
+    serde_json::to_string(cmd).with_context(|| format!("unable to serialize command"))
 }

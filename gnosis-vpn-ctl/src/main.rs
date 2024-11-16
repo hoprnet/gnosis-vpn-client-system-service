@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context};
 use clap::{Parser, Subcommand};
 use std::io::{Read, Write};
 use std::os::unix::net;
+use url::Url;
 use std::path::Path;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
@@ -20,15 +21,13 @@ struct Cli {
 enum Commands {
     // Simple status command
     Status,
-    // Connect to wg server
-//     WgConnect {
-//         #[arg(short, long)]
-//         peer: String,
-//         #[arg(short, long)]
-//         allowed_ips: String,
-//         #[arg(short, long)]
-//         endpoint: String,
-//     },
+
+    EntryNode {
+        #[arg(short, long)]
+        endpoint: String,
+        #[arg(short, long)]
+        api_token: String,
+    },
 }
 
 fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
@@ -36,15 +35,10 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
 
     let typed_cmd = match cmd {
         Commands::Status => gnosis_vpn_lib::Command::Status,
-        // Commands::WgConnect {
-        //     peer,
-        //     allowed_ips,
-        //     endpoint,
-        // } => gnosis_vpn_lib::Command::WgConnect {
-        //     peer,
-        //     allowed_ips,
-        //     endpoint,
-        // },
+        Commands::EntryNode { endpoint, api_token } => gnosis_vpn_lib::Command::EntryNode {
+            endpoint: Url::parse(&endpoint).with_context(|| "invalid endpoint URL")?,
+            api_token,
+        },
     };
 
     let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
@@ -63,6 +57,7 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
 }
 
 fn handle_response(cmd: gnosis_vpn_lib::Command, mut sender: net::UnixStream) -> anyhow::Result<()> {
+    // handle responses only for certain commands
     match cmd {
         gnosis_vpn_lib::Command::Status => {
             let mut response = String::new();
@@ -70,6 +65,7 @@ fn handle_response(cmd: gnosis_vpn_lib::Command, mut sender: net::UnixStream) ->
             log::info!("response: {}", response);
             Ok(())
         }
+        _ => Ok(()),
 
     }
 }
