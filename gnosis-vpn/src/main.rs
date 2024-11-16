@@ -1,11 +1,13 @@
 use anyhow::{anyhow, Context};
-use url::Url;
 use clap::Parser;
 use std::fs;
 use std::io::{Read, Write};
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
+use url::Url;
+
+mod state;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -24,40 +26,53 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming_stream(state: &mut state::State, mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
     log::info!("incoming: {}", inc);
     let cmd = gnosis_vpn_lib::to_cmd(inc.as_ref())?;
-    incoming(cmd, stream)
+    incoming(state, stream, cmd)
 }
 
-fn incoming(cmd: gnosis_vpn_lib::Command, mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming(
+    state: &mut state::State,
+    mut stream: net::UnixStream,
+    cmd: gnosis_vpn_lib::Command,
+) -> anyhow::Result<()> {
     let res = match cmd {
-        gnosis_vpn_lib::Command::Status => status(),
-        gnosis_vpn_lib::Command::EntryNode{endpoint, api_token} => entry_node(endpoint, api_token),
+        gnosis_vpn_lib::Command::Status => status(state),
+        gnosis_vpn_lib::Command::EntryNode {
+            endpoint,
+            api_token,
+        } => entry_node(state, endpoint, api_token),
     }?;
 
-    if res.is_empty() {
+    if let Some(resp) = res {
+        stream
+            .write_all(resp.as_bytes())
+            .with_context(|| "failed to write response")?;
+        stream.flush().with_context(|| "failed to flush response")
+    } else {
         return Ok(());
     }
-
-    stream.write_all(res.as_bytes())?;
-    stream.flush()?;
-    Ok(())
 }
 
-fn status() -> anyhow::Result<String> {
-    Ok("idle".to_string())
+fn status(state: &state::State) -> anyhow::Result<Option<String>> {
+    Ok(Some(state.to_string()))
 }
 
-fn entry_node(endpoint: url::Url, api_token: String) -> anyhow::Result<String> {
-    Ok("ok".to_string())
+fn entry_node(
+    state: &mut state::State,
+    endpoint: Url,
+    api_token: String,
+) -> anyhow::Result<Option<String>> {
+    state.update_entry_node(endpoint, api_token);
+    state.update_status(state::Status::OpenSession);
+    Ok(None)
 }
 
-
-fn daemon(socket: &String) -> anyhow::Result<()> {
+fn daemon(state: &mut state::State, socket: &String) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
 
     let socket_path = Path::new(socket);
@@ -87,6 +102,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         }
     });
 
+    state.update_status(state::Status::Idle);
     log::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
@@ -96,9 +112,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
             }
             recv(receiver) -> stream => {
                 _ = match stream  {
-                    Ok(s) => {
-                incoming_stream(s)
-                    },
+                    Ok(s) => incoming_stream(state, s),
                     Err(x) => Err(anyhow!(x))
 
                 }
@@ -113,7 +127,8 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    let res = daemon(&args.socket);
+    let mut state = state::State::init();
+    let res = daemon(&mut state, &args.socket);
     match res {
         Ok(_) => log::info!("stopped gracefully"),
         Err(x) => log::error!("stopped with error: {}", x),
