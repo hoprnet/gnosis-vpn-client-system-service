@@ -19,6 +19,10 @@ mkShell {
     rust-analyzer
     rustfmt
 
+    # openssl-sys crate
+    pkg-config
+    openssl
+
     # custom pkg groups
     linuxPkgs
     macosPkgs
