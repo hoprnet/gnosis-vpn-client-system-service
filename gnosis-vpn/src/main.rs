@@ -5,7 +5,6 @@ use std::io::{Read, Write};
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
-use url::Url;
 
 mod core;
 
@@ -26,7 +25,7 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(state: &mut state::Core, mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming_stream(state: &mut core::Core, mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
@@ -36,7 +35,7 @@ fn incoming_stream(state: &mut state::Core, mut stream: net::UnixStream) -> anyh
 }
 
 fn incoming(
-    state: &mut state::Core,
+    state: &mut core::Core,
     mut stream: net::UnixStream,
     cmd: gnosis_vpn_lib::Command,
 ) -> anyhow::Result<()> {
@@ -45,19 +44,19 @@ fn incoming(
         gnosis_vpn_lib::Command::EntryNode {
             endpoint,
             api_token,
-        } => state.entry_node(state, endpoint, api_token),
-    }?;
+        } => state.entry_node(endpoint, api_token),
+    };
 
     if let Some(resp) = res {
         stream
             .write_all(resp.as_bytes())
             .with_context(|| "failed to write response")?;
-        stream.flush().with_context(|| "failed to flush response")
-    }
+        stream.flush().with_context(|| "failed to flush response")?
+    };
     Ok(())
 }
 
-fn daemon(state: &mut state::Core, socket: &String) -> anyhow::Result<()> {
+fn daemon(state: &mut core::Core, socket: &String) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
 
     let socket_path = Path::new(socket);
