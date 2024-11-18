@@ -1,7 +1,5 @@
-use futures::future::FutureExt;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
-use std::thread;
 use std::time::SystemTime;
 use url::Url;
 
@@ -81,8 +79,8 @@ impl Core {
         }
     }
 
-    async fn query_entry_node_info(&self) -> anyhow::Result<()> {
-        if let (Some(entry_node), Some(client)) = (self.entry_node, self.client) {
+    async fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
+        if let (Some(entry_node), Some(client)) = (&self.entry_node, &self.client) {
             let (s_addr, r_addr) = crossbeam_channel::bounded(0);
 
             let mut headers = HeaderMap::new();
@@ -90,7 +88,7 @@ impl Core {
                 header::CONTENT_TYPE,
                 HeaderValue::from_static("application/json"),
             );
-            let hv_token = HeaderValue::from_static(entry_node.api_token.as_str());
+            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
             hv_token.set_sensitive(true);
             headers.insert("x-auth-token", hv_token);
 
@@ -99,13 +97,13 @@ impl Core {
 
             let addresses = client
                 .get(url_addresses)
-                .headers(headers)
+                .headers(headers.clone())
                 .send()
                 .await?
                 .json::<serde_json::Value>()
                 .await?;
 
-            s_addr.send(addresses);
+            s_addr.send(addresses)?;
 
             let (s_peers, r_peers) = crossbeam_channel::bounded(0);
             let peers = client
@@ -116,11 +114,15 @@ impl Core {
                 .json::<serde_json::Value>()
                 .await?;
 
-            s_peers.send(peers);
+            s_peers.send(peers)?;
 
-            let addr = r_addr.recv();
-            let peers = r_peers.recv();
-        }
+            let addr = r_addr.recv()?;
+            let peers = r_peers.recv()?;
+            self.entry_node_info = Some(EntryNodeInfo {
+                addresses: addr,
+                peers,
+            });
+        };
         Ok(())
     }
 
