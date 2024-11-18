@@ -1,4 +1,7 @@
-use reqwest::header::HeaderValue;
+use futures::future::FutureExt;
+use reqwest::header;
+use reqwest::header::{HeaderMap, HeaderValue};
+use std::thread;
 use std::time::SystemTime;
 use url::Url;
 
@@ -40,8 +43,8 @@ impl Core {
         self.status = Status::Idle;
     }
 
-    pub fn status(&self) -> Option<String> {
-        Some(self.to_string())
+    pub fn status(&self) -> anyhow::Result<Option<String>> {
+        Ok(Some(self.to_string()))
     }
 
     pub fn entry_node(
@@ -78,62 +81,47 @@ impl Core {
         }
     }
 
-    fn query_entry_node_info(&self) -> anyhow::Result<()> {
-        if let Some(entry_node) = self.entry_node {
+    async fn query_entry_node_info(&self) -> anyhow::Result<()> {
+        if let (Some(entry_node), Some(client)) = (self.entry_node, self.client) {
             let (s_addr, r_addr) = crossbeam_channel::bounded(0);
 
-            let headers = headers::HeaderMap::new();
+            let mut headers = HeaderMap::new();
             headers.insert(
-                headers::CONTENT_TYPE,
+                header::CONTENT_TYPE,
                 HeaderValue::from_static("application/json"),
             );
-            headers.insert(
-                "x-auth-token",
-                HeaderValue::from_static(entry_node.api_token),
-            );
+            let hv_token = HeaderValue::from_static(entry_node.api_token.as_str());
+            hv_token.set_sensitive(true);
+            headers.insert("x-auth-token", hv_token);
 
-            let url_addresses = entry_node
-                .endpoint
-                .join("/api/v3/account/addresses")
-                .with_context(|| "failed to join address")?;
-            let url_peers = entry_node
-                .endpoint
-                .join("/api/v3/node/peers")
-                .with_context(|| "failed to join peers")?;
+            let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
+            let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
 
-            thread::spawn(move || {
-                let addresses = self
-                    .client
-                    .get(url_addresses)
-                    .headers(headers)
-                    .send()
-                    .await
-                    .and_then(|r| r.json::<serde_json::Value>().await);
+            let addresses = client
+                .get(url_addresses)
+                .headers(headers)
+                .send()
+                .await?
+                .json::<serde_json::Value>()
+                .await?;
 
-                s_addr
-                    .send(addresses)
-                    .with_context(|| "failed to send addresses response");
-            });
+            s_addr.send(addresses);
 
             let (s_peers, r_peers) = crossbeam_channel::bounded(0);
-            thread::spawn(move || {
-                let peers = self
-                    .client
-                    .get(url_peers)
-                    .headers(headers)
-                    .send()
-                    .await
-                    .and_then(|r| r.json::<serde_json::Value>().await);
+            let peers = client
+                .get(url_peers)
+                .headers(headers)
+                .send()
+                .await?
+                .json::<serde_json::Value>()
+                .await?;
 
-                s_peers
-                    .send(peers)
-                    .with_context(|| "failed to send peers response");
-            });
+            s_peers.send(peers);
 
-            let addr = recv(r_addr).with_context(|| "failed to receive addresses response")?;
-            let peers = recv(r_peers).with_context(|| "failed to receive peers response")?;
-            Ok(())
+            let addr = r_addr.recv();
+            let peers = r_peers.recv();
         }
+        Ok(())
     }
 
     /*

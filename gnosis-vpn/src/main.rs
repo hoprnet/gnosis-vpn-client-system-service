@@ -45,7 +45,7 @@ fn incoming(
             endpoint,
             api_token,
         } => state.entry_node(endpoint, api_token),
-    };
+    }?;
 
     if let Some(resp) = res {
         stream
