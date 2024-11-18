@@ -7,7 +7,7 @@ use std::path::Path;
 use std::thread;
 use url::Url;
 
-mod state;
+mod core;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -26,7 +26,7 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(state: &mut state::State, mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming_stream(state: &mut state::Core, mut stream: net::UnixStream) -> anyhow::Result<()> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
@@ -36,16 +36,16 @@ fn incoming_stream(state: &mut state::State, mut stream: net::UnixStream) -> any
 }
 
 fn incoming(
-    state: &mut state::State,
+    state: &mut state::Core,
     mut stream: net::UnixStream,
     cmd: gnosis_vpn_lib::Command,
 ) -> anyhow::Result<()> {
     let res = match cmd {
-        gnosis_vpn_lib::Command::Status => status(state),
+        gnosis_vpn_lib::Command::Status => state.status(),
         gnosis_vpn_lib::Command::EntryNode {
             endpoint,
             api_token,
-        } => entry_node(state, endpoint, api_token),
+        } => state.entry_node(state, endpoint, api_token),
     }?;
 
     if let Some(resp) = res {
@@ -53,26 +53,11 @@ fn incoming(
             .write_all(resp.as_bytes())
             .with_context(|| "failed to write response")?;
         stream.flush().with_context(|| "failed to flush response")
-    } else {
-        Ok(())
     }
+    Ok(())
 }
 
-fn status(state: &state::State) -> anyhow::Result<Option<String>> {
-    Ok(Some(state.to_string()))
-}
-
-fn entry_node(
-    state: &mut state::State,
-    endpoint: Url,
-    api_token: String,
-) -> anyhow::Result<Option<String>> {
-    state.update_entry_node(endpoint, api_token);
-    state.update_status(state::Status::OpenSession);
-    Ok(None)
-}
-
-fn daemon(state: &mut state::State, socket: &String) -> anyhow::Result<()> {
+fn daemon(state: &mut state::Core, socket: &String) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
 
     let socket_path = Path::new(socket);
@@ -86,8 +71,6 @@ fn daemon(state: &mut state::State, socket: &String) -> anyhow::Result<()> {
     }?;
 
     let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
-
-    let sender = sender.clone();
     thread::spawn(move || {
         for stream in listener.incoming() {
             _ = match stream {
@@ -102,7 +85,7 @@ fn daemon(state: &mut state::State, socket: &String) -> anyhow::Result<()> {
         }
     });
 
-    state.update_status(state::Status::Idle);
+    state.started();
     log::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
@@ -127,7 +110,7 @@ fn daemon(state: &mut state::State, socket: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    let mut state = state::State::init();
+    let mut state = core::Core::init();
     let res = daemon(&mut state, &args.socket);
     match res {
         Ok(_) => log::info!("stopped gracefully"),
