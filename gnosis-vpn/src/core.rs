@@ -3,6 +3,7 @@ use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::SystemTime;
 use url::Url;
+use std::thread;
 
 pub enum Event {
     GotAddresses { value: serde_json::Value },
@@ -99,10 +100,8 @@ impl Core {
         }
     }
 
-    async fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
+    fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
         if let (Some(entry_node), Some(client)) = (&self.entry_node, &self.client) {
-            let (s_addr, r_addr) = crossbeam_channel::bounded(0);
-
             let mut headers = HeaderMap::new();
             headers.insert(
                 header::CONTENT_TYPE,
@@ -115,32 +114,33 @@ impl Core {
             let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
             let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
 
-            let addresses = client
-                .get(url_addresses)
-                .headers(headers.clone())
-                .send()
-                .await?
-                .json::<serde_json::Value>()
-                .await?;
 
-            s_addr.send(addresses)?;
+            thread::spawn(move || async {
+                let addresses = client
+                    .get(url_addresses)
+                    .headers(headers.clone())
+                    .send()
+                    .await
+                    .unwrap()
+                    .json::<serde_json::Value>()
+                    .await
+                    .unwrap();
 
-            let (s_peers, r_peers) = crossbeam_channel::bounded(0);
-            let peers = client
-                .get(url_peers)
-                .headers(headers)
-                .send()
-                .await?
-                .json::<serde_json::Value>()
-                .await?;
+                self.sender.send(addresses).unwrap();
+            });
 
-            s_peers.send(peers)?;
+            thread::spawn(move || async {
+                let peers = client
+                    .get(url_peers)
+                    .headers(headers)
+                    .send()
+                    .await
+                    .unwrap()
+                    .json::<serde_json::Value>()
+                    .await
+                    .unwrap();
 
-            let addr = r_addr.recv()?;
-            let peers = r_peers.recv()?;
-            self.entry_node_info = Some(EntryNodeInfo {
-                addresses: addr,
-                peers,
+                self.sender.send(peers).unwrap();
             });
         };
         Ok(())
