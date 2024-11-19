@@ -5,15 +5,18 @@ use std::time::SystemTime;
 use url::Url;
 use std::thread;
 
+// TODO
 pub enum Event {
     GotAddresses { value: serde_json::Value },
+    GotPeers { value: serde_json::Value },
 }
 
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
     client: Option<reqwest::Client>,
-    entry_node_info: Option<EntryNodeInfo>,
+    entry_node_addresses: Option<serde_json::Value>,
+    entry_node_peers: Option<serde_json::Value>,
     sender: crossbeam_channel::Sender<Event>,
 }
 
@@ -27,18 +30,13 @@ struct EntryNode {
     api_token: String,
 }
 
-// TODO
-struct EntryNodeInfo {
-    addresses: serde_json::Value,
-    peers: serde_json::Value,
-}
-
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
         Core {
             status: Status::Idle,
             entry_node: None,
-            entry_node_info: None,
+            entry_node_addresses: None,
+            entry_node_peers: None,
             client: Some(reqwest::Client::new()),
             sender,
         }
@@ -58,9 +56,15 @@ impl Core {
         match event {
             Event::GotAddresses { value } => {
                 log::info!("got addresses: {}", value);
-                Ok(())
+                self.entry_node_addresses = Some(value);
             }
+            Event:: GotPeers { value } => {
+                log::info!("got peers: {}", value);
+                self.entry_node_peers = Some(value);
+            }
+
         }
+                Ok(())
     }
 
     pub fn status(&self) -> anyhow::Result<Option<String>> {
@@ -79,10 +83,10 @@ impl Core {
 
         match self.status {
             Status::Idle => {
-                self.status = Status::OpeningSession {
+                /*self.status = Status::OpeningSession {
                     start_time: SystemTime::now(),
-                };
-                self.query_entry_node_info();
+                };*/
+                self.query_entry_node_info()?;
                 Ok(None)
             }
             _ => Ok(None),
@@ -91,7 +95,31 @@ impl Core {
 
     pub fn to_string(&self) -> String {
         match self.status {
-            Status::Idle => "idle".to_string(),
+            Status::Idle => {
+                let mut info = "idle".to_string();
+                if let Some(entry_node) = &self.entry_node {
+                    info = format!(
+                        "{}: entry node: {}",
+                        info,
+                        entry_node.endpoint.as_str()
+                    )
+                }
+                if let Some(entry_node_addresses) = &self.entry_node_addresses {
+                    info = format!(
+                        "{}: addresses: {}",
+                        info,
+                        entry_node_addresses
+                    )
+                }
+                if let Some(entry_node_peers) = &self.entry_node_peers {
+                    info = format!(
+                        "{}: peers: {}",
+                        info,
+                        entry_node_peers
+                    )
+                }
+                info
+            },
             Status::OpeningSession { start_time } => format!(
                 "for {}ms: open session to {}",
                 start_time.elapsed().unwrap().as_millis(),
@@ -112,16 +140,13 @@ impl Core {
             headers.insert("x-auth-token", hv_token);
 
             let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
-            // let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
-
-
             let sender = self.sender.clone();
-            let c = client.clone();
-            let h = headers.clone();
-            thread::spawn(move || async {
-                let addresses = c
+            let c1 = client.clone();
+            let h1 = headers.clone();
+            thread::spawn(|| async move {
+                let addresses = c1
                     .get(url_addresses)
-                    .headers(h)
+                    .headers(h1)
                     .send()
                     .await
                     .unwrap()
@@ -132,11 +157,14 @@ impl Core {
                 sender.send(Event::GotAddresses{ value: addresses}).unwrap();
             });
 
-            /*
-            thread::spawn(move || async {
-                let peers = client
+            let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
+            let sender = self.sender.clone();
+            let c2 = client.clone();
+            let h2 = headers.clone();
+            thread::spawn(|| async move {
+                let peers = c2
                     .get(url_peers)
-                    .headers(headers)
+                    .headers(h2)
                     .send()
                     .await
                     .unwrap()
@@ -144,9 +172,8 @@ impl Core {
                     .await
                     .unwrap();
 
-                self.sender.send(peers).unwrap();
+                sender.send(Event::GotPeers{ value: peers }).unwrap();
             });
-            */
         };
         Ok(())
     }
