@@ -14,7 +14,7 @@ pub enum Event {
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
-    client: Option<reqwest::Client>,
+    client: reqwest::Client,
     entry_node_addresses: Option<serde_json::Value>,
     entry_node_peers: Option<serde_json::Value>,
     sender: crossbeam_channel::Sender<Event>,
@@ -37,12 +37,13 @@ impl Core {
             entry_node: None,
             entry_node_addresses: None,
             entry_node_peers: None,
-            client: Some(reqwest::Client::new()),
+            client: reqwest::Client::new(),
             sender,
         }
     }
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
+        log::info!("handling command: {}", cmd);
         match cmd {
             Command::Status => self.status(),
             Command::EntryNode {
@@ -129,7 +130,7 @@ impl Core {
     }
 
     fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
-        if let (Some(entry_node), Some(client)) = (&self.entry_node, &self.client) {
+        if let Some(entry_node) = &self.entry_node {
             let mut headers = HeaderMap::new();
             headers.insert(
                 header::CONTENT_TYPE,
@@ -141,9 +142,10 @@ impl Core {
 
             let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
             let sender = self.sender.clone();
-            let c1 = client.clone();
+            let c1 = self.client.clone();
             let h1 = headers.clone();
             thread::spawn(|| async move {
+                log::info!("querying addresses {}", url_addresses);
                 let addresses = c1
                     .get(url_addresses)
                     .headers(h1)
@@ -159,9 +161,10 @@ impl Core {
 
             let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
             let sender = self.sender.clone();
-            let c2 = client.clone();
+            let c2 = self.client.clone();
             let h2 = headers.clone();
             thread::spawn(|| async move {
+                log::info!("querying peers {}", url_peers);
                 let peers = c2
                     .get(url_peers)
                     .headers(h2)
