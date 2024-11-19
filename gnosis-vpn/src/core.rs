@@ -3,6 +3,7 @@ use reqwest::blocking;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::fmt;
+use serde::{Deserialize, Serialize};
 use std::thread;
 use std::time::SystemTime;
 use url::Url;
@@ -12,9 +13,10 @@ pub enum Event {
     GotAddresses { value: serde_json::Value },
     GotPeers { value: serde_json::Value },
     GotSession { value: serde_json::Value },
-    ListSesssions { value: serde_json::Value },
+    ListSesssions { resp: Vec<ListSessionsEntry> },
     CheckSession,
 }
+
 
 pub struct Core {
     status: Status,
@@ -30,7 +32,7 @@ pub struct Core {
 enum Status {
     Idle,
     OpeningSession { start_time: SystemTime },
-    MonitoringSession { start_time: SystemTime, port: u16 },
+    MonitoringSession { start_time: SystemTime},
     ListingSessions { start_time: SystemTime },
 }
 
@@ -41,6 +43,14 @@ struct EntryNode {
 
 struct ExitNode {
     peer_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ListSessionsEntry {
+target: String,
+protocol: String,
+ip: String,
+port: u16,
 }
 
 impl Core {
@@ -90,8 +100,8 @@ impl Core {
             Event::CheckSession => {
                 self.check_list_sessions()?;
             }
-            Event::ListSesssions { value } => {
-                log::info!("todo");
+            Event::ListSesssions { resp } => {
+                self.verify_session(resp)?;
             }
         }
         Ok(())
@@ -166,13 +176,7 @@ impl Core {
 
     fn check_list_sessions(&mut self) -> anyhow::Result<()> {
         match (&self.status, &self.entry_node) {
-            (
-                Status::MonitoringSession {
-                    start_time,
-                    port: _,
-                },
-                Some(entry_node),
-            ) => {
+            ( Status::MonitoringSession { start_time }, Some(entry_node)) => {
                 if start_time.elapsed().unwrap().as_secs() > 3 {
                     self.status = Status::ListingSessions {
                         start_time: SystemTime::now(),
@@ -297,14 +301,32 @@ impl Core {
                 .headers(h)
                 .send()
                 .unwrap()
-                .json::<serde_json::Value>()
+                .json()
                 .unwrap();
 
             sender
-                .send(Event::ListSesssions { value: sessions })
+                .send(Event::ListSesssions { resp: sessions })
                 .unwrap();
         });
         Ok(())
+    }
+
+    fn verify_session(&self, resp: Vec<ListSessionsEntry>) -> anyhow::Result<()> {
+        let session_listed = resp.iter().any(|entry|
+            entry.target.eq_ignore_ascii_case("wireguard.staging.hoprnet.link:51820")
+                && entry.protocol.eq_ignore_ascii_case("udp")
+                && entry.port == 60006
+        );
+
+        if session_listed {
+            log::info!("session verified open");
+            self.status = Status::MonitoringSession { start_time: SystemTime::now() };
+            self.check_list_sessions()
+        } else {
+            log::info!("session no longer open");
+            self.status = Status::Idle;
+            self.check_open_session()
+        }
     }
 }
 
@@ -314,7 +336,7 @@ impl fmt::Display for Event {
             Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
             Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
             Event::GotSession { value } => write!(f, "GotSession: {}", value),
-            Event::ListSesssions { value } => write!(f, "ListSesssions: {}", value),
+            Event::ListSesssions { resp } => write!(f, "ListSesssions: {}", resp.len()),
             Event::CheckSession => write!(f, "CheckSession"),
         }
     }
