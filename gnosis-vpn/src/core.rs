@@ -122,6 +122,13 @@ impl Core {
                         entry_node_peers
                     )
                 }
+                if let Some(exit_node) = &self.exit_node {
+                    info = format!(
+                        "{} | exit_node: {}",
+                        info,
+                        exit_node.peer_id.as_str()
+                    )
+                }
                 info
             },
             Status::OpeningSession { start_time } => format!(
