@@ -4,11 +4,16 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::SystemTime;
 use url::Url;
 
+pub enum Event {
+    GotAddresses { value: serde_json::Value },
+}
+
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
     client: Option<reqwest::Client>,
     entry_node_info: Option<EntryNodeInfo>,
+    sender: crossbeam_channel::Sender<Event>,
 }
 
 enum Status {
@@ -28,12 +33,13 @@ struct EntryNodeInfo {
 }
 
 impl Core {
-    pub fn init() -> Core {
+    pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
         Core {
             status: Status::Idle,
             entry_node: None,
             entry_node_info: None,
             client: Some(reqwest::Client::new()),
+            sender,
         }
     }
 
@@ -44,6 +50,15 @@ impl Core {
                 endpoint,
                 api_token,
             } => self.entry_node(endpoint, api_token),
+        }
+    }
+
+    pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
+        match event {
+            Event::GotAddresses { value } => {
+                log::info!("got addresses: {}", value);
+                Ok(())
+            }
         }
     }
 

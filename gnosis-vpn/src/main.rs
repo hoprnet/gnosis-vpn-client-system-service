@@ -71,7 +71,8 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         }
     });
 
-    let mut state = core::Core::init();
+    let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<core::Event>();
+    let mut state = core::Core::init(sender_core_loop);
     log::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
@@ -91,6 +92,15 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
                     log::error!("error handling incoming stream: {:?}", x);
                 }
             },
+            recv(receiver_core_loop) -> event => {
+                let res = match event {
+                    Ok(evt) => state.handle_event(evt),
+                    Err(x) => Err(anyhow!(x))
+                };
+                if let Err(x) = res {
+                    log::error!("error handling event: {:?}", x);
+                }
+            }
         }
     }
 
