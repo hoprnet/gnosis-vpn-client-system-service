@@ -7,14 +7,13 @@ use std::thread;
 use std::time::SystemTime;
 use url::Url;
 
-
 // TODO
 pub enum Event {
     GotAddresses { value: serde_json::Value },
     GotPeers { value: serde_json::Value },
     GotSession { value: serde_json::Value },
     ListSesssions { value: serde_json::Value },
-    MonitorTick,
+    CheckSession,
 }
 
 pub struct Core {
@@ -32,7 +31,7 @@ enum Status {
     Idle,
     OpeningSession { start_time: SystemTime },
     MonitoringSession {start_time: SystemTime, port: u16},
-    CheckingSession { start_time: SystemTime },
+    ListingSessions { start_time: SystemTime },
 }
 
 struct EntryNode {
@@ -60,16 +59,14 @@ impl Core {
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
         log::info!("handling command: {}", cmd);
-        let res = match cmd {
+        match cmd {
             Command::Status => self.status(),
             Command::EntryNode {
                 endpoint,
                 api_token,
             } => self.entry_node(endpoint, api_token),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
-        };
-        self.act()?;
-            res
+        }
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
@@ -88,16 +85,16 @@ impl Core {
                     start_time: SystemTime::now(),
                     port: 60006,
                 };
+                self.check_list_sessions()?;
+            },
+            Event::CheckSession => {
+                self.check_list_sessions()?;
             },
             Event::ListSesssions { value } => {
                 log::info!("todo");
             },
-            Event::MonitorTick => {
-                log::info!("todo");
-            },
         }
-        self.act()?;
-                Ok(())
+        Ok(())
     }
 
     pub fn to_string(&self) -> String {
@@ -137,8 +134,8 @@ impl Core {
                 start_time.elapsed().unwrap().as_millis(),
                 port
             ),
-            Status::CheckingSession { start_time } => format!(
-                "for {}ms: checking session",
+            Status::ListingSessions { start_time } => format!(
+                "for {}ms: listing sessions",
                 start_time.elapsed().unwrap().as_millis()
             ),
         }
@@ -159,36 +156,47 @@ impl Core {
             api_token,
         });
                 self.query_entry_node_info()?;
+                self.check_open_session()?;
                 Ok(None)
 
     }
 
     fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
         self.exit_node = Some(ExitNode { peer_id });
+        self.check_open_session()?;
             Ok(None)
     }
 
-    fn act(&mut self) -> anyhow::Result<()> {
-        match &self.status {
-            Status::Idle => {
-                if let (Some(entry_node), Some(exit_node)) = (&self.entry_node, &self.exit_node) {
+    fn check_open_session(&mut self) -> anyhow::Result<()> {
+        match (&self.status, &self.entry_node, &self.exit_node) {
+            (Status::Idle, Some(entry_node), Some(exit_node)) => {
                 self.status = Status::OpeningSession {
                     start_time: SystemTime::now(),
                 };
-                    self.open_session(entry_node, exit_node)?
-                }
-                Ok(())
-            },
-            Status::MonitoringSession { start_time, port: _ } => {
-                if start_time.elapsed().unwrap().as_secs() > 10 {
-                    self.status = Status::CheckingSession { start_time: SystemTime::now() };
-                    self.check_session()?
-                } else {
-                    self.queue_monitor_tick();
-                }
-                Ok(())
+                self.open_session(entry_node, exit_node)
             }
-            _ => Ok(())
+            _ => Ok(()),
+        }
+    }
+
+    fn check_list_sessions(&mut self) -> anyhow::Result<()> {
+        match (&self.status, &self.entry_node) {
+            (Status::MonitoringSession { start_time, port: _ }, Some(entry_node)) => {
+                if start_time.elapsed().unwrap().as_secs() > 3 {
+                    self.status = Status::ListingSessions {
+                        start_time: SystemTime::now(),
+                    };
+                    self.list_sessions(entry_node)
+                } else {
+                    let sender = self.sender.clone();
+                    thread::spawn(move || {
+                        thread::sleep(std::time::Duration::from_millis(333));
+                        sender.send(Event::CheckSession).unwrap();
+                    });
+                    Ok(())
+                }
+            }
+            _ => Ok(()),
         }
     }
 
@@ -276,8 +284,7 @@ impl Core {
         Ok(())
     }
 
-    fn check_session(&self) -> anyhow::Result<()> {
-        if let Some(entry_node) = &self.entry_node {
+    fn list_sessions(&self, entry_node: &EntryNode) -> anyhow::Result<()> {
             let mut headers = HeaderMap::new();
             headers.insert(
                 header::CONTENT_TYPE,
@@ -302,17 +309,9 @@ impl Core {
 
                 sender.send(Event::ListSesssions{ value: sessions}).unwrap();
             });
-        }
         Ok(())
     }
 
-    fn queue_monitor_tick(&self) {
-        let sender = self.sender.clone();
-        thread::spawn(move || {
-            thread::sleep(std::time::Duration::from_secs(1));
-            sender.send(Event::MonitorTick).unwrap();
-        });
-    }
 }
 
 impl fmt::Display for Event {
@@ -321,8 +320,8 @@ impl fmt::Display for Event {
             Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
             Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
             Event::GotSession { value } => write!(f, "GotSession: {}", value),
-            Event::MonitorTick => write!(f, "MonitorTick"),
             Event::ListSesssions { value } => write!(f, "ListSesssions: {}", value),
+            Event::CheckSession => write!(f, "CheckSession"),
         }
     }
 }
