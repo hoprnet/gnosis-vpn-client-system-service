@@ -8,6 +8,7 @@ use url::Url;
 pub enum Command {
     Status,
     EntryNode { endpoint: Url, api_token: String },
+    ExitNode { peer_id: String },
 }
 
 pub fn to_cmd(data: &str) -> anyhow::Result<Command> {

@@ -29,7 +29,6 @@ fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_li
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
-    log::info!("incoming: {}", inc);
     gnosis_vpn_lib::to_cmd(inc.as_ref())
 }
 

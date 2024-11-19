@@ -2,6 +2,7 @@ use gnosis_vpn_lib::Command;
 use reqwest::header;
 use reqwest::blocking;
 use reqwest::header::{HeaderMap, HeaderValue};
+use std::fmt;
 use std::time::SystemTime;
 use url::Url;
 use std::thread;
@@ -15,6 +16,7 @@ pub enum Event {
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
+    exit_node: Option<ExitNode>,
     client: blocking::Client,
     entry_node_addresses: Option<serde_json::Value>,
     entry_node_peers: Option<serde_json::Value>,
@@ -31,11 +33,16 @@ struct EntryNode {
     api_token: String,
 }
 
+struct ExitNode {
+    peer_id: String,
+}
+
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
         Core {
             status: Status::Idle,
             entry_node: None,
+            exit_node: None,
             entry_node_addresses: None,
             entry_node_peers: None,
             client: blocking::Client::new(),
@@ -51,48 +58,24 @@ impl Core {
                 endpoint,
                 api_token,
             } => self.entry_node(endpoint, api_token),
+            Command::ExitNode {
+                peer_id,
+            } => self.exit_node(peer_id),
         }
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
+        log::info!("handling event: {}", event);
         match event {
             Event::GotAddresses { value } => {
-                log::info!("got addresses: {}", value);
                 self.entry_node_addresses = Some(value);
             }
             Event:: GotPeers { value } => {
-                log::info!("got peers: {}", value);
                 self.entry_node_peers = Some(value);
             }
 
         }
                 Ok(())
-    }
-
-    pub fn status(&self) -> anyhow::Result<Option<String>> {
-        Ok(Some(self.to_string()))
-    }
-
-    pub fn entry_node(
-        &mut self,
-        endpoint: Url,
-        api_token: String,
-    ) -> anyhow::Result<Option<String>> {
-        self.entry_node = Some(EntryNode {
-            endpoint,
-            api_token,
-        });
-
-        match self.status {
-            Status::Idle => {
-                /*self.status = Status::OpeningSession {
-                    start_time: SystemTime::now(),
-                };*/
-                self.query_entry_node_info()?;
-                Ok(None)
-            }
-            _ => Ok(None),
-        }
     }
 
     pub fn to_string(&self) -> String {
@@ -130,8 +113,45 @@ impl Core {
         }
     }
 
+
+    fn status(&self) -> anyhow::Result<Option<String>> {
+        Ok(Some(self.to_string()))
+    }
+
+    fn entry_node(
+        &mut self,
+        endpoint: Url,
+        api_token: String,
+    ) -> anyhow::Result<Option<String>> {
+        self.entry_node = Some(EntryNode {
+            endpoint,
+            api_token,
+        });
+                self.query_entry_node_info()?;
+                self.act()?;
+                Ok(None)
+
+    }
+
+    fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
+        self.exit_node = Some(ExitNode { peer_id });
+        self.act()?;
+            Ok(None)
+    }
+
+    fn act(&mut self) -> anyhow::Result<()> {
+        match &self.status {
+            Status::Idle => {
+                if let (Some(entry_node), Some(exit_node)) = (&self.entry_node, &self.exit_node) {
+                    self.open_session(entry_node, exit_node)?
+                }
+                Ok(())
+            }
+            _ => Ok(())
+        }
+    }
+
     fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
-        log::info!("querying entry node info");
         if let Some(entry_node) = &self.entry_node {
             let mut headers = HeaderMap::new();
             headers.insert(
@@ -146,9 +166,7 @@ impl Core {
             let sender = self.sender.clone();
             let c1 = self.client.clone();
             let h1 = headers.clone();
-                log::info!("spawning thread {}", url_addresses);
             thread::spawn(move || {
-                log::info!("querying addresses {}", url_addresses);
                 let addresses = c1
                     .get(url_addresses)
                     .headers(h1)
@@ -165,7 +183,6 @@ impl Core {
             let c2 = self.client.clone();
             let h2 = headers.clone();
             thread::spawn(move || {
-                log::info!("querying peers {}", url_peers);
                 let peers = c2
                     .get(url_peers)
                     .headers(h2)
@@ -177,6 +194,10 @@ impl Core {
                 sender.send(Event::GotPeers{ value: peers }).unwrap();
             });
         };
+        Ok(())
+    }
+
+    fn open_session(&self) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -241,4 +262,13 @@ impl Core {
         }
 
     */
+}
+
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
+            Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
+        }
+    }
 }
