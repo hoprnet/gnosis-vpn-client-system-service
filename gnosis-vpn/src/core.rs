@@ -112,13 +112,16 @@ impl Core {
             headers.insert("x-auth-token", hv_token);
 
             let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
-            let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
+            // let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
 
 
+            let sender = self.sender.clone();
+            let c = client.clone();
+            let h = headers.clone();
             thread::spawn(move || async {
-                let addresses = client
+                let addresses = c
                     .get(url_addresses)
-                    .headers(headers.clone())
+                    .headers(h)
                     .send()
                     .await
                     .unwrap()
@@ -126,7 +129,7 @@ impl Core {
                     .await
                     .unwrap();
 
-                self.sender.send(Event::GotAddresses{ value: addresses}).unwrap();
+                sender.send(Event::GotAddresses{ value: addresses}).unwrap();
             });
 
             /*
