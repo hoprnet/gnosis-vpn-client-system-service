@@ -126,9 +126,10 @@ impl Core {
                     .await
                     .unwrap();
 
-                self.sender.send(addresses).unwrap();
+                self.sender.send(Event::GotAddresses{ value: addresses}).unwrap();
             });
 
+            /*
             thread::spawn(move || async {
                 let peers = client
                     .get(url_peers)
@@ -142,6 +143,7 @@ impl Core {
 
                 self.sender.send(peers).unwrap();
             });
+            */
         };
         Ok(())
     }
