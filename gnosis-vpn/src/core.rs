@@ -13,6 +13,8 @@ pub enum Event {
     GotAddresses { value: serde_json::Value },
     GotPeers { value: serde_json::Value },
     GotSession { value: serde_json::Value },
+    ListSesssions { value: serde_json::Value },
+    MonitorTick,
 }
 
 pub struct Core {
@@ -22,12 +24,15 @@ pub struct Core {
     client: blocking::Client,
     entry_node_addresses: Option<serde_json::Value>,
     entry_node_peers: Option<serde_json::Value>,
+    entry_node_session: Option<serde_json::Value>,
     sender: crossbeam_channel::Sender<Event>,
 }
 
 enum Status {
     Idle,
     OpeningSession { start_time: SystemTime },
+    MonitoringSession {start_time: SystemTime, port: u16},
+    CheckingSession { start_time: SystemTime },
 }
 
 struct EntryNode {
@@ -47,6 +52,7 @@ impl Core {
             exit_node: None,
             entry_node_addresses: None,
             entry_node_peers: None,
+            entry_node_session: None,
             client: blocking::Client::new(),
             sender,
         }
@@ -54,14 +60,16 @@ impl Core {
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
         log::info!("handling command: {}", cmd);
-        match cmd {
+        let res = match cmd {
             Command::Status => self.status(),
             Command::EntryNode {
                 endpoint,
                 api_token,
             } => self.entry_node(endpoint, api_token),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
-        }
+        };
+        self.act()?;
+            res
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
@@ -75,9 +83,20 @@ impl Core {
             }
 
             Event::GotSession {value} => {
-                log::info!("GotSession: {}", value);
-            }
+                self.entry_node_session = Some(value);
+                self.status = Status::MonitoringSession {
+                    start_time: SystemTime::now(),
+                    port: 60006,
+                };
+            },
+            Event::ListSesssions { value } => {
+                log::info!("todo");
+            },
+            Event::MonitorTick => {
+                log::info!("todo");
+            },
         }
+        self.act()?;
                 Ok(())
     }
 
@@ -113,6 +132,15 @@ impl Core {
                 start_time.elapsed().unwrap().as_millis(),
                 self.entry_node.as_ref().unwrap().endpoint
             ),
+            Status::MonitoringSession { start_time, port} => format!(
+                "for {}ms: monitoring session on port {}",
+                start_time.elapsed().unwrap().as_millis(),
+                port
+            ),
+            Status::CheckingSession { start_time } => format!(
+                "for {}ms: checking session",
+                start_time.elapsed().unwrap().as_millis()
+            ),
         }
     }
 
@@ -131,14 +159,12 @@ impl Core {
             api_token,
         });
                 self.query_entry_node_info()?;
-                self.act()?;
                 Ok(None)
 
     }
 
     fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
         self.exit_node = Some(ExitNode { peer_id });
-        self.act()?;
             Ok(None)
     }
 
@@ -150,6 +176,15 @@ impl Core {
                     start_time: SystemTime::now(),
                 };
                     self.open_session(entry_node, exit_node)?
+                }
+                Ok(())
+            },
+            Status::MonitoringSession { start_time, port: _ } => {
+                if start_time.elapsed().unwrap().as_secs() > 10 {
+                    self.status = Status::CheckingSession { start_time: SystemTime::now() };
+                    self.check_session()?
+                } else {
+                    self.queue_monitor_tick();
                 }
                 Ok(())
             }
@@ -241,6 +276,43 @@ impl Core {
         Ok(())
     }
 
+    fn check_session(&self) -> anyhow::Result<()> {
+        if let Some(entry_node) = &self.entry_node {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
+            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
+            hv_token.set_sensitive(true);
+            headers.insert("x-auth-token", hv_token);
+
+            let url = entry_node.endpoint.join("/api/v3/session/udp")?;
+            let sender = self.sender.clone();
+            let c = self.client.clone();
+            let h = headers.clone();
+            thread::spawn(move || {
+                let sessions = c
+                    .get(url)
+                    .headers(h)
+                    .send()
+                    .unwrap()
+                    .json::<serde_json::Value>()
+                    .unwrap();
+
+                sender.send(Event::ListSesssions{ value: sessions}).unwrap();
+            });
+        }
+        Ok(())
+    }
+
+    fn queue_monitor_tick(&self) {
+        let sender = self.sender.clone();
+        thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_secs(1));
+            sender.send(Event::MonitorTick).unwrap();
+        });
+    }
 }
 
 impl fmt::Display for Event {
@@ -249,6 +321,8 @@ impl fmt::Display for Event {
             Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
             Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
             Event::GotSession { value } => write!(f, "GotSession: {}", value),
+            Event::MonitorTick => write!(f, "MonitorTick"),
+            Event::ListSesssions { value } => write!(f, "ListSesssions: {}", value),
         }
     }
 }
