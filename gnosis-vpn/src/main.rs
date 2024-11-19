@@ -56,11 +56,11 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
+    let (sender_socket, receiver_socket) = crossbeam_channel::unbounded::<net::UnixStream>();
     thread::spawn(move || {
         for stream in listener.incoming() {
             _ = match stream {
-                Ok(stream) => sender
+                Ok(stream) => sender_socket
                     .send(stream)
                     .with_context(|| "failed to send stream to channel"),
                 Err(x) => {
@@ -79,7 +79,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
                 log::info!("shutting down");
                 break;
             }
-            recv(receiver) -> stream => {
+            recv(receiver_socket) -> stream => {
                 let res = match stream  {
                     Ok(mut s) =>
                         incoming_stream(&mut s)
