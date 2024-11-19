@@ -1,7 +1,7 @@
 use gnosis_vpn_lib::Command;
 use reqwest::blocking;
-use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::header;
+use reqwest::header::{HeaderMap, HeaderValue};
 use std::fmt;
 use std::thread;
 use std::time::SystemTime;
@@ -30,7 +30,7 @@ pub struct Core {
 enum Status {
     Idle,
     OpeningSession { start_time: SystemTime },
-    MonitoringSession {start_time: SystemTime, port: u16},
+    MonitoringSession { start_time: SystemTime, port: u16 },
     ListingSessions { start_time: SystemTime },
 }
 
@@ -75,24 +75,24 @@ impl Core {
             Event::GotAddresses { value } => {
                 self.entry_node_addresses = Some(value);
             }
-            Event:: GotPeers { value } => {
+            Event::GotPeers { value } => {
                 self.entry_node_peers = Some(value);
             }
 
-            Event::GotSession {value} => {
+            Event::GotSession { value } => {
                 self.entry_node_session = Some(value);
                 self.status = Status::MonitoringSession {
                     start_time: SystemTime::now(),
                     port: 60006,
                 };
                 self.check_list_sessions()?;
-            },
+            }
             Event::CheckSession => {
                 self.check_list_sessions()?;
-            },
+            }
             Event::ListSesssions { value } => {
                 log::info!("todo");
-            },
+            }
         }
         Ok(())
     }
@@ -102,41 +102,25 @@ impl Core {
             Status::Idle => {
                 let mut info = "idle".to_string();
                 if let Some(entry_node) = &self.entry_node {
-                    info = format!(
-                        "{} | entry node: {}",
-                        info,
-                        entry_node.endpoint.as_str()
-                    )
+                    info = format!("{} | entry node: {}", info, entry_node.endpoint.as_str())
                 }
                 if let Some(entry_node_addresses) = &self.entry_node_addresses {
-                    info = format!(
-                        "{} | addresses: {}",
-                        info,
-                        entry_node_addresses
-                    )
+                    info = format!("{} | addresses: {}", info, entry_node_addresses)
                 }
                 if let Some(entry_node_peers) = &self.entry_node_peers {
-                    info = format!(
-                        "{} | peers: {}",
-                        info,
-                        entry_node_peers
-                    )
+                    info = format!("{} | peers: {}", info, entry_node_peers)
                 }
                 if let Some(exit_node) = &self.exit_node {
-                    info = format!(
-                        "{} | exit_node: {}",
-                        info,
-                        exit_node.peer_id.as_str()
-                    )
+                    info = format!("{} | exit_node: {}", info, exit_node.peer_id.as_str())
                 }
                 info
-            },
+            }
             Status::OpeningSession { start_time } => format!(
                 "for {}ms: open session to {}",
                 start_time.elapsed().unwrap().as_millis(),
                 self.entry_node.as_ref().unwrap().endpoint
             ),
-            Status::MonitoringSession { start_time, port} => format!(
+            Status::MonitoringSession { start_time, port } => format!(
                 "for {}ms: monitoring session on port {}",
                 start_time.elapsed().unwrap().as_millis(),
                 port
@@ -148,30 +132,24 @@ impl Core {
         }
     }
 
-
     fn status(&self) -> anyhow::Result<Option<String>> {
         Ok(Some(self.to_string()))
     }
 
-    fn entry_node(
-        &mut self,
-        endpoint: Url,
-        api_token: String,
-    ) -> anyhow::Result<Option<String>> {
+    fn entry_node(&mut self, endpoint: Url, api_token: String) -> anyhow::Result<Option<String>> {
         self.entry_node = Some(EntryNode {
             endpoint,
             api_token,
         });
-                self.query_entry_node_info()?;
-                self.check_open_session()?;
-                Ok(None)
-
+        self.query_entry_node_info()?;
+        self.check_open_session()?;
+        Ok(None)
     }
 
     fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
-            Ok(None)
+        Ok(None)
     }
 
     fn check_open_session(&mut self) -> anyhow::Result<()> {
@@ -188,7 +166,13 @@ impl Core {
 
     fn check_list_sessions(&mut self) -> anyhow::Result<()> {
         match (&self.status, &self.entry_node) {
-            (Status::MonitoringSession { start_time, port: _ }, Some(entry_node)) => {
+            (
+                Status::MonitoringSession {
+                    start_time,
+                    port: _,
+                },
+                Some(entry_node),
+            ) => {
                 if start_time.elapsed().unwrap().as_secs() > 3 {
                     self.status = Status::ListingSessions {
                         start_time: SystemTime::now(),
@@ -231,7 +215,9 @@ impl Core {
                     .json::<serde_json::Value>()
                     .unwrap();
 
-                sender.send(Event::GotAddresses{ value: addresses}).unwrap();
+                sender
+                    .send(Event::GotAddresses { value: addresses })
+                    .unwrap();
             });
 
             let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
@@ -247,78 +233,79 @@ impl Core {
                     .json::<serde_json::Value>()
                     .unwrap();
 
-                sender.send(Event::GotPeers{ value: peers }).unwrap();
+                sender.send(Event::GotPeers { value: peers }).unwrap();
             });
         };
         Ok(())
     }
 
     fn open_session(&self, entry_node: &EntryNode, exit_node: &ExitNode) -> anyhow::Result<()> {
-            let mut headers = HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("application/json"),
-            );
-            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
-            hv_token.set_sensitive(true);
-            headers.insert("x-auth-token", hv_token);
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+        let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
+        hv_token.set_sensitive(true);
+        headers.insert("x-auth-token", hv_token);
 
-            let body = serde_json::json!({
-                "capabilities": ["Segmentation"],
-                "destination": exit_node.peer_id,
-                "path": {"Hops": 0},
-                "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-                "listenHost": "127.0.0.1:60006"
-            });
+        let body = serde_json::json!({
+            "capabilities": ["Segmentation"],
+            "destination": exit_node.peer_id,
+            "path": {"Hops": 0},
+            "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
+            "listenHost": "127.0.0.1:60006"
+        });
 
-            let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-            let sender = self.sender.clone();
-            let c = self.client.clone();
-            let h = headers.clone();
-            thread::spawn(move || {
-                let session = c
-                    .post(url)
-                    .headers(h)
-                    .json(&body)
-                    .send()
-                    .unwrap()
-                    .json::<serde_json::Value>()
-                    .unwrap();
+        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
+        let sender = self.sender.clone();
+        let c = self.client.clone();
+        let h = headers.clone();
+        thread::spawn(move || {
+            let session = c
+                .post(url)
+                .headers(h)
+                .json(&body)
+                .send()
+                .unwrap()
+                .json::<serde_json::Value>()
+                .unwrap();
 
-                sender.send(Event::GotSession{ value: session}).unwrap();
-            });
+            sender.send(Event::GotSession { value: session }).unwrap();
+        });
 
         Ok(())
     }
 
     fn list_sessions(&self, entry_node: &EntryNode) -> anyhow::Result<()> {
-            let mut headers = HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("application/json"),
-            );
-            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
-            hv_token.set_sensitive(true);
-            headers.insert("x-auth-token", hv_token);
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("application/json"),
+        );
+        let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
+        hv_token.set_sensitive(true);
+        headers.insert("x-auth-token", hv_token);
 
-            let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-            let sender = self.sender.clone();
-            let c = self.client.clone();
-            let h = headers.clone();
-            thread::spawn(move || {
-                let sessions = c
-                    .get(url)
-                    .headers(h)
-                    .send()
-                    .unwrap()
-                    .json::<serde_json::Value>()
-                    .unwrap();
+        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
+        let sender = self.sender.clone();
+        let c = self.client.clone();
+        let h = headers.clone();
+        thread::spawn(move || {
+            let sessions = c
+                .get(url)
+                .headers(h)
+                .send()
+                .unwrap()
+                .json::<serde_json::Value>()
+                .unwrap();
 
-                sender.send(Event::ListSesssions{ value: sessions}).unwrap();
-            });
+            sender
+                .send(Event::ListSesssions { value: sessions })
+                .unwrap();
+        });
         Ok(())
     }
-
 }
 
 impl fmt::Display for Event {

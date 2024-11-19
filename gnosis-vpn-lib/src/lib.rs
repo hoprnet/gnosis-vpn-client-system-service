@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use url::Url;
 
-#[derive(Serialize, Deserialize)]
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Command {
     Status,
     EntryNode { endpoint: Url, api_token: String },
@@ -21,9 +20,14 @@ pub fn to_string(cmd: &Command) -> anyhow::Result<String> {
 
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let c =
-        match self {
-            Command::EntryNode { endpoint, api_token: _  } => Command::EntryNode { endpoint: endpoint.clone(), api_token: "*****".to_string() },
+        let c = match self {
+            Command::EntryNode {
+                endpoint,
+                api_token: _,
+            } => Command::EntryNode {
+                endpoint: endpoint.clone(),
+                api_token: "*****".to_string(),
+            },
             c => c.clone(),
         };
         let s = serde_json::to_string(&c).unwrap();

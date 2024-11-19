@@ -35,8 +35,8 @@ fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_li
 fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
     if let Some(resp) = res {
         log::info!("responding: {}", resp);
-    stream.write_all(resp.as_bytes())?;
-    stream.flush()?;
+        stream.write_all(resp.as_bytes())?;
+        stream.flush()?;
     }
     Ok(())
 }
