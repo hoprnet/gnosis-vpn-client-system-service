@@ -25,43 +25,30 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(state: &mut core::Core, mut stream: net::UnixStream) -> anyhow::Result<()> {
+fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_lib::Command> {
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
     log::info!("incoming: {}", inc);
-    let cmd = gnosis_vpn_lib::to_cmd(inc.as_ref())?;
-    incoming(state, stream, cmd)
+    gnosis_vpn_lib::to_cmd(inc.as_ref())
 }
 
-fn incoming(
-    state: &mut core::Core,
-    mut stream: net::UnixStream,
-    cmd: gnosis_vpn_lib::Command,
-) -> anyhow::Result<()> {
-    let res = match cmd {
-        gnosis_vpn_lib::Command::Status => state.status(),
-        gnosis_vpn_lib::Command::EntryNode {
-            endpoint,
-            api_token,
-        } => state.entry_node(endpoint, api_token),
-    }?;
-
+fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
     if let Some(resp) = res {
-        stream
-            .write_all(resp.as_bytes())
-            .with_context(|| "failed to write response")?;
-        stream.flush().with_context(|| "failed to flush response")?
-    };
+        log::info!("responding: {}", resp);
+    stream.write_all(resp.as_bytes())?;
+    stream.flush()?;
+    }
     Ok(())
 }
 
-fn daemon(state: &mut core::Core, socket: &String) -> anyhow::Result<()> {
+fn daemon(socket: &String) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
 
     let socket_path = Path::new(socket);
     let res_exists = Path::try_exists(socket_path);
 
+    // set up unix stream listener
     let listener = match res_exists {
         Ok(true) => Err(anyhow!(format!("already running"))),
         Ok(false) => net::UnixListener::bind(socket)
@@ -84,7 +71,7 @@ fn daemon(state: &mut core::Core, socket: &String) -> anyhow::Result<()> {
         }
     });
 
-    state.started();
+    let mut state = core::Core::init();
     log::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
@@ -93,10 +80,15 @@ fn daemon(state: &mut core::Core, socket: &String) -> anyhow::Result<()> {
                 break;
             }
             recv(receiver) -> stream => {
-                _ = match stream  {
-                    Ok(s) => incoming_stream(state, s),
+                let res = match stream  {
+                    Ok(mut s) =>
+                        incoming_stream(&mut s)
+                            .and_then(|cmd| state.handle_cmd(cmd))
+                            .and_then(|res| respond_stream(&mut s, res)),
                     Err(x) => Err(anyhow!(x))
-
+                };
+                if let Err(x) = res {
+                    log::error!("error handling incoming stream: {:?}", x);
                 }
             },
         }
@@ -109,8 +101,7 @@ fn daemon(state: &mut core::Core, socket: &String) -> anyhow::Result<()> {
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    let mut state = core::Core::init();
-    let res = daemon(&mut state, &args.socket);
+    let res = daemon(&args.socket);
     match res {
         Ok(_) => log::info!("stopped gracefully"),
         Err(x) => log::error!("stopped with error: {}", x),

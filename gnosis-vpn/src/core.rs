@@ -1,3 +1,4 @@
+use gnosis_vpn_lib::Command;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::SystemTime;
@@ -11,7 +12,6 @@ pub struct Core {
 }
 
 enum Status {
-    Starting, // => Idle
     Idle,
     OpeningSession { start_time: SystemTime },
 }
@@ -30,15 +30,21 @@ struct EntryNodeInfo {
 impl Core {
     pub fn init() -> Core {
         Core {
-            status: Status::Starting,
+            status: Status::Idle,
             entry_node: None,
             entry_node_info: None,
             client: Some(reqwest::Client::new()),
         }
     }
 
-    pub fn started(&mut self) {
-        self.status = Status::Idle;
+    pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
+        match cmd {
+            Command::Status => self.status(),
+            Command::EntryNode {
+                endpoint,
+                api_token,
+            } => self.entry_node(endpoint, api_token),
+        }
     }
 
     pub fn status(&self) -> anyhow::Result<Option<String>> {
@@ -69,7 +75,6 @@ impl Core {
 
     pub fn to_string(&self) -> String {
         match self.status {
-            Status::Starting => "starting".to_string(),
             Status::Idle => "idle".to_string(),
             Status::OpeningSession { start_time } => format!(
                 "for {}ms: open session to {}",
