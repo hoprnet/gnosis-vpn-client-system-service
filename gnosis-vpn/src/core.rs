@@ -8,10 +8,12 @@ use std::thread;
 use std::time::SystemTime;
 use url::Url;
 
-// TODO
 pub enum Event {
+    // TODO
     GotAddresses { value: serde_json::Value },
+    // TODO
     GotPeers { value: serde_json::Value },
+    // TODO
     GotSession { value: serde_json::Value },
     ListSesssions { resp: Vec<ListSessionsEntry> },
     CheckSession,
@@ -67,7 +69,7 @@ impl Core {
     }
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
-        log::info!("handling command: {}", cmd);
+        log::debug!("handling command: {}", cmd);
         match cmd {
             Command::Status => self.status(),
             Command::EntryNode {
@@ -79,7 +81,7 @@ impl Core {
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        log::info!("handling event: {}", event);
+        log::debug!("handling event: {}", event);
         match event {
             Event::GotAddresses { value } => {
                 self.entry_node_addresses = Some(value);
@@ -91,6 +93,7 @@ impl Core {
             }
 
             Event::GotSession { value } => {
+                log::info!("opened session");
                 self.entry_node_session = Some(value);
                 self.status = Status::MonitoringSession {
                     start_time: SystemTime::now(),
@@ -99,40 +102,6 @@ impl Core {
             }
             Event::CheckSession => self.check_list_sessions(),
             Event::ListSesssions { resp } => self.verify_session(resp),
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        match self.status {
-            Status::Idle => {
-                let mut info = "idle".to_string();
-                if let Some(entry_node) = &self.entry_node {
-                    info = format!("{} | entry node: {}", info, entry_node.endpoint.as_str())
-                }
-                if let Some(entry_node_addresses) = &self.entry_node_addresses {
-                    info = format!("{} | addresses: {}", info, entry_node_addresses)
-                }
-                if let Some(entry_node_peers) = &self.entry_node_peers {
-                    info = format!("{} | peers: {}", info, entry_node_peers)
-                }
-                if let Some(exit_node) = &self.exit_node {
-                    info = format!("{} | exit_node: {}", info, exit_node.peer_id.as_str())
-                }
-                info
-            }
-            Status::OpeningSession { start_time } => format!(
-                "for {}ms: open session to {}",
-                start_time.elapsed().unwrap().as_millis(),
-                self.entry_node.as_ref().unwrap().endpoint
-            ),
-            Status::MonitoringSession { start_time } => format!(
-                "for {}ms: monitoring session ",
-                start_time.elapsed().unwrap().as_millis(),
-            ),
-            Status::ListingSessions { start_time } => format!(
-                "for {}ms: listing sessions",
-                start_time.elapsed().unwrap().as_millis()
-            ),
         }
     }
 
@@ -331,5 +300,42 @@ impl fmt::Display for Event {
             Event::ListSesssions { resp } => write!(f, "ListSesssions: {}", resp.len()),
             Event::CheckSession => write!(f, "CheckSession"),
         }
+    }
+}
+
+impl fmt::Display for Core {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = match self.status {
+            Status::Idle => {
+                let mut info = "idle".to_string();
+                if let Some(entry_node) = &self.entry_node {
+                    info = format!("{} | entry node: {}", info, entry_node.endpoint.as_str())
+                }
+                if let Some(entry_node_addresses) = &self.entry_node_addresses {
+                    info = format!("{} | addresses: {}", info, entry_node_addresses)
+                }
+                if let Some(entry_node_peers) = &self.entry_node_peers {
+                    info = format!("{} | peers: {}", info, entry_node_peers)
+                }
+                if let Some(exit_node) = &self.exit_node {
+                    info = format!("{} | exit_node: {}", info, exit_node.peer_id.as_str())
+                }
+                info
+            }
+            Status::OpeningSession { start_time } => format!(
+                "for {}ms: open session to {}",
+                start_time.elapsed().unwrap().as_millis(),
+                self.entry_node.as_ref().unwrap().endpoint
+            ),
+            Status::MonitoringSession { start_time } => format!(
+                "for {}ms: monitoring session ",
+                start_time.elapsed().unwrap().as_millis(),
+            ),
+            Status::ListingSessions { start_time } => format!(
+                "for {}ms: listing sessions",
+                start_time.elapsed().unwrap().as_millis()
+            ),
+        };
+        write!(f, "{}", string)
     }
 }
