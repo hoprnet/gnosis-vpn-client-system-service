@@ -1,5 +1,6 @@
 use gnosis_vpn_lib::Command;
 use reqwest::header;
+use reqwest::blocking;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::SystemTime;
 use url::Url;
@@ -14,7 +15,7 @@ pub enum Event {
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
-    client: reqwest::Client,
+    client: blocking::Client,
     entry_node_addresses: Option<serde_json::Value>,
     entry_node_peers: Option<serde_json::Value>,
     sender: crossbeam_channel::Sender<Event>,
@@ -37,7 +38,7 @@ impl Core {
             entry_node: None,
             entry_node_addresses: None,
             entry_node_peers: None,
-            client: reqwest::Client::new(),
+            client: blocking::Client::new(),
             sender,
         }
     }
@@ -130,6 +131,7 @@ impl Core {
     }
 
     fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
+        log::info!("querying entry node info");
         if let Some(entry_node) = &self.entry_node {
             let mut headers = HeaderMap::new();
             headers.insert(
@@ -144,16 +146,15 @@ impl Core {
             let sender = self.sender.clone();
             let c1 = self.client.clone();
             let h1 = headers.clone();
-            thread::spawn(|| async move {
+                log::info!("spawning thread {}", url_addresses);
+            thread::spawn(move || {
                 log::info!("querying addresses {}", url_addresses);
                 let addresses = c1
                     .get(url_addresses)
                     .headers(h1)
                     .send()
-                    .await
                     .unwrap()
                     .json::<serde_json::Value>()
-                    .await
                     .unwrap();
 
                 sender.send(Event::GotAddresses{ value: addresses}).unwrap();
@@ -163,16 +164,14 @@ impl Core {
             let sender = self.sender.clone();
             let c2 = self.client.clone();
             let h2 = headers.clone();
-            thread::spawn(|| async move {
+            thread::spawn(move || {
                 log::info!("querying peers {}", url_peers);
                 let peers = c2
                     .get(url_peers)
                     .headers(h2)
                     .send()
-                    .await
                     .unwrap()
                     .json::<serde_json::Value>()
-                    .await
                     .unwrap();
 
                 sender.send(Event::GotPeers{ value: peers }).unwrap();
