@@ -28,6 +28,11 @@ enum Commands {
         #[arg(short, long)]
         api_token: String,
     },
+
+    ExitNode {
+        #[arg(short, long)]
+        peer_id: String,
+    },
 }
 
 fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
@@ -42,6 +47,9 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
             endpoint: Url::parse(&endpoint).with_context(|| "invalid endpoint URL")?,
             api_token,
         },
+        Commands::ExitNode {
+            peer_id,
+        } => gnosis_vpn_lib::Command::ExitNode { peer_id },
     };
 
     let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;

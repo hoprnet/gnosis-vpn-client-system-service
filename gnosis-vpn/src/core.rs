@@ -1,16 +1,18 @@
 use gnosis_vpn_lib::Command;
-use reqwest::header;
 use reqwest::blocking;
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::header;
 use std::fmt;
+use std::thread;
 use std::time::SystemTime;
 use url::Url;
-use std::thread;
+
 
 // TODO
 pub enum Event {
     GotAddresses { value: serde_json::Value },
     GotPeers { value: serde_json::Value },
+    GotSession { value: serde_json::Value },
 }
 
 pub struct Core {
@@ -58,9 +60,7 @@ impl Core {
                 endpoint,
                 api_token,
             } => self.entry_node(endpoint, api_token),
-            Command::ExitNode {
-                peer_id,
-            } => self.exit_node(peer_id),
+            Command::ExitNode { peer_id } => self.exit_node(peer_id),
         }
     }
 
@@ -74,6 +74,9 @@ impl Core {
                 self.entry_node_peers = Some(value);
             }
 
+            Event::GotSession {value} => {
+                log::info!("GotSession: {}", value);
+            }
         }
                 Ok(())
     }
@@ -143,6 +146,9 @@ impl Core {
         match &self.status {
             Status::Idle => {
                 if let (Some(entry_node), Some(exit_node)) = (&self.entry_node, &self.exit_node) {
+                self.status = Status::OpeningSession {
+                    start_time: SystemTime::now(),
+                };
                     self.open_session(entry_node, exit_node)?
                 }
                 Ok(())
@@ -197,71 +203,44 @@ impl Core {
         Ok(())
     }
 
-    fn open_session(&self) -> anyhow::Result<()> {
+    fn open_session(&self, entry_node: &EntryNode, exit_node: &ExitNode) -> anyhow::Result<()> {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
+            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
+            hv_token.set_sensitive(true);
+            headers.insert("x-auth-token", hv_token);
+
+            let body = serde_json::json!({
+                "capabilities": ["Segmentation"],
+                "destination": exit_node.peer_id,
+                "path": {"Hops": 0},
+                "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
+                "listenHost": "127.0.0.1:60006"
+            });
+
+            let url = entry_node.endpoint.join("/api/v3/session/udp")?;
+            let sender = self.sender.clone();
+            let c = self.client.clone();
+            let h = headers.clone();
+            thread::spawn(move || {
+                let session = c
+                    .post(url)
+                    .headers(h)
+                    .json(&body)
+                    .send()
+                    .unwrap()
+                    .json::<serde_json::Value>()
+                    .unwrap();
+
+                sender.send(Event::GotSession{ value: session}).unwrap();
+            });
+
         Ok(())
     }
 
-    /*
-        fn open_session(&self) -> anyhow::Result<()> {
-            let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
-            let sender = sender.clone();
-
-            let if Some(entry_node) =self.entry_node {
-        thread::spawn(move || {
-
-            let headers = headers::HeaderMap::new();
-            headers.insert(headers::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-            headers.insert("x-auth-token", HeaderValue::from_static(entry_node.api_token));
-
-            let body = serde_json::json!({
-                "capabilities": [ "Segmentation"],
-                "destination": "12D3KooWAjhroYkdRQMxp4ELS6uWpSTzLWd8vHx7292ztrkJ76gu",
-                "path": { "Hops": 0 },
-                "target": { "Plain": "wireguard.staging.hoprnet.link:51820"}
-            });
-
-            self.client.post(entry_node.endpoint)
-                .headers(headers)
-                .body(serde_json::to_string(body)))
-                .send();
-        })
-            };
-
-                let client =
-            self.client
-                .post(self.entry_node.as_ref().unwrap().endpoint)
-                .header("Authorization", format
-
-            for stream in listener.incoming() {
-                _ = match stream {
-                    Ok(stream) => sender
-                        .send(stream)
-                        .with_context(|| "failed to send stream to channel"),
-                    Err(x) => {
-                        log::error!("error waiting for incoming message: {:?}", x);
-                        Err(anyhow!(x))
-                    }
-                };
-            }
-        });
-
-        log::info!("started successfully in listening mode");
-            crossbeam_channel::select! {
-                recv(ctrl_c_events) -> _ => {
-                    log::info!("shutting down");
-                    break;
-                }
-                recv(receiver) -> stream => {
-                    _ = match stream  {
-                        Ok(s) => incoming_stream(state, s),
-                        Err(x) => Err(anyhow!(x))
-
-                    }
-                },
-            }
-        }
-
-    */
 }
 
 impl fmt::Display for Event {
@@ -269,6 +248,7 @@ impl fmt::Display for Event {
         match self {
             Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
             Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
+            Event::GotSession { value } => write!(f, "GotSession: {}", value),
         }
     }
 }
