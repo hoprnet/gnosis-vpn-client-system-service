@@ -101,21 +101,21 @@ impl Core {
                 let mut info = "idle".to_string();
                 if let Some(entry_node) = &self.entry_node {
                     info = format!(
-                        "{}: entry node: {}",
+                        "{} | entry node: {}",
                         info,
                         entry_node.endpoint.as_str()
                     )
                 }
                 if let Some(entry_node_addresses) = &self.entry_node_addresses {
                     info = format!(
-                        "{}: addresses: {}",
+                        "{} | addresses: {}",
                         info,
                         entry_node_addresses
                     )
                 }
                 if let Some(entry_node_peers) = &self.entry_node_peers {
                     info = format!(
-                        "{}: peers: {}",
+                        "{} | peers: {}",
                         info,
                         entry_node_peers
                     )
