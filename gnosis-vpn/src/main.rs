@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context};
 use clap::Parser;
+use gnosis_vpn_lib::Command;
 use std::fs;
 use std::io::{Read, Write};
-use gnosis_vpn_lib::Command;
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
@@ -30,7 +30,8 @@ fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_li
     let mut buffer = [0; 128];
     let size = stream.read(&mut buffer)?;
     let inc = String::from_utf8_lossy(&buffer[..size]);
-    inc.parse::<Command>().with_context(|| format!("error parsing incoming stream: {}", inc))
+    inc.parse::<Command>()
+        .with_context(|| format!("error parsing incoming stream: {}", inc))
 }
 
 fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
