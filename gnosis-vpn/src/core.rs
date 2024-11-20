@@ -69,7 +69,7 @@ impl Core {
     }
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
-        log::debug!("handling command: {}", cmd);
+        tracing::debug!("handling command: {}", cmd);
         match cmd {
             Command::Status => self.status(),
             Command::EntryNode {
@@ -81,7 +81,7 @@ impl Core {
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        log::debug!("handling event: {}", event);
+        tracing::debug!("handling event: {}", event);
         match event {
             Event::GotAddresses { value } => {
                 self.entry_node_addresses = Some(value);
@@ -93,7 +93,7 @@ impl Core {
             }
 
             Event::GotSession { value } => {
-                log::info!("opened session");
+                tracing::info!("opened session");
                 self.entry_node_session = Some(value);
                 self.status = Status::MonitoringSession {
                     start_time: SystemTime::now(),
@@ -278,13 +278,13 @@ impl Core {
         });
 
         if session_listed {
-            log::info!("session verified open");
+            tracing::info!("session verified open");
             self.status = Status::MonitoringSession {
                 start_time: SystemTime::now(),
             };
             self.check_list_sessions()
         } else {
-            log::info!("session no longer open");
+            tracing::info!("session no longer open");
             self.status = Status::Idle;
             self.check_open_session()
         }

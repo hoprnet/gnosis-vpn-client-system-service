@@ -35,7 +35,7 @@ fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_li
 
 fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
     if let Some(resp) = res {
-        log::info!("responding: {}", resp);
+        tracing::info!("responding: {}", resp);
         stream.write_all(resp.as_bytes())?;
         stream.flush()?;
     }
@@ -64,7 +64,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
                     .send(stream)
                     .with_context(|| "failed to send stream to channel"),
                 Err(x) => {
-                    log::error!("error waiting for incoming message: {:?}", x);
+                    tracing::error!("error waiting for incoming message: {:?}", x);
                     Err(anyhow!(x))
                 }
             };
@@ -73,11 +73,11 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
 
     let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<core::Event>();
     let mut state = core::Core::init(sender_core_loop);
-    log::info!("started successfully in listening mode");
+    tracing::info!("started successfully in listening mode");
     loop {
         crossbeam_channel::select! {
             recv(ctrl_c_events) -> _ => {
-                log::info!("shutting down");
+                tracing::info!("shutting down");
                 break;
             }
             recv(receiver_socket) -> stream => {
@@ -89,7 +89,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
                     Err(x) => Err(anyhow!(x))
                 };
                 if let Err(x) = res {
-                    log::error!("error handling incoming stream: {:?}", x);
+                    tracing::error!("error handling incoming stream: {:?}", x);
                 }
             },
             recv(receiver_core_loop) -> event => {
@@ -98,7 +98,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
                     Err(x) => Err(anyhow!(x))
                 };
                 if let Err(x) = res {
-                    log::error!("error handling event: {:?}", x);
+                    tracing::error!("error handling event: {:?}", x);
                 }
             }
         }
@@ -109,11 +109,13 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
 }
 
 fn main() {
-    env_logger::init();
+    // install global collector configured based on RUST_LOG env var.
+    tracing_subscriber::fmt::init();
+
     let args = Cli::parse();
     let res = daemon(&args.socket);
     match res {
-        Ok(_) => log::info!("stopped gracefully"),
-        Err(x) => log::error!("stopped with error: {}", x),
+        Ok(_) => tracing::info!("stopped gracefully"),
+        Err(x) => tracing::error!("stopped with error: {}", x),
     }
 }
