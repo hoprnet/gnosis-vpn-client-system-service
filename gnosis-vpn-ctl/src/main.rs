@@ -30,6 +30,7 @@ enum Commands {
     },
 
     ExitNode {
+        // libp2p_identity::PeerId
         #[arg(short, long)]
         peer_id: String,
     },
@@ -50,16 +51,14 @@ fn run_command(socket: &String, cmd: Commands) -> anyhow::Result<()> {
         Commands::ExitNode { peer_id } => gnosis_vpn_lib::Command::ExitNode { peer_id },
     };
 
-    let str_cmd = gnosis_vpn_lib::to_string(&typed_cmd)?;
-
     let mut sender = match res {
         Ok(true) => net::UnixStream::connect(socket).with_context(|| "unable to connect to socket"),
         Ok(false) => Err(anyhow!(format!("gnosis-vpn not running"))),
         Err(x) => Err(anyhow!(x)),
     }?;
 
-    log::info!("sending command: {}", str_cmd);
-    sender.write_all(str_cmd.as_bytes())?;
+    log::info!("sending command: {}", typed_cmd);
+    sender.write_all(format!("{typed_cmd}").as_bytes())?;
     sender.flush()?;
     handle_response(typed_cmd, sender)?;
     Ok(())

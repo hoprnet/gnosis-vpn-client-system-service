@@ -1,6 +1,6 @@
-use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::str::FromStr;
 use url::Url;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -8,14 +8,6 @@ pub enum Command {
     Status,
     EntryNode { endpoint: Url, api_token: String },
     ExitNode { peer_id: String },
-}
-
-pub fn to_cmd(data: &str) -> anyhow::Result<Command> {
-    serde_json::from_str(data).with_context(|| format!("unable to parse command: {}", data))
-}
-
-pub fn to_string(cmd: &Command) -> anyhow::Result<String> {
-    serde_json::to_string(cmd).with_context(|| "unable to serialize command")
 }
 
 impl fmt::Display for Command {
@@ -32,5 +24,13 @@ impl fmt::Display for Command {
         };
         let s = serde_json::to_string(&c).unwrap();
         write!(f, "{}", s)
+    }
+}
+
+impl FromStr for Command {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        serde_json::from_str(s)
     }
 }
