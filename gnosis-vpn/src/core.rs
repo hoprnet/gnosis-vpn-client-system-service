@@ -46,12 +46,13 @@ struct ExitNode {
     peer_id: String,
 }
 
+/*
+
 pub trait Session {
     fn open(&self) -> anyhow::Result<()>;
     fn close(&self) -> anyhow::Result<()>;
     fn is_active(&self) -> anyhow::Result<bool>;
 }
-
 
 pub struct BasicSessionConfig {
     // TODO
@@ -86,6 +87,7 @@ impl Session for BasicSession {
 //     sessions: Vec<T>,
 // }
 
+*/
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ListSessionsEntry {
