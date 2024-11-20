@@ -7,6 +7,7 @@ let
     with darwin.apple_sdk.frameworks; [
       CoreFoundation
       CoreServices
+      SystemConfiguration
     ]
   );
 in
