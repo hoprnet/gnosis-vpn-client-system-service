@@ -46,6 +46,47 @@ struct ExitNode {
     peer_id: String,
 }
 
+pub trait Session {
+    fn open(&self) -> anyhow::Result<()>;
+    fn close(&self) -> anyhow::Result<()>;
+    fn is_active(&self) -> anyhow::Result<bool>;
+}
+
+
+pub struct BasicSessionConfig {
+    // TODO
+}
+pub struct BasicSession {
+    // TODO: add long lived HTTP session to the target API
+}
+
+impl BasicSession {
+    pub fn new() -> BasicSession {
+        BasicSession {}
+    }
+}
+
+impl Session for BasicSession {
+    fn open(&self) -> anyhow::Result<()> {
+        // call the session/udp...
+        todo!()
+    }
+
+    fn close(&self) -> anyhow::Result<()> {
+        todo!()
+    }
+
+    fn is_active(&self) -> anyhow::Result<bool> {
+        todo!()
+    }
+}
+
+// pub struct SessionManager<T>
+// where T: Session {
+//     sessions: Vec<T>,
+// }
+
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ListSessionsEntry {
     target: String,
