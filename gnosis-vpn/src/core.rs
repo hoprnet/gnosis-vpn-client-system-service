@@ -260,9 +260,9 @@ impl Core {
         let body = serde_json::json!({
             "capabilities": ["Segmentation"],
             "destination": exit_node.peer_id,
-            "path": {"Hops": 0},
+            "path": {"Hops": 0 },
             "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-            "listenHost": "127.0.0.1:60006"
+            "listenHost": "0.0.0.0:60006"
         });
 
         let url = entry_node.endpoint.join("/api/v3/session/udp")?;
