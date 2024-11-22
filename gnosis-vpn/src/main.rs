@@ -3,6 +3,7 @@ use clap::Parser;
 use gnosis_vpn_lib::Command;
 use std::fs;
 use std::io::{Read, Write};
+use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
@@ -57,6 +58,11 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         }
         Err(x) => Err(anyhow!(x)),
     }?;
+
+    // update permissions to allow unprivileged access
+    // TODO this would better be handled by allowing group access and let the installer create a
+    // gvpn group and additionally add users to it
+    fs::set_permissions(socket_path.as_path(), fs::Permissions::from_mode(0o666))?;
 
     let (sender_socket, receiver_socket) = crossbeam_channel::unbounded::<net::UnixStream>();
     thread::spawn(move || {
