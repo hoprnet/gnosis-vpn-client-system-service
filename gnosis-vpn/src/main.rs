@@ -9,6 +9,9 @@ use std::path::Path;
 use std::thread;
 
 mod core;
+mod entry_node;
+mod event;
+mod remote_data;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
@@ -79,7 +82,7 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
         }
     });
 
-    let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<core::Event>();
+    let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<event::Event>();
     let mut state = core::Core::init(sender_core_loop);
     tracing::info!("started successfully in listening mode");
     loop {
