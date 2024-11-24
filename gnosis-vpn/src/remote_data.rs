@@ -1,16 +1,23 @@
+use crate::event;
 use exponential_backoff::Backoff;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
-use std::time::SystemTime;
-use crate::event;
-use std::vec::Vec;
 use std::time;
+use std::time::SystemTime;
+use std::vec::Vec;
 
 pub enum RemoteData<E, R> {
     NotAsked,
-    Fetching { started_at: SystemTime },
-    RetryFetching { error: E, backoffs: Vec<time::Duration> }, // reverse order
-    Failure { error: E },
+    Fetching {
+        started_at: SystemTime,
+    },
+    RetryFetching {
+        error: E,
+        backoffs: Vec<time::Duration>,
+    }, // reverse order
+    Failure {
+        error: E,
+    },
     Success(R),
 }
 
@@ -31,7 +38,6 @@ pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
     headers.insert("x-auth-token", hv_token);
     Ok(headers)
 }
-
 
 impl std::fmt::Display for Event<serde_json::Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

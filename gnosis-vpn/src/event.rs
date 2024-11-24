@@ -1,6 +1,6 @@
 use crate::remote_data;
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 pub enum Event {
     FetchAddresses(remote_data::Event<serde_json::Value>),
@@ -23,7 +23,7 @@ pub struct ListSessionsEntry {
 impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Event::FetchAddresses(evt)=> write!(f, "FetchAddresses: {}", evt),
+            Event::FetchAddresses(evt) => write!(f, "FetchAddresses: {}", evt),
             Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
             Event::GotSession { value } => write!(f, "GotSession: {}", value),
             Event::ListSesssions { resp } => write!(f, "ListSesssions: {}", resp.len()),

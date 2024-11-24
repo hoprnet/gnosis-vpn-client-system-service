@@ -1,11 +1,12 @@
-                        use exponential_backoff::Backoff;
+
 use crate::event::Event;
 use crate::remote_data;
+use exponential_backoff::Backoff;
 use reqwest::blocking;
-use std::time;
 use std::collections::HashMap;
 use std::fmt;
 use std::thread;
+use std::time;
 use url::Url;
 
 pub struct EntryNode {
@@ -14,10 +15,10 @@ pub struct EntryNode {
 }
 
 pub fn addressses_backoff() -> Backoff {
-                        let attempts = 10;
-                        let min = time::Duration::from_secs(1);
-                        let max = time::Duration::from_secs(30);
-                        Backoff::new(attempts, min, max)
+    let attempts = 10;
+    let min = time::Duration::from_secs(1);
+    let max = time::Duration::from_secs(30);
+    Backoff::new(attempts, min, max)
 }
 
 pub fn schedule_retry(delay: std::time::Duration, sender: crossbeam_channel::Sender<Event>) {
@@ -38,7 +39,10 @@ impl fmt::Display for EntryNode {
 
 impl EntryNode {
     pub fn new(endpoint: Url, api_token: String) -> EntryNode {
-        EntryNode { endpoint, api_token }
+        EntryNode {
+            endpoint,
+            api_token,
+        }
     }
 
     pub fn query_addresses(
