@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 pub enum Event {
-    FetchAddresses(remote_data::ResultEvent<serde_json::Value>),
+    FetchAddresses(remote_data::Event<serde_json::Value>),
     // TODO
     GotPeers { value: serde_json::Value },
     // TODO

@@ -2,16 +2,21 @@ use exponential_backoff::Backoff;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time::SystemTime;
+use crate::event;
+use std::vec::Vec;
+use std::time;
 
 pub enum RemoteData<E, R> {
     NotAsked,
     Fetching { started_at: SystemTime },
-    Failure { error: E, backoff: Backoff },
+    RetryFetching { error: E, backoffs: Vec<time::Duration> }, // reverse order
+    Failure { error: E },
     Success(R),
 }
 
-pub enum ResultEvent<R> {
+pub enum Event<R> {
     Response(R),
+    Retry,
     Error(reqwest::Error),
 }
 
@@ -27,11 +32,13 @@ pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
     Ok(headers)
 }
 
-impl std::fmt::Display for ResultEvent<serde_json::Value> {
+
+impl std::fmt::Display for Event<serde_json::Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ResultEvent::Response(val) => write!(f, "Response: {:?}", val),
-            ResultEvent::Error(e) => write!(f, "Error: {:?}", e),
+            Event::Response(val) => write!(f, "Response: {:?}", val),
+            Event::Retry => write!(f, "Retry"),
+            Event::Error(e) => write!(f, "Error: {:?}", e),
         }
     }
 }
