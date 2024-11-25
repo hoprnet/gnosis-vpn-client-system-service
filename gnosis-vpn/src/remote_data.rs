@@ -1,31 +1,37 @@
-use crate::event;
-use exponential_backoff::Backoff;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
 
-pub enum RemoteData<E, R> {
+pub enum RemoteData<R> {
     NotAsked,
     Fetching {
         started_at: SystemTime,
     },
     RetryFetching {
-        error: E,
+        error: CustomError,
+        // in reverse order
         backoffs: Vec<time::Duration>,
         cancel_sender: crossbeam_channel::Sender<()>,
-    }, // reverse order
+    },
     Failure {
-        error: E,
+        error: CustomError,
     },
     Success(R),
+}
+
+#[derive(Debug)]
+pub struct CustomError {
+    pub reqwErr: Option<reqwest::Error>,
+    pub status: Option<reqwest::StatusCode>,
+    pub value: Option<serde_json::Value>,
 }
 
 pub enum Event<R> {
     Response(R),
     Retry,
-    Error(reqwest::Error),
+    Error(CustomError),
 }
 
 pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {

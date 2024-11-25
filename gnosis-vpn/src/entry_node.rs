@@ -29,8 +29,13 @@ pub fn schedule_retry(
     crossbeam_channel::select! {
         recv(cancel_receiver) -> _ => {}
         default(delay) => {
-        sender.send(Event::FetchAddresses(remote_data::Event::Retry));
-
+        let res = sender.send(Event::FetchAddresses(remote_data::Event::Retry));
+        match res {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::warn!("sending retry event failed: {:?}", e);
+            }
+        }
         }
     }
     cancel_sender
@@ -59,7 +64,6 @@ impl EntryNode {
     ) -> anyhow::Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
         let url = self.endpoint.join("/api/v3/account/addresses")?;
-
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
@@ -67,37 +71,39 @@ impl EntryNode {
                 .get(url)
                 .timeout(std::time::Duration::from_secs(30))
                 .headers(headers)
-                .send();
+                .send()
+                .map(|res| (res.status(), res.json::<serde_json::Value>()));
 
-            tracing::info!("fetch_res: {:?}", fetch_res);
-
-            let foo = fetch_res.is_ok();
-            tracing::info!("foo: {:?}", foo);
-
-            match fetch_res {
-                Ok(res) => {
-                    let json_res = res.json::<serde_json::Value>();
-                    tracing::info!("json_res: {:?}", json_res);
-
-                    match json_res {
-                        Ok(json) => {
-                            tracing::info!("json: {:?}", json);
-                            let evt = Event::FetchAddresses(remote_data::Event::Response(json));
-                            sender.send(evt)
-                        }
-                        Err(e) => {
-                            tracing::info!("json err: {:?}", e);
-                            let evt = Event::FetchAddresses(remote_data::Event::Error(e));
-                            sender.send(evt)
-                        }
-                    }
+            let evt = match fetch_res {
+                Ok((status, Ok(json))) if status.is_success() => {
+                    Event::FetchAddresses(remote_data::Event::Response(json))
+                }
+                Ok((status, Ok(json))) => {
+                    let e = remote_data::CustomError {
+                        reqwErr: None,
+                        status: Some(status),
+                        value: Some(json),
+                    };
+                    Event::FetchAddresses(remote_data::Event::Error(e))
+                }
+                Ok((status, Err(e))) => {
+                    let e = remote_data::CustomError {
+                        reqwErr: Some(e),
+                        status: Some(status),
+                        value: None,
+                    };
+                    Event::FetchAddresses(remote_data::Event::Error(e))
                 }
                 Err(e) => {
-                    tracing::info!("fetch err: {:?}", e);
-                    let evt = Event::FetchAddresses(remote_data::Event::Error(e));
-                    sender.send(evt)
+                    let e = remote_data::CustomError {
+                        reqwErr: Some(e),
+                        status: None,
+                        value: None,
+                    };
+                    Event::FetchAddresses(remote_data::Event::Error(e))
                 }
-            }
+            };
+            sender.send(evt);
         });
         Ok(())
     }
