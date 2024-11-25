@@ -2,6 +2,7 @@ use crate::event::Event;
 use crate::remote_data;
 use exponential_backoff::Backoff;
 use reqwest::blocking;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::thread;
@@ -9,8 +10,15 @@ use std::time;
 use url::Url;
 
 pub struct EntryNode {
-    endpoint: Url,
-    api_token: String,
+    pub endpoint: Url,
+    pub api_token: String,
+    pub addresses: Option<Addresses>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Addresses {
+    hopr: String,
+    native: String,
 }
 
 pub fn addressses_backoff() -> Backoff {
@@ -56,6 +64,7 @@ impl EntryNode {
         EntryNode {
             endpoint,
             api_token,
+            addresses: None,
         }
     }
 
