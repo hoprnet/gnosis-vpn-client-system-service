@@ -53,7 +53,13 @@ pub fn schedule_retry(
 
 impl fmt::Display for EntryNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let print = HashMap::from([("endpoint", self.endpoint.as_str()), ("api_token", "*****")]);
+        let mut print = HashMap::from([("endpoint", self.endpoint.to_string()),
+            ("api_token", "*****".to_string()),
+        ]);
+        if let Some(addresses) = &self.addresses {
+            let val = serde_json::to_string(&addresses).unwrap();
+            print.insert("addresses", val);
+        }
         let val = serde_json::to_string(&print).unwrap();
         write!(f, "{}", val)
     }
