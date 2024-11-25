@@ -26,18 +26,20 @@ pub fn schedule_retry(
 ) -> crossbeam_channel::Sender<()> {
     let sender = sender.clone();
     let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
-    crossbeam_channel::select! {
-        recv(cancel_receiver) -> _ => {}
-        default(delay) => {
-        let res = sender.send(Event::FetchAddresses(remote_data::Event::Retry));
-        match res {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::warn!("sending retry event failed: {:?}", e);
+    thread::spawn(move || {
+        crossbeam_channel::select! {
+            recv(cancel_receiver) -> _ => {}
+            default(delay) => {
+            let res = sender.send(Event::FetchAddresses(remote_data::Event::Retry));
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending retry event failed: {:?}", e);
+                }
+            }
             }
         }
-        }
-    }
+    });
     cancel_sender
 }
 
@@ -80,7 +82,7 @@ impl EntryNode {
                 }
                 Ok((status, Ok(json))) => {
                     let e = remote_data::CustomError {
-                        reqwErr: None,
+                        reqw_err: None,
                         status: Some(status),
                         value: Some(json),
                     };
@@ -88,7 +90,7 @@ impl EntryNode {
                 }
                 Ok((status, Err(e))) => {
                     let e = remote_data::CustomError {
-                        reqwErr: Some(e),
+                        reqw_err: Some(e),
                         status: Some(status),
                         value: None,
                     };
@@ -96,14 +98,14 @@ impl EntryNode {
                 }
                 Err(e) => {
                     let e = remote_data::CustomError {
-                        reqwErr: Some(e),
+                        reqw_err: Some(e),
                         status: None,
                         value: None,
                     };
                     Event::FetchAddresses(remote_data::Event::Error(e))
                 }
             };
-            sender.send(evt);
+            sender.send(evt)
         });
         Ok(())
     }

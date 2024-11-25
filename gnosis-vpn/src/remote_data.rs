@@ -23,7 +23,7 @@ pub enum RemoteData<R> {
 
 #[derive(Debug)]
 pub struct CustomError {
-    pub reqwErr: Option<reqwest::Error>,
+    pub reqw_err: Option<reqwest::Error>,
     pub status: Option<reqwest::StatusCode>,
     pub value: Option<serde_json::Value>,
 }
