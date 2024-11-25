@@ -1,4 +1,3 @@
-
 use crate::event::Event;
 use crate::remote_data;
 use exponential_backoff::Backoff;
@@ -21,12 +20,20 @@ pub fn addressses_backoff() -> Backoff {
     Backoff::new(attempts, min, max)
 }
 
-pub fn schedule_retry(delay: std::time::Duration, sender: crossbeam_channel::Sender<Event>) {
+pub fn schedule_retry(
+    delay: std::time::Duration,
+    sender: &crossbeam_channel::Sender<Event>,
+) -> crossbeam_channel::Sender<()> {
     let sender = sender.clone();
-    thread::spawn(move || {
-        thread::sleep(delay);
+    let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
+    crossbeam_channel::select! {
+        recv(cancel_receiver) -> _ => {}
+        default(delay) => {
         sender.send(Event::FetchAddresses(remote_data::Event::Retry));
-    });
+
+        }
+    }
+    cancel_sender
 }
 
 impl fmt::Display for EntryNode {
@@ -47,12 +54,14 @@ impl EntryNode {
 
     pub fn query_addresses(
         &self,
-        client: blocking::Client,
-        sender: crossbeam_channel::Sender<Event>,
+        client: &blocking::Client,
+        sender: &crossbeam_channel::Sender<Event>,
     ) -> anyhow::Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
         let url = self.endpoint.join("/api/v3/account/addresses")?;
 
+        let sender = sender.clone();
+        let client = client.clone();
         thread::spawn(move || {
             let fetch_res = client
                 .get(url)

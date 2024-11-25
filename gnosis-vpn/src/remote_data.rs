@@ -14,6 +14,7 @@ pub enum RemoteData<E, R> {
     RetryFetching {
         error: E,
         backoffs: Vec<time::Duration>,
+        cancel_sender: crossbeam_channel::Sender<()>,
     }, // reverse order
     Failure {
         error: E,
