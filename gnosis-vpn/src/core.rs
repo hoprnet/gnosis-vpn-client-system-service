@@ -41,9 +41,6 @@ enum Status {
         start_time: SystemTime,
         cancel_sender: crossbeam_channel::Sender<()>,
     },
-    ListingSessions {
-        start_time: SystemTime,
-    },
 }
 
 impl Core {
@@ -89,8 +86,7 @@ impl Core {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
             Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
-            Event::CheckSession => self.check_list_sessions(),
-            Event::ListSesssions { resp } => self.verify_session(resp),
+            Event::CheckSession => self.evt_check_session(),
         };
 
         tracing::debug!("HANDLE EVENT [state after]: {}", self);
@@ -200,8 +196,8 @@ impl Core {
     fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
-                self.fetch_data.addresses = RemoteData::Success;
                 tracing::info!("listing sessions {}", value);
+                self.fetch_data.addresses = RemoteData::Success;
             }
             remote_data::Event::Error(err) => {
                 match &self.fetch_data.list_sessions {
@@ -234,6 +230,32 @@ impl Core {
         };
         Ok(())
     }
+
+    fn evt_check_session(&mut self) -> anyhow::Result<()> {
+        match (&self.status, &self.fetch_data.list_sessions) {
+            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
+            (Status::MonitoringSession { .. }, _) => {
+                self.fetch_data.list_sessions = RemoteData::Fetching {
+                    started_at: SystemTime::now(),
+                };
+                self.fetch_list_sessions()
+            }
+            _ => Ok(()),
+        }
+    }
+    /*
+        match &self.session {
+            Some(s) => {
+                let resp = s.list(&self.client, &self.sender);
+                self.verify_session(resp)?;
+            }
+            None => {
+                tracing::warn!("session not found");
+            }
+        }
+        Ok(())
+    }
+    */
 
     fn repeat_fetch_addresses(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
         if let Some(backoff) = backoffs.pop() {
@@ -452,15 +474,11 @@ impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Status::Idle => "idle",
-            // TODO refac to remote data
             Status::OpeningSession { start_time } => {
                 &format!("opening session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
             }
             Status::MonitoringSession { start_time, .. } => {
                 &format!("monitoring session for {}s", start_time.elapsed().unwrap().as_secs()).to_string()
-            }
-            Status::ListingSessions { start_time } => {
-                &format!("listing sessions for {}", start_time.elapsed().unwrap().as_secs()).to_string()
             }
         };
         write!(f, "{}", val)

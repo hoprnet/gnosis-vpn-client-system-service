@@ -82,7 +82,7 @@ pub fn open(
             }
         };
 
-        sender.send(evt);
+        sender.send(evt)
     });
     Ok(())
 }
@@ -133,6 +133,7 @@ pub fn schedule_check_session(
     cancel_sender
 }
 
+/*
 impl Session {
     pub fn new(ip: String, port: u16, protocol: String, target: Url) -> Self {
         Self {
@@ -154,3 +155,4 @@ impl Session {
         Ok(false)
     }
 }
+*/

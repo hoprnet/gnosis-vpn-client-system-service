@@ -36,10 +36,7 @@ pub enum Event {
 
 pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
     let mut headers = HeaderMap::new();
-    headers.insert(
-        header::CONTENT_TYPE,
-        HeaderValue::from_static("application/json"),
-    );
+    headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let mut hv_token = HeaderValue::from_str(api_token)?;
     hv_token.set_sensitive(true);
     headers.insert("x-auth-token", hv_token);
@@ -53,5 +50,33 @@ impl std::fmt::Display for Event {
             Event::Retry => write!(f, "Retry"),
             Event::Error(e) => write!(f, "Error: {:?}", e),
         }
+    }
+}
+
+impl std::fmt::Display for RemoteData {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            RemoteData::NotAsked => write!(f, "NotAsked"),
+            RemoteData::Fetching { started_at } => {
+                write!(f, "Fetching for {:?}", started_at.elapsed().unwrap())
+            }
+            RemoteData::RetryFetching {
+                error,
+                backoffs,
+                cancel_sender: _,
+            } => write!(f, "RetryFetching error: {:?}, backoffs: {:?}", error, backoffs),
+            RemoteData::Failure { error } => write!(f, "Failure: {:?}", error),
+            RemoteData::Success => write!(f, "Success"),
+        }
+    }
+}
+
+impl std::fmt::Display for CustomError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "CustomError: reqw_err: {:?}, status: {:?}, value: {:?}",
+            self.reqw_err, self.status, self.value
+        )
     }
 }
