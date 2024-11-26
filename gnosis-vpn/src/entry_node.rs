@@ -38,7 +38,7 @@ pub fn list_sessions_backoff() -> Backoff {
     Backoff::new(attempts, min, max)
 }
 
-pub fn schedule_retry(
+pub fn schedule_retry_query_addresses(
     delay: std::time::Duration,
     sender: &crossbeam_channel::Sender<Event>,
 ) -> crossbeam_channel::Sender<()> {
@@ -61,9 +61,33 @@ pub fn schedule_retry(
     cancel_sender
 }
 
+pub fn schedule_retry_list_sessions(
+    delay: std::time::Duration,
+    sender: &crossbeam_channel::Sender<Event>,
+) -> crossbeam_channel::Sender<()> {
+    let sender = sender.clone();
+    let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
+    thread::spawn(move || {
+        crossbeam_channel::select! {
+            recv(cancel_receiver) -> _ => {}
+            default(delay) => {
+            let res = sender.send(Event::FetchListSessions(remote_data::Event::Retry));
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending retry event failed: {:?}", e);
+                }
+            }
+            }
+        }
+    });
+    cancel_sender
+}
+
 impl fmt::Display for EntryNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut print = HashMap::from([("endpoint", self.endpoint.to_string()),
+        let mut print = HashMap::from([
+            ("endpoint", self.endpoint.to_string()),
             ("api_token", "*****".to_string()),
         ]);
         if let Some(addresses) = &self.addresses {
@@ -84,7 +108,6 @@ impl EntryNode {
             session_port,
         }
     }
-
 
     pub fn query_addresses(
         &self,
@@ -187,5 +210,4 @@ impl EntryNode {
         });
         Ok(())
     }
-
 }
