@@ -34,9 +34,16 @@ struct FetchData {
 
 enum Status {
     Idle,
-    OpeningSession { start_time: SystemTime },
-    MonitoringSession { start_time: SystemTime },
-    ListingSessions { start_time: SystemTime },
+    OpeningSession {
+        start_time: SystemTime,
+    },
+    MonitoringSession {
+        start_time: SystemTime,
+        cancel_sender: crossbeam_channel::Sender<()>,
+    },
+    ListingSessions {
+        start_time: SystemTime,
+    },
 }
 
 impl Core {
@@ -147,6 +154,11 @@ impl Core {
                 match session {
                     Ok(s) => {
                         self.session = Some(s);
+                        let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                        self.status = Status::MonitoringSession {
+                            start_time: SystemTime::now(),
+                            cancel_sender,
+                        };
                     }
                     Err(e) => {
                         tracing::error!("failed to parse session: {:?}", e);
@@ -428,8 +440,8 @@ impl fmt::Display for Status {
             Status::OpeningSession { start_time } => {
                 &format!("opening session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
             }
-            Status::MonitoringSession { start_time } => {
-                &format!("monitoring session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
+            Status::MonitoringSession { start_time, .. } => {
+                &format!("monitoring session for {}s", start_time.elapsed().unwrap().as_secs()).to_string()
             }
             Status::ListingSessions { start_time } => {
                 &format!("listing sessions for {}", start_time.elapsed().unwrap().as_secs()).to_string()

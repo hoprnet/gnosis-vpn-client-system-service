@@ -1,9 +1,10 @@
 use exponential_backoff::Backoff;
-use serde::{Deserialize, Serialize};
 use reqwest::blocking;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::thread;
 use std::time;
+use url::Url;
 
 use crate::entry_node::EntryNode;
 use crate::event::Event;
@@ -12,7 +13,10 @@ use crate::remote_data;
 
 #[derive(Serialize, Deserialize)]
 pub struct Session {
+    ip: String,
     port: u16,
+    protocol: String,
+    target: Url,
 }
 
 pub fn open_session_backoff() -> Backoff {
@@ -130,10 +134,14 @@ pub fn schedule_check_session(
 }
 
 impl Session {
-    pub fn new(port: u16) -> Session {
-        Session { port }
+    pub fn new(ip: String, port: u16, protocol: String, target: Url) -> Self {
+        Self {
+            ip,
+            port,
+            protocol,
+            target,
+        }
     }
-
     fn open(&self) -> anyhow::Result<()> {
         Ok(())
     }
