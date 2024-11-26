@@ -5,8 +5,6 @@ use url::Url;
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options)]
 pub struct Cli {
-    #[bpaf(short, long)]
-    pub socket: String,
     #[bpaf(external(command), many)]
     pub commands: Vec<Command>,
 }

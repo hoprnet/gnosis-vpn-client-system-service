@@ -3,7 +3,6 @@ use std::{
     io::{Read, Write},
     matches,
     os::unix::net,
-    path::Path,
 };
 use tracing::{debug, info, instrument};
 
@@ -51,11 +50,11 @@ fn main() -> anyhow::Result<()> {
 
     debug!(?options, "Options parsed");
 
-    let socket = options.socket;
+    let socket_path = &gnosis_vpn_lib::socket_path();
 
     for cmd in options.commands.into_iter() {
-        let mut socket = match Path::try_exists(Path::new(&socket)) {
-            Ok(true) => net::UnixStream::connect(socket.clone()).context("unable to connect to socket"),
+        let mut socket = match socket_path.try_exists() {
+            Ok(true) => net::UnixStream::connect(socket_path).context("unable to connect to socket"),
             Ok(false) => Err(anyhow!(format!("gnosis-vpn not running"))),
             Err(x) => Err(anyhow!(x)),
         }?;
