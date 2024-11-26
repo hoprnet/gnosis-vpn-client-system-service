@@ -3,11 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 pub enum Event {
-    FetchAddresses(remote_data::Event<serde_json::Value>),
-    // TODO
-    GotPeers { value: serde_json::Value },
-    // TODO
-    GotSession { value: serde_json::Value },
+    FetchAddresses(remote_data::Event),
+    FetchOpenSession(remote_data::Event),
+    FetchListSessions(remote_data::Event),
     ListSesssions { resp: Vec<ListSessionsEntry> },
     CheckSession,
 }
@@ -24,8 +22,8 @@ impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Event::FetchAddresses(evt) => write!(f, "FetchAddresses: {}", evt),
-            Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
-            Event::GotSession { value } => write!(f, "GotSession: {}", value),
+            Event::FetchOpenSession(evt) => write!(f, "FetchOpenSessions: {}", evt),
+            Event::FetchListSessions(evt) => write!(f, "FetchListSessions: {}", evt),
             Event::ListSesssions { resp } => write!(f, "ListSesssions: {}", resp.len()),
             Event::CheckSession => write!(f, "CheckSession"),
         }

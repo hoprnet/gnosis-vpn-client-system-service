@@ -4,7 +4,7 @@ use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
 
-pub enum RemoteData<R> {
+pub enum RemoteData {
     NotAsked,
     Fetching {
         started_at: SystemTime,
@@ -18,7 +18,7 @@ pub enum RemoteData<R> {
     Failure {
         error: CustomError,
     },
-    Success(R),
+    Success,
 }
 
 #[derive(Debug)]
@@ -28,8 +28,8 @@ pub struct CustomError {
     pub value: Option<serde_json::Value>,
 }
 
-pub enum Event<R> {
-    Response(R),
+pub enum Event {
+    Response(serde_json::Value),
     Retry,
     Error(CustomError),
 }
@@ -46,7 +46,7 @@ pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
     Ok(headers)
 }
 
-impl std::fmt::Display for Event<serde_json::Value> {
+impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Event::Response(val) => write!(f, "Response: {:?}", val),

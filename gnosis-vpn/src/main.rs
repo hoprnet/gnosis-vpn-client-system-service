@@ -12,6 +12,8 @@ mod core;
 mod entry_node;
 mod event;
 mod remote_data;
+mod session;
+mod exit_node;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]

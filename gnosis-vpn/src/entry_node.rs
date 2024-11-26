@@ -1,5 +1,3 @@
-use crate::event::Event;
-use crate::remote_data;
 use exponential_backoff::Backoff;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
@@ -9,9 +7,14 @@ use std::thread;
 use std::time;
 use url::Url;
 
+use crate::event::Event;
+use crate::remote_data;
+
 pub struct EntryNode {
+    // TODO store multiple entry nodes and exit nodes and separate user_input
     pub endpoint: Url,
     pub api_token: String,
+    pub session_port: Option<u16>,
     pub addresses: Option<Addresses>,
 }
 
@@ -24,7 +27,14 @@ pub struct Addresses {
 pub fn addressses_backoff() -> Backoff {
     let attempts = 10;
     let min = time::Duration::from_secs(1);
-    let max = time::Duration::from_secs(30);
+    let max = time::Duration::from_secs(60);
+    Backoff::new(attempts, min, max)
+}
+
+pub fn list_sessions_backoff() -> Backoff {
+    let attempts = 3;
+    let min = time::Duration::from_secs(1);
+    let max = time::Duration::from_secs(5);
     Backoff::new(attempts, min, max)
 }
 
@@ -66,13 +76,15 @@ impl fmt::Display for EntryNode {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String) -> EntryNode {
+    pub fn new(endpoint: Url, api_token: String, session_port: Option<u16>) -> EntryNode {
         EntryNode {
             endpoint,
             api_token,
             addresses: None,
+            session_port,
         }
     }
+
 
     pub fn query_addresses(
         &self,
@@ -124,4 +136,56 @@ impl EntryNode {
         });
         Ok(())
     }
+
+    pub fn list_sessions(
+        &self,
+        client: &blocking::Client,
+        sender: &crossbeam_channel::Sender<Event>,
+    ) -> anyhow::Result<()> {
+        let headers = remote_data::authentication_headers(self.api_token.as_str())?;
+        let url = self.endpoint.join("/api/v3/session/udp")?;
+        let sender = sender.clone();
+        let client = client.clone();
+        thread::spawn(move || {
+            let fetch_res = client
+                .get(url)
+                .timeout(std::time::Duration::from_secs(30))
+                .headers(headers)
+                .send()
+                .map(|res| (res.status(), res.json::<serde_json::Value>()));
+
+            let evt = match fetch_res {
+                Ok((status, Ok(json))) if status.is_success() => {
+                    Event::FetchListSessions(remote_data::Event::Response(json))
+                }
+                Ok((status, Ok(json))) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: None,
+                        status: Some(status),
+                        value: Some(json),
+                    };
+                    Event::FetchListSessions(remote_data::Event::Error(e))
+                }
+                Ok((status, Err(e))) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: Some(e),
+                        status: Some(status),
+                        value: None,
+                    };
+                    Event::FetchListSessions(remote_data::Event::Error(e))
+                }
+                Err(e) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: Some(e),
+                        status: None,
+                        value: None,
+                    };
+                    Event::FetchListSessions(remote_data::Event::Error(e))
+                }
+            };
+            sender.send(evt)
+        });
+        Ok(())
+    }
+
 }
