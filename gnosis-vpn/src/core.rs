@@ -287,6 +287,7 @@ impl Core {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
+        self.cancel_session_monitoring();
         self.entry_node = Some(EntryNode::new(endpoint, api_token, session_port));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
@@ -299,6 +300,7 @@ impl Core {
     fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
+        self.cancel_session_monitoring();
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
         Ok(None)
@@ -400,6 +402,7 @@ impl Core {
             }
         }
     }
+
     fn cancel_fetch_open_session(&self) {
         if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.open_session {
             let res = cancel_sender.send(());
@@ -411,8 +414,21 @@ impl Core {
             }
         }
     }
+
     fn cancel_fetch_list_sessions(&self) {
         if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.list_sessions {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
+    }
+
+    fn cancel_session_monitoring(&self) {
+        if let Status::MonitoringSession { cancel_sender, .. } = &self.status {
             let res = cancel_sender.send(());
             match res {
                 Ok(_) => {}
