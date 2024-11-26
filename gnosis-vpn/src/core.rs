@@ -64,8 +64,8 @@ impl Core {
     }
 
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
-        tracing::trace!("HANDLE CMD [state before]: {}", self);
-        tracing::debug!("HANDLE CMD [cmd]: {}", cmd);
+        tracing::debug!("HANDLE CMD [state before]: {}", self);
+        tracing::info!("HANDLE CMD [cmd]: {}", cmd);
 
         let res = match cmd {
             Command::Status => self.status(),
@@ -77,13 +77,13 @@ impl Core {
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
-        tracing::trace!("HANDLE CMD [state after]: {}", self);
+        tracing::debug!("HANDLE CMD [state after]: {}", self);
         res
     }
 
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        tracing::trace!("HANDLE EVENT [state before]: {}", self);
-        tracing::debug!("HANDLE EVENT [event]: {}", event);
+        tracing::debug!("HANDLE EVENT [state before]: {}", self);
+        tracing::info!("HANDLE EVENT [event]: {}", event);
 
         let res = match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
@@ -93,7 +93,7 @@ impl Core {
             Event::ListSesssions { resp } => self.verify_session(resp),
         };
 
-        tracing::trace!("HANDLE EVENT [state after]: {}", self);
+        tracing::debug!("HANDLE EVENT [state after]: {}", self);
         res
     }
 
