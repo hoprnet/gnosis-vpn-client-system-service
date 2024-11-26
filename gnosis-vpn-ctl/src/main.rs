@@ -12,7 +12,15 @@ use gnosis_vpn_ctl::{cli, Command};
 fn as_internal_cmd(cmd: Command) -> gnosis_vpn_lib::Command {
     match cmd {
         Command::Status => gnosis_vpn_lib::Command::Status,
-        Command::EntryNode { endpoint, api_token } => gnosis_vpn_lib::Command::EntryNode { endpoint, api_token },
+        Command::EntryNode {
+            endpoint,
+            api_token,
+            session_port,
+        } => gnosis_vpn_lib::Command::EntryNode {
+            endpoint,
+            api_token,
+            session_port,
+        },
         Command::ExitNode { peer_id } => gnosis_vpn_lib::Command::ExitNode {
             peer_id: peer_id.to_string(),
         },
@@ -24,7 +32,7 @@ fn execute_internal_command(
     socket: &mut net::UnixStream,
     cmd: gnosis_vpn_lib::Command,
 ) -> anyhow::Result<Option<String>> {
-    socket.write_all(format!("{cmd}").as_bytes())?;
+    socket.write_all(cmd.to_string().as_bytes())?;
     socket.flush()?;
 
     Ok(if matches!(cmd, gnosis_vpn_lib::Command::Status) {
@@ -47,7 +55,7 @@ fn main() -> anyhow::Result<()> {
 
     for cmd in options.commands.into_iter() {
         let mut socket = match Path::try_exists(Path::new(&socket)) {
-            Ok(true) => net::UnixStream::connect(socket.clone()).with_context(|| "unable to connect to socket"),
+            Ok(true) => net::UnixStream::connect(socket.clone()).context("unable to connect to socket"),
             Ok(false) => Err(anyhow!(format!("gnosis-vpn not running"))),
             Err(x) => Err(anyhow!(x)),
         }?;
