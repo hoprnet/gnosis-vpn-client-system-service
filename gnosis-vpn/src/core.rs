@@ -115,10 +115,7 @@ impl Core {
         tracing::debug!("handling command: {}", cmd);
         match cmd {
             Command::Status => self.status(),
-            Command::EntryNode {
-                endpoint,
-                api_token,
-            } => self.entry_node(endpoint, api_token),
+            Command::EntryNode { endpoint, api_token } => self.entry_node(endpoint, api_token),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         }
     }
@@ -153,10 +150,7 @@ impl Core {
     }
 
     fn entry_node(&mut self, endpoint: Url, api_token: String) -> anyhow::Result<Option<String>> {
-        self.entry_node = Some(EntryNode {
-            endpoint,
-            api_token,
-        });
+        self.entry_node = Some(EntryNode { endpoint, api_token });
         self.query_entry_node_info()?;
         self.check_open_session()?;
         Ok(None)
@@ -204,10 +198,7 @@ impl Core {
     fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
         if let Some(entry_node) = &self.entry_node {
             let mut headers = HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("application/json"),
-            );
+            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
             let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
             hv_token.set_sensitive(true);
             headers.insert("x-auth-token", hv_token);
@@ -225,9 +216,7 @@ impl Core {
                     .json::<serde_json::Value>()
                     .unwrap();
 
-                sender
-                    .send(Event::GotAddresses { value: addresses })
-                    .unwrap();
+                sender.send(Event::GotAddresses { value: addresses }).unwrap();
             });
 
             let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
@@ -251,10 +240,7 @@ impl Core {
 
     fn open_session(&self, entry_node: &EntryNode, exit_node: &ExitNode) -> anyhow::Result<()> {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
         let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
         hv_token.set_sensitive(true);
         headers.insert("x-auth-token", hv_token);
@@ -289,10 +275,7 @@ impl Core {
 
     fn list_sessions(&self, entry_node: &EntryNode) -> anyhow::Result<()> {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
+        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
         let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
         hv_token.set_sensitive(true);
         headers.insert("x-auth-token", hv_token);
@@ -304,9 +287,7 @@ impl Core {
         thread::spawn(move || {
             let sessions = c.get(url).headers(h).send().unwrap().json().unwrap();
 
-            sender
-                .send(Event::ListSesssions { resp: sessions })
-                .unwrap();
+            sender.send(Event::ListSesssions { resp: sessions }).unwrap();
         });
         Ok(())
     }
@@ -374,10 +355,9 @@ impl fmt::Display for Core {
                 "for {}ms: monitoring session ",
                 start_time.elapsed().unwrap().as_millis(),
             ),
-            Status::ListingSessions { start_time } => format!(
-                "for {}ms: listing sessions",
-                start_time.elapsed().unwrap().as_millis()
-            ),
+            Status::ListingSessions { start_time } => {
+                format!("for {}ms: listing sessions", start_time.elapsed().unwrap().as_millis())
+            }
         };
         write!(f, "{}", string)
     }

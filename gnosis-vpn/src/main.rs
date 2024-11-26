@@ -52,8 +52,9 @@ fn daemon(socket: &String) -> anyhow::Result<()> {
     // set up unix stream listener
     let listener = match res_exists {
         Ok(true) => Err(anyhow!(format!("already running"))),
-        Ok(false) => net::UnixListener::bind(socket)
-            .with_context(|| format!("error binding listener to socket {}", socket)),
+        Ok(false) => {
+            net::UnixListener::bind(socket).with_context(|| format!("error binding listener to socket {}", socket))
+        }
         Err(x) => Err(anyhow!(x)),
     }?;
 

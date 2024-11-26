@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 use url::Url;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Command {
     Status,
     EntryNode { endpoint: Url, api_token: String },
@@ -13,10 +13,7 @@ pub enum Command {
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
-            Command::EntryNode {
-                endpoint,
-                api_token: _,
-            } => Command::EntryNode {
+            Command::EntryNode { endpoint, api_token: _ } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
             },

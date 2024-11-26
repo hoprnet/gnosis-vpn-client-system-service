@@ -23,8 +23,5 @@ Replace step 9b from the [testing gist](https://gist.github.com/NumberFour8/8cc7
 9c. From another shell run commands via the control application:
 
 ```bash
-# specify entry node via endpoint and token
-RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- --socket $(pwd)/gnovpn.sock entry-node --endpoint http://127.0.0.1:19091 --api-token ^^LOCAL-testing-123^^
-# specify exit node via peer id
-RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- --socket $(pwd)/gnovpn.sock exit-node --peer-id 12D3KooWFYU4hNaHtpxcyodHLoskd2Cw6irx8wsdjw1cFEgiDSg3
+RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- --socket $(pwd)/gnovpn.sock entry-node --endpoint http://127.0.0.1:19091 --api-token ^^LOCAL-testing-123^^ exit-node --peer-id 12D3KooWFYU4hNaHtpxcyodHLoskd2Cw6irx8wsdjw1cFEgiDSg3
 ```
