@@ -7,9 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
-clap = { version = "4.5.18", features = ["derive"] }
+# use exclusively because it supports command chaining
+bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
 env_logger = "0.11.5"
-gnosis-vpn-lib = { version = "0.1.0", path = "../gnosis-vpn-lib" }
+libp2p-identity = { version = "0.2.10", features = ["ed25519", "peerid"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 url = "2.5.3"
+
+gnosis-vpn-lib = { version = "0.1.0", path = "../gnosis-vpn-lib" }
