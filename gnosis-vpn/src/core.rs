@@ -109,21 +109,21 @@ impl Core {
             remote_data::Event::Error(err) => {
                 match &self.fetch_data.addresses {
                     RemoteData::RetryFetching {
-                        backoffs: old_backoffs,
-                        ..
+                        backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
                         self.repeat_fetch_addresses(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> = entry_node::addressses_backoff()
-                            .into_iter()
-                            .fold(Vec::new(), |mut acc, e| {
-                                if let Some(dur) = e {
-                                    acc.push(dur);
-                                }
-                                acc
-                            });
+                        let mut backoffs: Vec<time::Duration> =
+                            entry_node::addressses_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
                         backoffs.reverse();
                         self.repeat_fetch_addresses(err, &mut backoffs);
                     }
@@ -133,7 +133,7 @@ impl Core {
                     }
                 }
             }
-            remote_data::Event::Retry => self.fetch_entry_node_info()?,
+            remote_data::Event::Retry => self.fetch_addresses()?,
         };
         Ok(())
     }
@@ -156,21 +156,21 @@ impl Core {
             remote_data::Event::Error(err) => {
                 match &self.fetch_data.open_session {
                     RemoteData::RetryFetching {
-                        backoffs: old_backoffs,
-                        ..
+                        backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
                         self.repeat_fetch_open_session(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> = session::open_session_backoff()
-                            .into_iter()
-                            .fold(Vec::new(), |mut acc, e| {
-                                if let Some(dur) = e {
-                                    acc.push(dur);
-                                }
-                                acc
-                            });
+                        let mut backoffs: Vec<time::Duration> =
+                            session::open_session_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
                         backoffs.reverse();
                         self.repeat_fetch_open_session(err, &mut backoffs);
                     }
@@ -194,21 +194,21 @@ impl Core {
             remote_data::Event::Error(err) => {
                 match &self.fetch_data.list_sessions {
                     RemoteData::RetryFetching {
-                        backoffs: old_backoffs,
-                        ..
+                        backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
                         self.repeat_fetch_list_sessions(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> = entry_node::list_sessions_backoff()
-                            .into_iter()
-                            .fold(Vec::new(), |mut acc, e| {
-                                if let Some(dur) = e {
-                                    acc.push(dur);
-                                }
-                                acc
-                            });
+                        let mut backoffs: Vec<time::Duration> =
+                            entry_node::list_sessions_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
                         backoffs.reverse();
                         self.repeat_fetch_list_sessions(err, &mut backoffs);
                     }
@@ -223,11 +223,7 @@ impl Core {
         Ok(())
     }
 
-    fn repeat_fetch_addresses(
-        &mut self,
-        error: remote_data::CustomError,
-        backoffs: &mut Vec<time::Duration>,
-    ) {
+    fn repeat_fetch_addresses(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_query_addresses(backoff, &self.sender);
             self.fetch_data.addresses = RemoteData::RetryFetching {
@@ -240,11 +236,7 @@ impl Core {
         }
     }
 
-    fn repeat_fetch_open_session(
-        &mut self,
-        error: remote_data::CustomError,
-        backoffs: &mut Vec<time::Duration>,
-    ) {
+    fn repeat_fetch_open_session(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = session::schedule_retry_open(backoff, &self.sender);
             self.fetch_data.open_session = RemoteData::RetryFetching {
@@ -257,11 +249,7 @@ impl Core {
         }
     }
 
-    fn repeat_fetch_list_sessions(
-        &mut self,
-        error: remote_data::CustomError,
-        backoffs: &mut Vec<time::Duration>,
-    ) {
+    fn repeat_fetch_list_sessions(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -284,25 +272,21 @@ impl Core {
         api_token: String,
         session_port: Option<u16>,
     ) -> anyhow::Result<Option<String>> {
-        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.addresses {
-            let res = cancel_sender.send(());
-            match res {
-                Ok(_) => {}
-                Err(e) => {
-                    tracing::warn!("sending cancel event failed: {:?}", e);
-                }
-            }
-        }
+        self.cancel_fetch_addresses();
+        self.cancel_fetch_open_session();
+        self.cancel_fetch_list_sessions();
         self.entry_node = Some(EntryNode::new(endpoint, api_token, session_port));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
-        self.fetch_entry_node_info()?;
+        self.fetch_addresses()?;
         self.check_open_session()?;
         Ok(None)
     }
 
     fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
+        self.cancel_fetch_open_session();
+        self.cancel_fetch_list_sessions();
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
         Ok(None)
@@ -313,6 +297,9 @@ impl Core {
             (Status::Idle, Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
                     start_time: SystemTime::now(),
+                };
+                self.fetch_data.open_session = RemoteData::Fetching {
+                    started_at: SystemTime::now(),
                 };
                 self.fetch_open_session()
             }
@@ -344,7 +331,7 @@ impl Core {
         Ok(())
     }
 
-    fn fetch_entry_node_info(&mut self) -> anyhow::Result<()> {
+    fn fetch_addresses(&mut self) -> anyhow::Result<()> {
         match &self.entry_node {
             Some(en) => en.query_addresses(&self.client, &self.sender),
             _ => Ok(()),
@@ -389,6 +376,40 @@ impl Core {
         */
         Ok(())
     }
+
+    fn cancel_fetch_addresses(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.addresses {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
+    }
+    fn cancel_fetch_open_session(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.open_session {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
+    }
+    fn cancel_fetch_list_sessions(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.list_sessions {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
+    }
 }
 
 impl fmt::Display for ExitNode {
@@ -404,21 +425,15 @@ impl fmt::Display for Status {
         let val = match self {
             Status::Idle => "idle",
             // TODO refac to remote data
-            Status::OpeningSession { start_time } => &format!(
-                "opening session for {}",
-                start_time.elapsed().unwrap().as_secs()
-            )
-            .to_string(),
-            Status::MonitoringSession { start_time } => &format!(
-                "monitoring session for {}",
-                start_time.elapsed().unwrap().as_secs()
-            )
-            .to_string(),
-            Status::ListingSessions { start_time } => &format!(
-                "listing sessions for {}",
-                start_time.elapsed().unwrap().as_secs()
-            )
-            .to_string(),
+            Status::OpeningSession { start_time } => {
+                &format!("opening session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
+            }
+            Status::MonitoringSession { start_time } => {
+                &format!("monitoring session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
+            }
+            Status::ListingSessions { start_time } => {
+                &format!("listing sessions for {}", start_time.elapsed().unwrap().as_secs()).to_string()
+            }
         };
         write!(f, "{}", val)
     }
