@@ -2,6 +2,8 @@ use exponential_backoff::Backoff;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::cmp;
+use std::fmt;
 use std::thread;
 use std::time;
 use url::Url;
@@ -13,6 +15,7 @@ use crate::remote_data;
 
 #[derive(Serialize, Deserialize)]
 pub struct Session {
+    // listen host
     ip: String,
     port: u16,
     protocol: String,
@@ -133,26 +136,27 @@ pub fn schedule_check_session(
     cancel_sender
 }
 
-/*
 impl Session {
-    pub fn new(ip: String, port: u16, protocol: String, target: Url) -> Self {
-        Self {
-            ip,
-            port,
-            protocol,
-            target,
-        }
-    }
-    fn open(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    fn close(&self) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    fn is_active(&self) -> anyhow::Result<bool> {
-        Ok(false)
+    pub fn verify_open(&self, sessions: &Vec<Session>) -> bool {
+        sessions.iter().any(|entry| entry == self)
     }
 }
-*/
+
+impl cmp::PartialEq for Session {
+    fn eq(&self, other: &Self) -> bool {
+        self.ip == other.ip
+            && self.port == other.port
+            && self.protocol == other.protocol
+            && self.target.as_str().eq_ignore_ascii_case(other.target.as_str())
+    }
+}
+
+impl fmt::Display for Session {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Session: {}:{} {} {}",
+            self.ip, self.port, self.protocol, self.target
+        )
+    }
+}

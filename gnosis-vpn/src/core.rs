@@ -8,7 +8,6 @@ use url::Url;
 
 use crate::entry_node;
 use crate::entry_node::EntryNode;
-use crate::event;
 use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
 use crate::exit_node::ExitNode;
 use crate::remote_data;
@@ -144,7 +143,6 @@ impl Core {
     fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
-                tracing::info!("opened session {}", value);
                 self.fetch_data.open_session = RemoteData::Success;
                 let session = serde_json::from_value::<Session>(value);
                 match session {
@@ -196,8 +194,16 @@ impl Core {
     fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
-                tracing::info!("listing sessions {}", value);
-                self.fetch_data.addresses = RemoteData::Success;
+                self.fetch_data.list_sessions = RemoteData::Success;
+                let res_sessions = serde_json::from_value::<Vec<session::Session>>(value);
+                match res_sessions {
+                    Ok(sessions) => self.verify_session(&sessions),
+                    Err(e) => {
+                        tracing::error!("stopped monitoring - failed to parse sessions: {:?}", e);
+                        self.status = Status::Idle;
+                        Ok(())
+                    }
+                }
             }
             remote_data::Event::Error(err) => {
                 match &self.fetch_data.list_sessions {
@@ -205,7 +211,8 @@ impl Core {
                         backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs)
+                        self.repeat_fetch_list_sessions(err, &mut backoffs);
+                        Ok(())
                     }
                     RemoteData::Fetching { .. } => {
                         let mut backoffs: Vec<time::Duration> =
@@ -219,16 +226,17 @@ impl Core {
                                 });
                         backoffs.reverse();
                         self.repeat_fetch_list_sessions(err, &mut backoffs);
+                        Ok(())
                     }
                     _ => {
                         // should not happen
                         tracing::error!("unexpected event state");
+                        Ok(())
                     }
                 }
             }
-            remote_data::Event::Retry => self.fetch_list_sessions()?,
-        };
-        Ok(())
+            remote_data::Event::Retry => self.fetch_list_sessions(),
+        }
     }
 
     fn evt_check_session(&mut self) -> anyhow::Result<()> {
@@ -243,19 +251,6 @@ impl Core {
             _ => Ok(()),
         }
     }
-    /*
-        match &self.session {
-            Some(s) => {
-                let resp = s.list(&self.client, &self.sender);
-                self.verify_session(resp)?;
-            }
-            None => {
-                tracing::warn!("session not found");
-            }
-        }
-        Ok(())
-    }
-    */
 
     fn repeat_fetch_addresses(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
         if let Some(backoff) = backoffs.pop() {
@@ -323,6 +318,7 @@ impl Core {
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
         self.cancel_session_monitoring();
+        self.status = Status::Idle;
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
         Ok(None)
@@ -341,30 +337,6 @@ impl Core {
             }
             _ => Ok(()),
         }
-    }
-
-    fn check_list_sessions(&mut self) -> anyhow::Result<()> {
-        /*
-        match (&self.status, &self.entry_node) {
-            (Status::MonitoringSession { start_time }, Some(entry_node)) => {
-                if start_time.elapsed().unwrap().as_secs() > 3 {
-                    self.status = Status::ListingSessions {
-                        start_time: SystemTime::now(),
-                    };
-                    // self.list_sessions(entry_node)
-                } else {
-                    let sender = self.sender.clone();
-                    thread::spawn(move || {
-                        thread::sleep(std::time::Duration::from_millis(333));
-                        sender.send(Event::CheckSession).unwrap();
-                    });
-                    Ok(())
-                }
-            }
-            _ => Ok(()),
-        }
-        */
-        Ok(())
     }
 
     fn fetch_addresses(&mut self) -> anyhow::Result<()> {
@@ -388,29 +360,36 @@ impl Core {
         }
     }
 
-    fn verify_session(&mut self, resp: Vec<event::ListSessionsEntry>) -> anyhow::Result<()> {
-        /*
-        let session_listed = resp.iter().any(|entry| {
-            entry
-                .target
-                .eq_ignore_ascii_case("wireguard.staging.hoprnet.link:51820")
-                && entry.protocol.eq_ignore_ascii_case("udp")
-                && entry.port == 60006
-        });
-
-        if session_listed {
-            tracing::info!("session verified open");
-            self.status = Status::MonitoringSession {
-                start_time: SystemTime::now(),
-            };
-            self.check_list_sessions()
-        } else {
-            tracing::info!("session no longer open");
-            self.status = Status::Idle;
-            self.check_open_session()
+    fn verify_session(&mut self, sessions: &Vec<session::Session>) -> anyhow::Result<()> {
+        match (&self.session, &self.status) {
+            (Some(sess), Status::MonitoringSession { start_time, .. }) => {
+                if sess.verify_open(sessions) {
+                    tracing::info!(
+                        "session {}: verified open for {}s",
+                        sess,
+                        start_time.elapsed().unwrap().as_secs()
+                    );
+                    let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                    self.status = Status::MonitoringSession {
+                        start_time: start_time.clone(),
+                        cancel_sender,
+                    };
+                    Ok(())
+                } else {
+                    tracing::info!("session no longer open");
+                    self.status = Status::Idle;
+                    self.check_open_session()
+                }
+            }
+            (Some(sess), _) => {
+                tracing::warn!("skip verifying session {} - no longer monitoring", sess);
+                Ok(())
+            }
+            (None, status) => {
+                tracing::warn!("skip verifiying session - no session to verify in status {}", status);
+                Ok(())
+            }
         }
-        */
-        Ok(())
     }
 
     fn cancel_fetch_addresses(&self) {
