@@ -53,9 +53,7 @@ fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
     // set up unix stream listener
     let listener = match res_exists {
         Ok(true) => Err(anyhow!(format!("already running"))),
-        Ok(false) => {
-            net::UnixListener::bind(socket_path.as_path()).context("failed to bind socket")
-        }
+        Ok(false) => net::UnixListener::bind(socket_path.as_path()).context("failed to bind socket"),
         Err(x) => Err(anyhow!(x)),
     }?;
 
@@ -68,9 +66,7 @@ fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
     thread::spawn(move || {
         for stream in listener.incoming() {
             _ = match stream {
-                Ok(stream) => sender_socket
-                    .send(stream)
-                    .context("failed to send stream to channel"),
+                Ok(stream) => sender_socket.send(stream).context("failed to send stream to channel"),
                 Err(x) => {
                     tracing::error!("error waiting for incoming message: {:?}", x);
                     Err(anyhow!(x))
