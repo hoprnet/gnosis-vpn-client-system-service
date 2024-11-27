@@ -45,7 +45,9 @@ fn execute_internal_command(
 }
 
 fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    let file_appender = tracing_appender::rolling::hourly(".", "gnovpn-ctl.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    tracing_subscriber::fmt().with_writer(non_blocking).init();
 
     let options = cli().run();
 
