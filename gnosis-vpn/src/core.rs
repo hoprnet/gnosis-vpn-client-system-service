@@ -68,8 +68,8 @@ impl Core {
             Command::EntryNode {
                 endpoint,
                 api_token,
-                session_port,
-            } => self.entry_node(endpoint, api_token, session_port),
+                listen_host,
+            } => self.entry_node(endpoint, api_token, listen_host.clone()),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
@@ -299,13 +299,13 @@ impl Core {
         &mut self,
         endpoint: Url,
         api_token: String,
-        session_port: Option<u16>,
+        listen_port: Option<Url>,
     ) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
         self.cancel_session_monitoring();
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, session_port));
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };

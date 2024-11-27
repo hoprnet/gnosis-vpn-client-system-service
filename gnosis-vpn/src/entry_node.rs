@@ -14,7 +14,7 @@ pub struct EntryNode {
     // TODO store multiple entry nodes and exit nodes and separate user_input
     pub endpoint: Url,
     pub api_token: String,
-    pub session_port: Option<u16>,
+    pub listen_host: Option<Url>,
     pub addresses: Option<Addresses>,
 }
 
@@ -100,12 +100,12 @@ impl fmt::Display for EntryNode {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, session_port: Option<u16>) -> EntryNode {
+    pub fn new(endpoint: Url, api_token: String, listen_host: Option<Url>) -> EntryNode {
         EntryNode {
             endpoint,
             api_token,
             addresses: None,
-            session_port,
+            listen_host,
         }
     }
 

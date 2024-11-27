@@ -14,11 +14,11 @@ fn as_internal_cmd(cmd: Command) -> gnosis_vpn_lib::Command {
         Command::EntryNode {
             endpoint,
             api_token,
-            session_port,
+            listen_host,
         } => gnosis_vpn_lib::Command::EntryNode {
             endpoint,
             api_token,
-            session_port,
+            listen_host,
         },
         Command::ExitNode { peer_id } => gnosis_vpn_lib::Command::ExitNode {
             peer_id: peer_id.to_string(),

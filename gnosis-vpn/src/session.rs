@@ -37,12 +37,20 @@ pub fn open(
 ) -> anyhow::Result<()> {
     let headers = remote_data::authentication_headers(en.api_token.as_str())?;
     let url = en.endpoint.join("/api/v3/session/udp")?;
+    let en_lh = en.listen_host.as_ref().map(|lh| (lh.host(), lh.port()));
+
+    let listen_host = match en_lh {
+        Some((Some(h), Some(p))) => format!("{}:{}", h, p),
+        Some((Some(h), None)) => format!("{}:60006", h),
+        Some((None, Some(p))) => format!("0.0.0.0:{}", p),
+        Some((None, None)) | None => "0.0.0.0:60006".to_string(),
+    };
     let body = json!({
     "capabilities": ["Segmentation"],
     "destination": xn.peer_id,
     "path": {"Hops": 0 },
     "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-    "listenHost": format!("0.0.0.0:{}", en.session_port.unwrap_or(60006)),
+    "listenHost": listen_host,
     });
     let sender = sender.clone();
     let client = client.clone();

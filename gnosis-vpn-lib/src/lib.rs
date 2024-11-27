@@ -13,7 +13,7 @@ pub enum Command {
     EntryNode {
         endpoint: Url,
         api_token: String,
-        session_port: Option<u16>,
+        listen_host: Option<Url>,
     },
     ExitNode {
         peer_id: String,
@@ -30,11 +30,11 @@ impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
             Command::EntryNode {
-                session_port, endpoint, ..
+                listen_host, endpoint, ..
             } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
-                session_port: *session_port,
+                listen_host: listen_host.clone(),
             },
             c => c.clone(),
         };

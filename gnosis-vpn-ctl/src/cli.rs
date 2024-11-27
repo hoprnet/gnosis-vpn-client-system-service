@@ -19,7 +19,7 @@ pub enum Command {
         #[bpaf(short, long)]
         api_token: String,
         #[bpaf(short, long)]
-        session_port: Option<u16>,
+        listen_host: Option<Url>,
     },
     /// Specifies the exit node
     #[bpaf(command, adjacent)]
