@@ -48,7 +48,7 @@ pub fn open(
     let body = json!({
     "capabilities": ["Segmentation"],
     "destination": xn.peer_id,
-    "path": {"Hops": 0 },
+    "path": {"Hops": 1 },
     "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
     "listenHost": listen_host,
     });
