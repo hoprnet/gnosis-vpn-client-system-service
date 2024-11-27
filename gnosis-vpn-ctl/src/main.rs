@@ -45,7 +45,7 @@ fn execute_internal_command(
 }
 
 fn main() -> anyhow::Result<()> {
-    let file_appender = tracing_appender::rolling::hourly(".", "gnovpn-ctl.log");
+    let file_appender = tracing_appender::rolling::minutely(".", "gnovpn-ctl.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt().with_writer(non_blocking).init();
 
@@ -66,6 +66,7 @@ fn main() -> anyhow::Result<()> {
 
         if let Some(response) = execute_internal_command(&mut socket, as_internal_cmd(cmd))? {
             info!(%response, "Command result");
+            println!("{}", response);
         }
     }
 
