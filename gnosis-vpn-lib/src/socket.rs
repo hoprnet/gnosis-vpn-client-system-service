@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[cfg(target_family = "unix")]
 pub fn socket_path() -> PathBuf {
     PathBuf::from("/var/run/gnosis-vpn.sock")
 }
