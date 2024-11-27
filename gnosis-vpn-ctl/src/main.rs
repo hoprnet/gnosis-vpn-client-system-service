@@ -31,8 +31,8 @@ fn execute_internal_command(
     socket: &mut net::UnixStream,
     cmd: gnosis_vpn_lib::Command,
 ) -> anyhow::Result<Option<String>> {
-    let json_cmd = cmd.to_json_string()?;
-    socket.write_all(json_cmd.as_bytes())?;
+    let cmd_as_json = cmd.to_json_string()?;
+    socket.write_all(cmd_as_json.as_bytes())?;
     socket.flush()?;
 
     Ok(if matches!(cmd, gnosis_vpn_lib::Command::Status) {
