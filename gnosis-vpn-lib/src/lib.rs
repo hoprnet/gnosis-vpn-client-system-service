@@ -1,3 +1,4 @@
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -20,8 +21,8 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn to_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
+    pub fn to_json_string(&self) -> anyhow::Result<String> {
+        serde_json::to_string(self).context("Failed to serialize command")
     }
 }
 
