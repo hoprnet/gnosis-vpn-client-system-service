@@ -360,7 +360,7 @@ impl Core {
         }
     }
 
-    fn verify_session(&mut self, sessions: &Vec<session::Session>) -> anyhow::Result<()> {
+    fn verify_session(&mut self, sessions: &[session::Session]) -> anyhow::Result<()> {
         match (&self.session, &self.status) {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
@@ -371,7 +371,7 @@ impl Core {
                     );
                     let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
                     self.status = Status::MonitoringSession {
-                        start_time: start_time.clone(),
+                        start_time: *start_time,
                         cancel_sender,
                     };
                     Ok(())

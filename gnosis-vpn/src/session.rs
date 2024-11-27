@@ -137,7 +137,7 @@ pub fn schedule_check_session(
 }
 
 impl Session {
-    pub fn verify_open(&self, sessions: &Vec<Session>) -> bool {
+    pub fn verify_open(&self, sessions: &[Session]) -> bool {
         sessions.iter().any(|entry| entry == self)
     }
 }

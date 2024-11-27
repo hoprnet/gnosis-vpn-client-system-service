@@ -34,7 +34,7 @@ impl fmt::Display for Command {
             } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
-                session_port: session_port.clone(),
+                session_port: *session_port,
             },
             c => c.clone(),
         };
