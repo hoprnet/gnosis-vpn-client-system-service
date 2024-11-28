@@ -11,3 +11,7 @@ target/
 
 .direnv/
 gnovpn-ctl.log.*
+.venv
+
+# make sure anything which is vendored is copied
+!/vendor/**/*
