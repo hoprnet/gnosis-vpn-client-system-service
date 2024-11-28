@@ -124,7 +124,7 @@ fn main() {
         Err(e) => {
             // Log the error and its chain in one line
             let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
-            tracing::error!("daemon exited with error: {}", error_chain.join(": "));
+            tracing::error!(?error_chain, "Exiting with error");
         }
     }
 }
