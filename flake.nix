@@ -60,7 +60,7 @@
             root = ./.;
             fileset = fs.unions [
               ./vendor
-              # ./.cargo/config.toml
+              ./.cargo/config.toml
               ./Cargo.lock
               (fs.fileFilter (file: file.name == "Cargo.toml") ./.)
             ];
