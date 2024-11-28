@@ -5,8 +5,6 @@ use url::Url;
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options)]
 pub struct Cli {
-    #[bpaf(short, long)]
-    pub socket: String,
     #[bpaf(external(command), many)]
     pub commands: Vec<Command>,
 }
@@ -20,6 +18,8 @@ pub enum Command {
         endpoint: Url,
         #[bpaf(short, long)]
         api_token: String,
+        #[bpaf(short, long)]
+        listen_host: Option<Url>,
     },
     /// Specifies the exit node
     #[bpaf(command, adjacent)]

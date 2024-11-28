@@ -1,100 +1,47 @@
 use gnosis_vpn_lib::Command;
+use libp2p_identity::PeerId;
 use reqwest::blocking;
-use reqwest::header;
-use reqwest::header::{HeaderMap, HeaderValue};
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
-use std::thread;
+use std::time;
 use std::time::SystemTime;
+use tracing::instrument;
 use url::Url;
 
-pub enum Event {
-    // TODO
-    GotAddresses { value: serde_json::Value },
-    // TODO
-    GotPeers { value: serde_json::Value },
-    // TODO
-    GotSession { value: serde_json::Value },
-    ListSesssions { resp: Vec<ListSessionsEntry> },
-    CheckSession,
-}
+use crate::entry_node;
+use crate::entry_node::EntryNode;
+use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
+use crate::exit_node::ExitNode;
+use crate::remote_data;
+use crate::remote_data::RemoteData;
+use crate::session;
+use crate::session::Session;
 
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
     exit_node: Option<ExitNode>,
     client: blocking::Client,
-    entry_node_addresses: Option<serde_json::Value>,
-    entry_node_peers: Option<serde_json::Value>,
-    entry_node_session: Option<serde_json::Value>,
+    fetch_data: FetchData,
     sender: crossbeam_channel::Sender<Event>,
+    session: Option<Session>,
+}
+
+struct FetchData {
+    addresses: RemoteData,
+    open_session: RemoteData,
+    list_sessions: RemoteData,
 }
 
 enum Status {
     Idle,
-    OpeningSession { start_time: SystemTime },
-    MonitoringSession { start_time: SystemTime },
-    ListingSessions { start_time: SystemTime },
-}
-
-struct EntryNode {
-    endpoint: Url,
-    api_token: String,
-}
-
-struct ExitNode {
-    peer_id: String,
-}
-
-/*
-
-pub trait Session {
-    fn open(&self) -> anyhow::Result<()>;
-    fn close(&self) -> anyhow::Result<()>;
-    fn is_active(&self) -> anyhow::Result<bool>;
-}
-
-pub struct BasicSessionConfig {
-    // TODO
-}
-pub struct BasicSession {
-    // TODO: add long lived HTTP session to the target API
-}
-
-impl BasicSession {
-    pub fn new() -> BasicSession {
-        BasicSession {}
-    }
-}
-
-impl Session for BasicSession {
-    fn open(&self) -> anyhow::Result<()> {
-        // call the session/udp...
-        todo!()
-    }
-
-    fn close(&self) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn is_active(&self) -> anyhow::Result<bool> {
-        todo!()
-    }
-}
-
-// pub struct SessionManager<T>
-// where T: Session {
-//     sessions: Vec<T>,
-// }
-
-*/
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct ListSessionsEntry {
-    target: String,
-    protocol: String,
-    ip: String,
-    port: u16,
+    OpeningSession {
+        start_time: SystemTime,
+    },
+    MonitoringSession {
+        start_time: SystemTime,
+        cancel_sender: crossbeam_channel::Sender<()>,
+    },
 }
 
 impl Core {
@@ -103,45 +50,249 @@ impl Core {
             status: Status::Idle,
             entry_node: None,
             exit_node: None,
-            entry_node_addresses: None,
-            entry_node_peers: None,
-            entry_node_session: None,
             client: blocking::Client::new(),
+            fetch_data: FetchData {
+                addresses: RemoteData::NotAsked,
+                open_session: RemoteData::NotAsked,
+                list_sessions: RemoteData::NotAsked,
+            },
             sender,
+            session: None,
         }
     }
 
+    #[instrument(level = "info", skip(self, cmd), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
-        tracing::debug!("handling command: {}", cmd);
-        match cmd {
+        tracing::info!(%cmd, "Handling command");
+        tracing::debug!(state_before = %self, "State cmd change");
+
+        let res = match cmd {
             Command::Status => self.status(),
-            Command::EntryNode { endpoint, api_token } => self.entry_node(endpoint, api_token),
+            Command::EntryNode {
+                endpoint,
+                api_token,
+                listen_host,
+            } => self.entry_node(endpoint, api_token, listen_host.clone()),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
+        };
+
+        tracing::debug!(state_after = %self, "State cmd change");
+
+        res
+    }
+
+    #[instrument(level = "info", skip(self, event), ret(level = tracing::Level::DEBUG))]
+    pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
+        tracing::info!(%event, "Handling event");
+        tracing::debug!(state_before = %self, "State evt change");
+
+        let res = match event {
+            Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
+            Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
+            Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
+            Event::CheckSession => self.evt_check_session(),
+        };
+
+        tracing::debug!(state_after = %self, "State evt change");
+        res
+    }
+
+    fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+        match evt {
+            remote_data::Event::Response(value) => {
+                self.fetch_data.addresses = RemoteData::Success;
+                if let Some(en) = &mut self.entry_node {
+                    let addresses = serde_json::from_value::<entry_node::Addresses>(value);
+                    match addresses {
+                        Ok(addr) => {
+                            en.addresses = Some(addr);
+                        }
+                        Err(e) => {
+                            tracing::error!("failed to parse addresses: {:?}", e);
+                        }
+                    }
+                }
+            }
+            remote_data::Event::Error(err) => {
+                match &self.fetch_data.addresses {
+                    RemoteData::RetryFetching {
+                        backoffs: old_backoffs, ..
+                    } => {
+                        let mut backoffs = old_backoffs.clone();
+                        self.repeat_fetch_addresses(err, &mut backoffs)
+                    }
+                    RemoteData::Fetching { .. } => {
+                        let mut backoffs: Vec<time::Duration> =
+                            entry_node::addressses_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
+                        backoffs.reverse();
+                        self.repeat_fetch_addresses(err, &mut backoffs);
+                    }
+                    _ => {
+                        // should not happen
+                        tracing::error!("unexpected event state");
+                    }
+                }
+            }
+            remote_data::Event::Retry => self.fetch_addresses()?,
+        };
+        Ok(())
+    }
+
+    fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+        match evt {
+            remote_data::Event::Response(value) => {
+                self.fetch_data.open_session = RemoteData::Success;
+                let session = serde_json::from_value::<Session>(value);
+                match session {
+                    Ok(s) => {
+                        self.session = Some(s);
+                        let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                        self.status = Status::MonitoringSession {
+                            start_time: SystemTime::now(),
+                            cancel_sender,
+                        };
+                    }
+                    Err(e) => {
+                        tracing::error!("failed to parse session: {:?}", e);
+                    }
+                }
+            }
+            remote_data::Event::Error(err) => {
+                match &self.fetch_data.open_session {
+                    RemoteData::RetryFetching {
+                        backoffs: old_backoffs, ..
+                    } => {
+                        let mut backoffs = old_backoffs.clone();
+                        self.repeat_fetch_open_session(err, &mut backoffs)
+                    }
+                    RemoteData::Fetching { .. } => {
+                        let mut backoffs: Vec<time::Duration> =
+                            session::open_session_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
+                        backoffs.reverse();
+                        self.repeat_fetch_open_session(err, &mut backoffs);
+                    }
+                    _ => {
+                        // should not happen
+                        tracing::error!("unexpected event state");
+                    }
+                }
+            }
+            remote_data::Event::Retry => self.fetch_open_session()?,
+        };
+        Ok(())
+    }
+
+    fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+        match evt {
+            remote_data::Event::Response(value) => {
+                self.fetch_data.list_sessions = RemoteData::Success;
+                let res_sessions = serde_json::from_value::<Vec<session::Session>>(value);
+                match res_sessions {
+                    Ok(sessions) => self.verify_session(&sessions),
+                    Err(e) => {
+                        tracing::error!("stopped monitoring - failed to parse sessions: {:?}", e);
+                        self.status = Status::Idle;
+                        Ok(())
+                    }
+                }
+            }
+            remote_data::Event::Error(err) => {
+                match &self.fetch_data.list_sessions {
+                    RemoteData::RetryFetching {
+                        backoffs: old_backoffs, ..
+                    } => {
+                        let mut backoffs = old_backoffs.clone();
+                        self.repeat_fetch_list_sessions(err, &mut backoffs);
+                        Ok(())
+                    }
+                    RemoteData::Fetching { .. } => {
+                        let mut backoffs: Vec<time::Duration> =
+                            entry_node::list_sessions_backoff()
+                                .into_iter()
+                                .fold(Vec::new(), |mut acc, e| {
+                                    if let Some(dur) = e {
+                                        acc.push(dur);
+                                    }
+                                    acc
+                                });
+                        backoffs.reverse();
+                        self.repeat_fetch_list_sessions(err, &mut backoffs);
+                        Ok(())
+                    }
+                    _ => {
+                        // should not happen
+                        tracing::error!("unexpected event state");
+                        Ok(())
+                    }
+                }
+            }
+            remote_data::Event::Retry => self.fetch_list_sessions(),
         }
     }
 
-    pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        tracing::debug!("handling event: {}", event);
-        match event {
-            Event::GotAddresses { value } => {
-                self.entry_node_addresses = Some(value);
-                Ok(())
-            }
-            Event::GotPeers { value } => {
-                self.entry_node_peers = Some(value);
-                Ok(())
-            }
-
-            Event::GotSession { value } => {
-                tracing::info!("opened session");
-                self.entry_node_session = Some(value);
-                self.status = Status::MonitoringSession {
-                    start_time: SystemTime::now(),
+    fn evt_check_session(&mut self) -> anyhow::Result<()> {
+        match (&self.status, &self.fetch_data.list_sessions) {
+            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
+            (Status::MonitoringSession { .. }, _) => {
+                self.fetch_data.list_sessions = RemoteData::Fetching {
+                    started_at: SystemTime::now(),
                 };
-                self.check_list_sessions()
+                self.fetch_list_sessions()
             }
-            Event::CheckSession => self.check_list_sessions(),
-            Event::ListSesssions { resp } => self.verify_session(resp),
+            _ => Ok(()),
+        }
+    }
+
+    fn repeat_fetch_addresses(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+        if let Some(backoff) = backoffs.pop() {
+            let cancel_sender = entry_node::schedule_retry_query_addresses(backoff, &self.sender);
+            self.fetch_data.addresses = RemoteData::RetryFetching {
+                error,
+                cancel_sender,
+                backoffs: backoffs.clone(),
+            };
+        } else {
+            self.fetch_data.addresses = RemoteData::Failure { error };
+        }
+    }
+
+    fn repeat_fetch_open_session(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+        if let Some(backoff) = backoffs.pop() {
+            let cancel_sender = session::schedule_retry_open(backoff, &self.sender);
+            self.fetch_data.open_session = RemoteData::RetryFetching {
+                error,
+                cancel_sender,
+                backoffs: backoffs.clone(),
+            };
+        } else {
+            self.fetch_data.open_session = RemoteData::Failure { error };
+        }
+    }
+
+    fn repeat_fetch_list_sessions(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+        if let Some(backoff) = backoffs.pop() {
+            let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
+            self.fetch_data.list_sessions = RemoteData::RetryFetching {
+                error,
+                cancel_sender,
+                backoffs: backoffs.clone(),
+            };
+        } else {
+            self.fetch_data.list_sessions = RemoteData::Failure { error };
         }
     }
 
@@ -149,14 +300,30 @@ impl Core {
         Ok(Some(self.to_string()))
     }
 
-    fn entry_node(&mut self, endpoint: Url, api_token: String) -> anyhow::Result<Option<String>> {
-        self.entry_node = Some(EntryNode { endpoint, api_token });
-        self.query_entry_node_info()?;
+    fn entry_node(
+        &mut self,
+        endpoint: Url,
+        api_token: String,
+        listen_port: Option<Url>,
+    ) -> anyhow::Result<Option<String>> {
+        self.cancel_fetch_addresses();
+        self.cancel_fetch_open_session();
+        self.cancel_fetch_list_sessions();
+        self.cancel_session_monitoring();
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port));
+        self.fetch_data.addresses = RemoteData::Fetching {
+            started_at: SystemTime::now(),
+        };
+        self.fetch_addresses()?;
         self.check_open_session()?;
         Ok(None)
     }
 
-    fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
+    fn exit_node(&mut self, peer_id: PeerId) -> anyhow::Result<Option<String>> {
+        self.cancel_fetch_open_session();
+        self.cancel_fetch_list_sessions();
+        self.cancel_session_monitoring();
+        self.status = Status::Idle;
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
         Ok(None)
@@ -164,201 +331,163 @@ impl Core {
 
     fn check_open_session(&mut self) -> anyhow::Result<()> {
         match (&self.status, &self.entry_node, &self.exit_node) {
-            (Status::Idle, Some(entry_node), Some(exit_node)) => {
+            (Status::Idle, Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
                     start_time: SystemTime::now(),
                 };
-                self.open_session(entry_node, exit_node)
+                self.fetch_data.open_session = RemoteData::Fetching {
+                    started_at: SystemTime::now(),
+                };
+                self.fetch_open_session()
             }
             _ => Ok(()),
         }
     }
 
-    fn check_list_sessions(&mut self) -> anyhow::Result<()> {
-        match (&self.status, &self.entry_node) {
-            (Status::MonitoringSession { start_time }, Some(entry_node)) => {
-                if start_time.elapsed().unwrap().as_secs() > 3 {
-                    self.status = Status::ListingSessions {
-                        start_time: SystemTime::now(),
+    fn fetch_addresses(&mut self) -> anyhow::Result<()> {
+        match &self.entry_node {
+            Some(en) => en.query_addresses(&self.client, &self.sender),
+            _ => Ok(()),
+        }
+    }
+
+    fn fetch_open_session(&mut self) -> anyhow::Result<()> {
+        match (&self.entry_node, &self.exit_node) {
+            (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
+            _ => Ok(()),
+        }
+    }
+
+    fn fetch_list_sessions(&mut self) -> anyhow::Result<()> {
+        match &self.entry_node {
+            Some(en) => en.list_sessions(&self.client, &self.sender),
+            _ => Ok(()),
+        }
+    }
+
+    fn verify_session(&mut self, sessions: &[session::Session]) -> anyhow::Result<()> {
+        match (&self.session, &self.status) {
+            (Some(sess), Status::MonitoringSession { start_time, .. }) => {
+                if sess.verify_open(sessions) {
+                    tracing::info!(
+                        "session {}: verified open for {}s",
+                        sess,
+                        start_time.elapsed().unwrap().as_secs()
+                    );
+                    let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                    self.status = Status::MonitoringSession {
+                        start_time: *start_time,
+                        cancel_sender,
                     };
-                    self.list_sessions(entry_node)
-                } else {
-                    let sender = self.sender.clone();
-                    thread::spawn(move || {
-                        thread::sleep(std::time::Duration::from_millis(333));
-                        sender.send(Event::CheckSession).unwrap();
-                    });
                     Ok(())
+                } else {
+                    tracing::info!("session no longer open");
+                    self.status = Status::Idle;
+                    self.check_open_session()
                 }
             }
-            _ => Ok(()),
+            (Some(sess), _) => {
+                tracing::warn!("skip verifying session {} - no longer monitoring", sess);
+                Ok(())
+            }
+            (None, status) => {
+                tracing::warn!("skip verifiying session - no session to verify in status {}", status);
+                Ok(())
+            }
         }
     }
 
-    fn query_entry_node_info(&mut self) -> anyhow::Result<()> {
-        if let Some(entry_node) = &self.entry_node {
-            let mut headers = HeaderMap::new();
-            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-            let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
-            hv_token.set_sensitive(true);
-            headers.insert("x-auth-token", hv_token);
-
-            let url_addresses = entry_node.endpoint.join("/api/v3/account/addresses")?;
-            let sender = self.sender.clone();
-            let c1 = self.client.clone();
-            let h1 = headers.clone();
-            thread::spawn(move || {
-                let addresses = c1
-                    .get(url_addresses)
-                    .headers(h1)
-                    .send()
-                    .unwrap()
-                    .json::<serde_json::Value>()
-                    .unwrap();
-
-                sender.send(Event::GotAddresses { value: addresses }).unwrap();
-            });
-
-            let url_peers = entry_node.endpoint.join("/api/v3/node/peers")?;
-            let sender = self.sender.clone();
-            let c2 = self.client.clone();
-            let h2 = headers.clone();
-            thread::spawn(move || {
-                let peers = c2
-                    .get(url_peers)
-                    .headers(h2)
-                    .send()
-                    .unwrap()
-                    .json::<serde_json::Value>()
-                    .unwrap();
-
-                sender.send(Event::GotPeers { value: peers }).unwrap();
-            });
-        };
-        Ok(())
+    fn cancel_fetch_addresses(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.addresses {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
     }
 
-    fn open_session(&self, entry_node: &EntryNode, exit_node: &ExitNode) -> anyhow::Result<()> {
-        let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
-        hv_token.set_sensitive(true);
-        headers.insert("x-auth-token", hv_token);
-
-        let body = serde_json::json!({
-            "capabilities": ["Segmentation"],
-            "destination": exit_node.peer_id,
-            "path": {"Hops": 0 },
-            "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-            "listenHost": "0.0.0.0:60006"
-        });
-
-        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-        let sender = self.sender.clone();
-        let c = self.client.clone();
-        let h = headers.clone();
-        thread::spawn(move || {
-            let session = c
-                .post(url)
-                .headers(h)
-                .json(&body)
-                .send()
-                .unwrap()
-                .json::<serde_json::Value>()
-                .unwrap();
-
-            sender.send(Event::GotSession { value: session }).unwrap();
-        });
-
-        Ok(())
+    fn cancel_fetch_open_session(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.open_session {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
     }
 
-    fn list_sessions(&self, entry_node: &EntryNode) -> anyhow::Result<()> {
-        let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        let mut hv_token = HeaderValue::from_str(entry_node.api_token.as_str())?;
-        hv_token.set_sensitive(true);
-        headers.insert("x-auth-token", hv_token);
-
-        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-        let sender = self.sender.clone();
-        let c = self.client.clone();
-        let h = headers.clone();
-        thread::spawn(move || {
-            let sessions = c.get(url).headers(h).send().unwrap().json().unwrap();
-
-            sender.send(Event::ListSesssions { resp: sessions }).unwrap();
-        });
-        Ok(())
+    fn cancel_fetch_list_sessions(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.list_sessions {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
+        }
     }
 
-    fn verify_session(&mut self, resp: Vec<ListSessionsEntry>) -> anyhow::Result<()> {
-        let session_listed = resp.iter().any(|entry| {
-            entry
-                .target
-                .eq_ignore_ascii_case("wireguard.staging.hoprnet.link:51820")
-                && entry.protocol.eq_ignore_ascii_case("udp")
-                && entry.port == 60006
-        });
-
-        if session_listed {
-            tracing::info!("session verified open");
-            self.status = Status::MonitoringSession {
-                start_time: SystemTime::now(),
-            };
-            self.check_list_sessions()
-        } else {
-            tracing::info!("session no longer open");
-            self.status = Status::Idle;
-            self.check_open_session()
+    fn cancel_session_monitoring(&self) {
+        if let Status::MonitoringSession { cancel_sender, .. } = &self.status {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {:?}", e);
+                }
+            }
         }
     }
 }
 
-impl fmt::Display for Event {
+impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Event::GotAddresses { value } => write!(f, "GotAddresses: {}", value),
-            Event::GotPeers { value } => write!(f, "GotPeers: {}", value),
-            Event::GotSession { value } => write!(f, "GotSession: {}", value),
-            Event::ListSesssions { resp } => write!(f, "ListSesssions: {}", resp.len()),
-            Event::CheckSession => write!(f, "CheckSession"),
-        }
+        let peer = self.peer_id.to_base58();
+        let print = HashMap::from([("peer_id", peer.as_str())]);
+        let val = serde_json::to_string(&print).unwrap();
+        write!(f, "{}", val)
+    }
+}
+
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let val = match self {
+            Status::Idle => "idle",
+            Status::OpeningSession { start_time } => {
+                &format!("opening session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
+            }
+            Status::MonitoringSession { start_time, .. } => {
+                &format!("monitoring session for {}s", start_time.elapsed().unwrap().as_secs()).to_string()
+            }
+        };
+        write!(f, "{}", val)
     }
 }
 
 impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let string = match self.status {
-            Status::Idle => {
-                let mut info = "idle".to_string();
-                if let Some(entry_node) = &self.entry_node {
-                    info = format!("{} | entry node: {}", info, entry_node.endpoint.as_str())
-                }
-                if let Some(entry_node_addresses) = &self.entry_node_addresses {
-                    info = format!("{} | addresses: {}", info, entry_node_addresses)
-                }
-                if let Some(entry_node_peers) = &self.entry_node_peers {
-                    info = format!("{} | peers: {}", info, entry_node_peers)
-                }
-                if let Some(exit_node) = &self.exit_node {
-                    info = format!("{} | exit_node: {}", info, exit_node.peer_id.as_str())
-                }
-                info
-            }
-            Status::OpeningSession { start_time } => format!(
-                "for {}ms: open session to {}",
-                start_time.elapsed().unwrap().as_millis(),
-                self.entry_node.as_ref().unwrap().endpoint
-            ),
-            Status::MonitoringSession { start_time } => format!(
-                "for {}ms: monitoring session ",
-                start_time.elapsed().unwrap().as_millis(),
-            ),
-            Status::ListingSessions { start_time } => {
-                format!("for {}ms: listing sessions", start_time.elapsed().unwrap().as_millis())
-            }
-        };
-        write!(f, "{}", string)
+        let en_str: String = self
+            .entry_node
+            .as_ref()
+            .map(|en| en.to_string())
+            .unwrap_or("".to_string());
+        let xn_str: String = self
+            .exit_node
+            .as_ref()
+            .map(|xn| xn.to_string())
+            .unwrap_or("".to_string());
+        let print = HashMap::from([
+            ("status", self.status.to_string()),
+            ("entry_node", en_str),
+            ("exit_node", xn_str),
+        ]);
+        let val = serde_json::to_string(&print).unwrap();
+        write!(f, "{}", val)
     }
 }

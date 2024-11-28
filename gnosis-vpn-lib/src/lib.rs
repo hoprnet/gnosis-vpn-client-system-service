@@ -1,21 +1,44 @@
+use anyhow::Context;
+use libp2p_identity::PeerId;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::fmt;
 use std::str::FromStr;
 use url::Url;
 
+mod socket;
+pub use socket::socket_path;
+
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Command {
     Status,
-    EntryNode { endpoint: Url, api_token: String },
-    ExitNode { peer_id: String },
+    EntryNode {
+        endpoint: Url,
+        api_token: String,
+        listen_host: Option<Url>,
+    },
+    ExitNode {
+        #[serde_as(as = "DisplayFromStr")]
+        peer_id: PeerId,
+    },
+}
+
+impl Command {
+    pub fn to_json_string(&self) -> anyhow::Result<String> {
+        serde_json::to_string(self).context("Failed to serialize command")
+    }
 }
 
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
-            Command::EntryNode { endpoint, api_token: _ } => Command::EntryNode {
+            Command::EntryNode {
+                listen_host, endpoint, ..
+            } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
+                listen_host: listen_host.clone(),
             },
             c => c.clone(),
         };
