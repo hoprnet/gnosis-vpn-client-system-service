@@ -59,8 +59,8 @@
           depsSrc = fs.toSource {
             root = ./.;
             fileset = fs.unions [
-              ./vendor/cargo
-              ./.cargo/config.toml
+              ./vendor
+              # ./.cargo/config.toml
               ./Cargo.lock
               (fs.fileFilter (file: file.name == "Cargo.toml") ./.)
             ];
@@ -69,7 +69,7 @@
           src = fs.toSource {
             root = ./.;
             fileset = fs.unions [
-              ./vendor/cargo
+              ./vendor
               ./.cargo/config.toml
               ./Cargo.lock
               ./README.md

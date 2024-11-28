@@ -85,10 +85,10 @@ let
     cargoExtraArgs = "--offline -p ${pname} ${cargoExtraArgs}";
     # this env var is used by utoipa-swagger-ui to prevent internet access
     CARGO_FEATURE_VENDORED = "true";
-    cargoVendorDir = "vendor/cargo";
+    cargoVendorDir = "vendor";
     # disable running tests automatically for now
     doCheck = false;
-    # prevent nix from changing config.sub files under vendor/cargo
+    # prevent nix from changing config.sub files under vendor
     dontUpdateAutotoolsGnuConfigScripts = true;
     # set to the revision because during build the Git info is not available
     VERGEN_GIT_SHA = rev;
@@ -124,9 +124,8 @@ let
     cargoArtifacts = craneLib.buildDepsOnly (sharedArgs // {
       src = depsSrc;
       extraDummyScript = ''
-        mkdir -p $out/vendor/cargo
-        cp -r --no-preserve=mode,ownership ${depsSrc}/vendor/cargo $out/vendor/
-        echo "# placeholder" > $out/vendor/cargo/config.toml
+        cp -r --no-preserve=mode,ownership ${depsSrc}/vendor $out/
+        echo "# placeholder" > $out/vendor/config.toml
       '';
     });
   };
@@ -145,7 +144,7 @@ builder (args // {
   preConfigure = ''
     # respect the amount of available cores for building
     export CARGO_BUILD_JOBS=$NIX_BUILD_CORES
-    echo "# placeholder" > vendor/cargo/config.toml
+    echo "# placeholder" > vendor/config.toml
     sed "s|# solc = .*|solc = \"${solcDefault}/bin/solc\"|g" \
       ethereum/contracts/foundry.toml.in > \
       ethereum/contracts/foundry.toml
