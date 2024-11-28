@@ -90,30 +90,6 @@
         "type": "github"
       }
     },
-    "foundry": {
-      "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1727428214,
-        "narHash": "sha256-bTVooXVEFBGeq8oFRrezf0TzM8sN+MIVKtNTD6L+GqU=",
-        "owner": "shazow",
-        "repo": "foundry.nix",
-        "rev": "e4c79767b4d2e51179d1975a9f0553ef30d82711",
-        "type": "github"
-      },
-      "original": {
-        "owner": "shazow",
-        "repo": "foundry.nix",
-        "rev": "e4c79767b4d2e51179d1975a9f0553ef30d82711",
-        "type": "github"
-      }
-    },
     "gitignore": {
       "inputs": {
         "nixpkgs": [
@@ -182,11 +158,9 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
-        "foundry": "foundry",
         "nixpkgs": "nixpkgs",
         "pre-commit": "pre-commit",
         "rust-overlay": "rust-overlay",
-        "solc": "solc",
         "treefmt-nix": "treefmt-nix"
       }
     },
@@ -208,30 +182,6 @@
         "owner": "oxalica",
         "ref": "master",
         "repo": "rust-overlay",
-        "type": "github"
-      }
-    },
-    "solc": {
-      "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1708511980,
-        "narHash": "sha256-Nf04LYEAMDZ+H4s0t7/PIV6Xe9lHuCnNM3qESlIhJl4=",
-        "owner": "hoprnet",
-        "repo": "solc.nix",
-        "rev": "29a2a4a0c0787bcffdebcb0046c1b5a43f955ef3",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hoprnet",
-        "ref": "tb/20240129-solc-0.8.24",
-        "repo": "solc.nix",
         "type": "github"
       }
     },
