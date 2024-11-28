@@ -45,7 +45,8 @@ fn execute_internal_command(
 }
 
 fn main() -> anyhow::Result<()> {
-    let file_appender = tracing_appender::rolling::minutely(".", "gnovpn-ctl.log");
+    let log_folder = std::env::var_os("GPVN_CTL_LOG_FOLDER").unwrap_or(".".into());
+    let file_appender = tracing_appender::rolling::minutely(log_folder, "gnovpn-ctl.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt().with_writer(non_blocking).init();
 
