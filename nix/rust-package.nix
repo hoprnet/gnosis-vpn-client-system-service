@@ -5,7 +5,6 @@
 , craneLib
 , curl
 , depsSrc
-, foundryBin
 , git
 , html-tidy
 , lib
@@ -19,7 +18,6 @@
 , rev
 , runClippy ? false
 , runTests ? false
-, solcDefault
 , src
 , stdenv
 }:
@@ -77,7 +75,7 @@ let
 
     # FIXME: some dev dependencies depend on OpenSSL, would be nice to remove
     # this dependency
-    nativeBuildInputs = [ solcDefault foundryBin pkg-config pkgs.pkgsBuildHost.openssl libiconv ] ++ stdenv.extraNativeBuildInputs ++ darwinNativeBuildInputs;
+    nativeBuildInputs = [ pkg-config pkgs.pkgsBuildHost.openssl libiconv ] ++ stdenv.extraNativeBuildInputs ++ darwinNativeBuildInputs;
     buildInputs = [ openssl ] ++ stdenv.extraBuildInputs ++ darwinBuildInputs;
 
     CARGO_HOME = ".cargo";

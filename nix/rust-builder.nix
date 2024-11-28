@@ -1,21 +1,17 @@
 { crane
 , crossSystem ? localSystem
-, foundry
 , localSystem
 , nixpkgs
 , rust-overlay
-, solc
 , useRustNightly ? false
 } @ args:
 let
   crossSystem0 = crossSystem;
 in
 let
-  # the foundry overlay uses the hostPlatform, so we need to use a
-  # localSystem-only pkgs to get the correct architecture
   pkgsLocal = import nixpkgs {
     localSystem = args.localSystem;
-    overlays = [ foundry.overlay rust-overlay.overlays.default solc.overlay ];
+    overlays = [ rust-overlay.overlays.default ];
   };
 
   localSystem = pkgsLocal.lib.systems.elaborate args.localSystem;
@@ -27,7 +23,7 @@ let
 
   pkgs = import nixpkgs {
     inherit localSystem crossSystem;
-    overlays = [ rust-overlay.overlays.default solc.overlay ];
+    overlays = [ rust-overlay.overlays.default ];
   };
 
   # `hostPlatform` is the cross-compilation output platform;
@@ -35,11 +31,9 @@ let
   buildPlatform = pkgs.stdenv.buildPlatform;
   hostPlatform = pkgs.stdenv.hostPlatform;
 
-  foundryBin = pkgsLocal.foundry-bin;
 
   envCase = triple: pkgsLocal.lib.strings.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] triple);
 
-  solcDefault = solc.mkDefault pkgs pkgs.pkgsBuildHost.solc_0_8_19;
 
   cargoTarget =
     if hostPlatform.config == "armv7l-unknown-linux-gnueabihf" then
@@ -64,7 +58,7 @@ in
   inherit rustToolchain;
 
   callPackage = (package: args:
-    let crate = pkgs.callPackage package (args // { inherit foundryBin solcDefault craneLib; });
+    let crate = pkgs.callPackage package (args // { inherit craneLib; });
     in
     # Override the derivation to add cross-compilation environment variables.
     crate.overrideAttrs (previous: buildEnv // {
