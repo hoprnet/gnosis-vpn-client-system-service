@@ -127,8 +127,8 @@
           gnovpn = rust-builder-local.callPackage ./nix/rust-package.nix gnovpnBuildArgs;
           gnovpnctl = rust-builder-local.callPackage ./nix/rust-package.nix gnovpnctlBuildArgs;
 
-          gnovpn-x86_64-linux = rust-builder-local.callPackage ./nix/rust-package.nix gnovpnBuildArgs;
-          gnovpnctl-x86_64-linux = rust-builder-local.callPackage ./nix/rust-package.nix gnovpnctlBuildArgs;
+          gnovpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnovpnBuildArgs;
+          gnovpnctl-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnovpnctlBuildArgs;
           # hoprd-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
           # hoprd-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
           # hoprd-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
