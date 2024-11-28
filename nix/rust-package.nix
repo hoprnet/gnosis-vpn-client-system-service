@@ -145,9 +145,6 @@ builder (args // {
     # respect the amount of available cores for building
     export CARGO_BUILD_JOBS=$NIX_BUILD_CORES
     echo "# placeholder" > vendor/config.toml
-    sed "s|# solc = .*|solc = \"${solcDefault}/bin/solc\"|g" \
-      ethereum/contracts/foundry.toml.in > \
-      ethereum/contracts/foundry.toml
   '';
 
   preFixup = lib.optionalString (isCross && targetInterpreter != "") ''
