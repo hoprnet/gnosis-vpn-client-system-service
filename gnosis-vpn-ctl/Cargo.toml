@@ -3,17 +3,13 @@ name = "gnosis-vpn-ctl"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-anyhow = "1.0.89"
+anyhow = {workspace = true}
 # use exclusively because it supports command chaining
 bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
-env_logger = "0.11.5"
-libp2p-identity = { version = "0.2.10", features = ["ed25519", "peerid"] }
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
-tracing-appender = "0.2.3"
-url = "2.5.3"
-
 gnosis-vpn-lib = { version = "0.1.0", path = "../gnosis-vpn-lib" }
+libp2p-identity = { version = "0.2.10", features = ["ed25519", "peerid"] }
+tracing = {workspace = true}
+tracing-appender = "0.2.3"
+tracing-subscriber = {workspace = true}
+url = {workspace = true}
