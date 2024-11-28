@@ -1,5 +1,5 @@
 {
-  description = "hoprnet monorepo";
+  description = "GnosisVPN client service";
 
   inputs = {
     flake-utils.url = github:numtide/flake-utils;
