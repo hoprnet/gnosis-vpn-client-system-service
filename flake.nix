@@ -113,17 +113,17 @@
           gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           gnosisvpnctl-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnctlBuildArgs;
 
-          gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
-          gnosisvpnctl-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
+          gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpnctl-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix gnosisvpnctlBuildArgs;
 
-          gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
-          gnosisvpnctl-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix hoprdBuildArgs;
+          gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpnctl-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix gnosisvpnctlBuildArgs;
           # CAVEAT: must be built from a darwin system
-          gnosisvpn-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix hoprdBuildArgs;
-          gnosisvpnctl-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix hoprdBuildArgs;
+          gnosisvpn-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpnctl-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix gnosisvpnctlBuildArgs;
           # CAVEAT: must be built from a darwin system
-          gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix hoprdBuildArgs;
-          gnosisvpnctl-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix hoprdBuildArgs;
+          gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpnctl-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix gnosisvpnctlBuildArgs;
 
           gnosisvpn-clippy = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runClippy = true; });
           gnosisvpnctl-clippy = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnctlBuildArgs // { runClippy = true; });
@@ -170,11 +170,6 @@
             inherit gnosisvpn-clippy gnosisvpnctl-clippy;
           };
 
-          apps = {
-            inherit update-github-labels;
-            check = run-check;
-          };
-
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
             inherit gnosisvpnctl gnosisvpnctl-debug;
@@ -182,8 +177,8 @@
             inherit gnosisvpnctl-aarch64-linux gnosisvpnctl-armv7l-linux gnosisvpnctl-x86_64-linux;
             # FIXME: Darwin cross-builds are currently broken.
             # Follow https://github.com/nixos/nixpkgs/pull/256590
-            inherit hoprd-aarch64-darwin hoprd-x86_64-darwin;
-            inherit hopli-aarch64-darwin hopli-x86_64-darwin;
+            inherit gnosisvpn-aarch64-darwin gnosisvpn-x86_64-darwin;
+            inherit gnosisvpnctl-aarch64-darwin gnosisvpnctl-x86_64-darwin;
             default = gnosisvpn;
           };
 
