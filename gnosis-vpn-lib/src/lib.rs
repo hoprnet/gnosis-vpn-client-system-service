@@ -1,5 +1,7 @@
 use anyhow::Context;
+use libp2p_identity::PeerId;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 use std::fmt;
 use std::str::FromStr;
 use url::Url;
@@ -7,6 +9,7 @@ use url::Url;
 mod socket;
 pub use socket::socket_path;
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Command {
     Status,
@@ -16,7 +19,8 @@ pub enum Command {
         listen_host: Option<Url>,
     },
     ExitNode {
-        peer_id: String,
+        #[serde_as(as = "DisplayFromStr")]
+        peer_id: PeerId,
     },
 }
 

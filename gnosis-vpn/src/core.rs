@@ -1,4 +1,5 @@
 use gnosis_vpn_lib::Command;
+use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
@@ -314,7 +315,7 @@ impl Core {
         Ok(None)
     }
 
-    fn exit_node(&mut self, peer_id: String) -> anyhow::Result<Option<String>> {
+    fn exit_node(&mut self, peer_id: PeerId) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
         self.cancel_session_monitoring();
@@ -443,7 +444,8 @@ impl Core {
 
 impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let print = HashMap::from([("peer_id", self.peer_id.as_str())]);
+        let peer = self.peer_id.to_base58();
+        let print = HashMap::from([("peer_id", peer.as_str())]);
         let val = serde_json::to_string(&print).unwrap();
         write!(f, "{}", val)
     }

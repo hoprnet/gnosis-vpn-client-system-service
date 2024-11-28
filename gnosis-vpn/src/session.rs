@@ -46,11 +46,11 @@ pub fn open(
         Some((None, None)) | None => "0.0.0.0:60006".to_string(),
     };
     let body = json!({
-    "capabilities": ["Segmentation"],
-    "destination": xn.peer_id,
-    "path": {"Hops": 1 },
-    "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-    "listenHost": listen_host,
+        "capabilities": ["Segmentation"],
+        "destination": xn.peer_id.to_base58(),
+        "path": {"Hops": 1 },
+        "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
+        "listenHost": listen_host,
     });
     let sender = sender.clone();
     let client = client.clone();

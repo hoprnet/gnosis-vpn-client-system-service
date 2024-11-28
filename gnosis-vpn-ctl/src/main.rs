@@ -20,9 +20,7 @@ fn as_internal_cmd(cmd: Command) -> gnosis_vpn_lib::Command {
             api_token,
             listen_host,
         },
-        Command::ExitNode { peer_id } => gnosis_vpn_lib::Command::ExitNode {
-            peer_id: peer_id.to_string(),
-        },
+        Command::ExitNode { peer_id } => gnosis_vpn_lib::Command::ExitNode { peer_id },
     }
 }
 
