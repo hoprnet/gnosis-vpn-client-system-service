@@ -81,9 +81,10 @@ impl Core {
         res
     }
 
+    #[instrument(level = "info", skip(self, event), ret(level = tracing::Level::DEBUG))]
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        tracing::debug!("HANDLE EVENT [state before]: {}", self);
-        tracing::info!("HANDLE EVENT [event]: {}", event);
+        tracing::info!(%event, "Handling event");
+        tracing::debug!(state_before = %self, "State evt change");
 
         let res = match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
@@ -92,7 +93,7 @@ impl Core {
             Event::CheckSession => self.evt_check_session(),
         };
 
-        tracing::debug!("HANDLE EVENT [state after]: {}", self);
+        tracing::debug!(state_after = %self, "State evt change");
         res
     }
 
