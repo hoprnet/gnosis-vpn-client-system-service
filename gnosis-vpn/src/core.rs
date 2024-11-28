@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time;
 use std::time::SystemTime;
+use tracing::instrument;
 use url::Url;
 
 use crate::entry_node;
@@ -60,9 +61,10 @@ impl Core {
         }
     }
 
+    #[instrument(level = "info", skip(self, cmd), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
-        tracing::debug!("HANDLE CMD [state before]: {}", self);
-        tracing::info!("HANDLE CMD [cmd]: {}", cmd);
+        tracing::info!(%cmd, "Handling command");
+        tracing::debug!(state_before = %self, "State cmd change");
 
         let res = match cmd {
             Command::Status => self.status(),
@@ -74,7 +76,8 @@ impl Core {
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
-        tracing::debug!("HANDLE CMD [state after]: {}", self);
+        tracing::debug!(state_after = %self, "State cmd change");
+
         res
     }
 
