@@ -5,7 +5,7 @@ pub fn socket_path() -> PathBuf {
     PathBuf::from("/var/run/gnosis-vpn.sock")
 }
 
-// #[cfg(windows)]
+// #[cfg(target_family = "windows")]
 // pub fn socket_path() -> PathBuf {
 // PathBuf::from("//./pipe/Gnosis VPN")
 // }
