@@ -1,5 +1,6 @@
 { crane
 , crossSystem ? localSystem
+, isCross ? false
 , localSystem
 , nixpkgs
 , rust-overlay
@@ -58,7 +59,7 @@ in
   inherit rustToolchain;
 
   callPackage = (package: args:
-    let crate = pkgs.callPackage package (args // { inherit craneLib; });
+    let crate = pkgs.callPackage package (args // { inherit craneLib isCross; });
     in
     # Override the derivation to add cross-compilation environment variables.
     crate.overrideAttrs (previous: buildEnv // {
