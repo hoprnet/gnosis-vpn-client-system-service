@@ -57,6 +57,7 @@ fn main() -> anyhow::Result<()> {
 
         if let Command::Status = cmd {
             // Shutdown the write operation to signal the other side command has been sent
+            // This will force EOF thus allowing the other side to process the command
             socket.shutdown(std::net::Shutdown::Write)?;
             let mut response = String::new();
             socket.read_to_string(&mut response)?;
