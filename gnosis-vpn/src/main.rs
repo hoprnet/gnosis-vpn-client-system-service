@@ -29,11 +29,11 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
 }
 
 fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_lib::Command> {
-    let mut buffer = [0; 128];
-    let size = stream.read(&mut buffer)?;
-    let inc = String::from_utf8_lossy(&buffer[..size]);
-    inc.parse::<Command>()
-        .with_context(|| format!("error parsing incoming stream: {}", inc))
+    let mut incoming = String::new();
+    stream.read_to_string(&mut incoming)?;
+    incoming
+        .parse::<Command>()
+        .with_context(|| format!("error parsing incoming stream: {}", incoming))
 }
 
 fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
