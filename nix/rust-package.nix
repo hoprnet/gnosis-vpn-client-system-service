@@ -7,6 +7,7 @@
 , depsSrc
 , git
 , html-tidy
+, isCross
 , lib
 , libiconv
 , makeSetupHook
@@ -26,9 +27,6 @@ let
   # `buildPlatform` is the platform we are compiling on
   buildPlatform = stdenv.buildPlatform;
   hostPlatform = stdenv.hostPlatform;
-
-  # The target interpreter is used to patch the interpreter in the binary
-  isCross = buildPlatform != hostPlatform;
 
   targetInterpreter =
     if hostPlatform.isLinux && hostPlatform.isx86_64 then "/lib64/ld-linux-x86-64.so.2"

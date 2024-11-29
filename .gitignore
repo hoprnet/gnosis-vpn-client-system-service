@@ -14,4 +14,4 @@ gnovpn-ctl.log.*
 
 # make sure anything which is vendored is copied
 !/vendor/**/*
-result
+result*
