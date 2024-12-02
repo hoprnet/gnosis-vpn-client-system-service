@@ -9,7 +9,7 @@ pub enum ReturnValue {
     NoResponse,
 }
 
-pub fn process_cmd(cmd: Command) -> Result<ReturnValue, Error> {
+pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
     let sock_path = socket_path();
 
     tracing::debug!(socket_path = ?sock_path, "using socket path");
@@ -19,7 +19,7 @@ pub fn process_cmd(cmd: Command) -> Result<ReturnValue, Error> {
     let mut stream = connect_stream(&sock_path)?;
     tracing::debug!(?stream, "stream connected");
 
-    let json_cmd = serialize_command(&cmd)?;
+    let json_cmd = serialize_command(cmd)?;
     tracing::debug!(?json_cmd, "command serialized");
 
     push_command(&mut stream, &json_cmd)?;

@@ -13,7 +13,7 @@ pub enum Command {
         endpoint: Url,
         api_token: String,
         listen_host: Option<String>,
-        hop: Option<u8>,
+        hop: u8,
     },
     ExitNode {
         #[serde_as(as = "DisplayFromStr")]
