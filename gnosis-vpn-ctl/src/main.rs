@@ -38,9 +38,6 @@ fn main() -> anyhow::Result<()> {
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
     tracing_subscriber::fmt().with_writer(non_blocking).init();
 
-    println!("foobar {}", url::Host::parse("spiegel.de")?);
-    let parts: Vec<&str> = ":60006".split(':').collect();
-    println!("foobar {:?}", parts);
     let options = cli().run();
 
     debug!(?options, "Options parsed");
