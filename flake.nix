@@ -102,8 +102,8 @@
 
           gnosisvpnBuildArgs = {
             inherit src depsSrc rev;
-            cargoExtraArgs = "-p gnosis-vpn";
-            cargoToml = ./gnosis-vpn/Cargo.toml;
+            cargoExtraArgs = "--all";
+            cargoToml = ./Cargo.toml;
           };
 
           gnosisvpnctlBuildArgs = {
