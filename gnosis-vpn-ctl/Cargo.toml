@@ -1,13 +1,13 @@
 [package]
 name = "gnosis-vpn-ctl"
-version = "0.1.0"
-edition = "2021"
+version = { workspace = true }
+edition = { workspace = true }
 
 [dependencies]
 anyhow = { workspace = true }
 # use exclusively because it supports command chaining
 bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
-gnosis-vpn-lib = { version = "0.1.0", path = "../gnosis-vpn-lib" }
+gnosis-vpn-lib = { path = "../gnosis-vpn-lib" }
 libp2p-identity = { workspace = true }
 tracing = { workspace = true }
 tracing-appender = "0.2.3"
