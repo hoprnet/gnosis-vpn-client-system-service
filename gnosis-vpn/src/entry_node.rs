@@ -15,7 +15,7 @@ pub struct EntryNode {
     pub endpoint: Url,
     pub api_token: String,
     pub listen_host: Option<String>,
-    pub hop: Option<u8>,
+    pub hop: u8,
     pub addresses: Option<Addresses>,
 }
 
@@ -101,7 +101,7 @@ impl fmt::Display for EntryNode {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, hop: Option<u8>) -> EntryNode {
+    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, hop: u8) -> EntryNode {
         EntryNode {
             endpoint,
             api_token,

@@ -24,14 +24,15 @@ pub enum Command {
             help(
                 "Listen host can be provided like this: \"<host>:<port>\" or any combination thereof, e.g.: \":port\"."
             ),
+            fallback(None),
             guard(
                 valid_listen_host,
                 r#"must be in the form of ":<port>", "<host>" or "<host>:<port>""#
             )
         )]
         listen_host: Option<String>,
-        #[bpaf(short, long, guard(maxhop, "must be less or equal to 3"))]
-        hop: Option<u8>,
+        #[bpaf(short, long, fallback(1), guard(maxhop, "must be less or equal to 3"))]
+        hop: u8,
     },
     /// Specifies the exit node
     #[bpaf(command, adjacent)]
@@ -44,11 +45,8 @@ pub enum Command {
     Status,
 }
 
-fn maxhop(hop: &Option<u8>) -> bool {
-    match hop {
-        Some(h) => *h <= 3,
-        None => false,
-    }
+fn maxhop(hop: &u8) -> bool {
+    *hop <= 3
 }
 
 fn valid_listen_host(listen_host: &Option<String>) -> bool {

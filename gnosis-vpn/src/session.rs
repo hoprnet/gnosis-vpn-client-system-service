@@ -45,11 +45,9 @@ pub fn open(
         "target".to_string(),
         json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
     );
+    json.insert("path".to_string(), json!({"Hops": en.hop }));
     if let Some(lh) = &en.listen_host {
         json.insert("listenHost".to_string(), json!(lh));
-    };
-    if let Some(hop) = &en.hop {
-        json.insert("path".to_string(), json!({"Hops": hop }));
     };
 
     let body = serde_json::to_string(&json)?;

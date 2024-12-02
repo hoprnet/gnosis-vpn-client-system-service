@@ -306,7 +306,7 @@ impl Core {
         endpoint: Url,
         api_token: String,
         listen_port: Option<String>,
-        hop: Option<u8>,
+        hop: u8,
     ) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
