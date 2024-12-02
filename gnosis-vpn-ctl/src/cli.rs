@@ -18,8 +18,16 @@ pub enum Command {
         endpoint: Url,
         #[bpaf(short, long)]
         api_token: String,
-        #[bpaf(short, long)]
-        listen_host: Option<Url>,
+        #[bpaf(
+            short,
+            long,
+            help(
+                "Listen host can be provided like this: \"<host>:<port>\" or any combination thereof, e.g.: \":port\"."
+            )
+        )]
+        listen_host: Option<String>,
+        #[bpaf(short, long, guard(maxhop, "must be less or equal to 3"))]
+        hop: Option<u8>,
     },
     /// Specifies the exit node
     #[bpaf(command, adjacent)]
@@ -30,4 +38,11 @@ pub enum Command {
     /// Displays the current status
     #[bpaf(command, adjacent)]
     Status,
+}
+
+fn maxhop(hop: &Option<u8>) -> bool {
+    match hop {
+        Some(h) => *h <= 3,
+        None => false,
+    }
 }
