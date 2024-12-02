@@ -4,7 +4,6 @@ version = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-anyhow = { workspace = true }
 # use exclusively because it supports command chaining
 bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
 gnosis-vpn-lib = { path = "../gnosis-vpn-lib" }

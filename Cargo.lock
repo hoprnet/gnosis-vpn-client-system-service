@@ -647,7 +647,6 @@ dependencies = [
 name = "gnosis-vpn-ctl"
 version = "0.2.0-a.1"
 dependencies = [
- "anyhow",
  "bpaf",
  "gnosis-vpn-lib",
  "libp2p-identity",
@@ -661,7 +660,6 @@ dependencies = [
 name = "gnosis-vpn-lib"
 version = "0.2.0-a.1"
 dependencies = [
- "anyhow",
  "libp2p-identity",
  "serde",
  "serde_json",

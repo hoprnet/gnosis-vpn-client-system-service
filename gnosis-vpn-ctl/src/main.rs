@@ -19,7 +19,7 @@ fn as_internal_cmd(cmd: &Command) -> command::Command {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
@@ -36,6 +36,4 @@ fn main() -> anyhow::Result<()> {
             Err(x) => tracing::warn!("{} failed with: {:?}", cmd, x),
         }
     }
-
-    Ok(())
 }
