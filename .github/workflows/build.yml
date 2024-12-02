@@ -1,0 +1,51 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - closed
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build
+    runs-on: self-hosted-hoprnet-bigger
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v29
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - uses: cachix/cachix-action@v15
+      with:
+        name: gnosis-vpn-client
+        authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      env:
+        USER: runner
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Format
+      run: cargo fmt --check
+
+    - name: Lint
+      run: cargo clippy -- -Dwarnings
+
+    - name: Tests
+      run: cargo test --verbose
