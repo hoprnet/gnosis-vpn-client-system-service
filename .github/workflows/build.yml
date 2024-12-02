@@ -39,7 +39,7 @@ jobs:
         USER: runner
 
     - name: Build
-      run: nix run .#gnosisvpn-debug
+      run: nix run .#gnosisvpn
 
     # - name: Format
     #   run: cargo fmt --check
