@@ -62,7 +62,7 @@ fn valid_listen_host(listen_host: &Option<String>) -> bool {
                         url::Host::parse(parts[0]).is_ok()
                     };
                     let port_ok = if let Ok(port) = parts[1].parse::<u16>() {
-                        u16::MIN <= port && port <= u16::MAX
+                        (u16::MIN..=u16::MAX).contains(&port)
                     } else {
                         false
                     };

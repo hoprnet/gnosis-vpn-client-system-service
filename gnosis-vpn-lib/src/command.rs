@@ -33,7 +33,7 @@ impl fmt::Display for Command {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
                 listen_host: listen_host.clone(),
-                hop: hop.clone(),
+                hop: *hop,
             },
             c => c.clone(),
         };

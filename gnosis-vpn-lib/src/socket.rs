@@ -2,7 +2,7 @@ use crate::command::Command;
 use crate::error::Error;
 use std::io::{Read, Write};
 use std::os::unix::net;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub enum ReturnValue {
     WithResponse(String),
@@ -44,7 +44,7 @@ pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
     }
 }
 
-fn check_path(sock_path: &PathBuf) -> Result<(), Error> {
+fn check_path(sock_path: &Path) -> Result<(), Error> {
     match sock_path.try_exists() {
         Ok(true) => Ok(()),
         Ok(false) => Err(Error::ServiceNotRunning),
