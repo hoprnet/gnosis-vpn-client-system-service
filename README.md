@@ -24,17 +24,14 @@ Show potential deployment targets:
 
 Build for a target, e.g. `x86_64-linux`;
 
-`nix build .#gnosisvpn-x86_64-linux .#gnosisvpnctl-x86_64-linux`
+`nix build .#gnosisvpn-x86_64-linux`
 
-The resulting binaries are in `results/bin/` and `results-1/bin/` respectively.
+The resulting binaries are in `results/bin/`.
 
 ```
 $ ls -l result*/bin/
-result-1/bin/:
-total 1700
--r-xr-xr-x 1 root root 1740048 Jan  1  1970 gnosis-vpn-ctl
-
 result/bin/:
 total 4752
 -r-xr-xr-x 1 root root 4863368 Jan  1  1970 gnosis-vpn
+-r-xr-xr-x 1 root root 1740048 Jan  1  1970 gnosis-vpn-ctl
 ```
