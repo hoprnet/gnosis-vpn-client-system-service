@@ -10,7 +10,7 @@ target/
 *.pdb
 
 .direnv/
-gnovpn-ctl.log.*
+gnosisvpn-ctl.log.*
 
 # make sure anything which is vendored is copied
 !/vendor/**/*
