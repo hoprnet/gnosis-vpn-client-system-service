@@ -16,7 +16,8 @@ pub enum Command {
     EntryNode {
         endpoint: Url,
         api_token: String,
-        listen_host: Option<Url>,
+        listen_host: Option<String>,
+        hop: Option<u8>,
     },
     ExitNode {
         #[serde_as(as = "DisplayFromStr")]
@@ -34,11 +35,15 @@ impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = match self {
             Command::EntryNode {
-                listen_host, endpoint, ..
+                hop,
+                listen_host,
+                endpoint,
+                ..
             } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
                 listen_host: listen_host.clone(),
+                hop: hop.clone(),
             },
             c => c.clone(),
         };
