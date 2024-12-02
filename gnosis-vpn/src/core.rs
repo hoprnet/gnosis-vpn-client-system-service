@@ -1,4 +1,4 @@
-use gnosis_vpn_lib::Command;
+use gnosis_vpn_lib::command::Command;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ impl Core {
     }
 
     #[instrument(level = "info", skip(self, cmd), ret(level = tracing::Level::DEBUG))]
-    pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
+    pub fn handle_cmd(&mut self, cmd: Command) -> anyhow::Result<Option<String>> {
         tracing::info!(%cmd, "Handling command");
         tracing::debug!(state_before = %self, "State cmd change");
 

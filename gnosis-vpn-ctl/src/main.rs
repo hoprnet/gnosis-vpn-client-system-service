@@ -33,7 +33,7 @@ fn main() -> anyhow::Result<()> {
         match res {
             Ok(socket::ReturnValue::WithResponse(s)) => tracing::info!("{} responded with: {}", cmd, s),
             Ok(_) => tracing::info!("{} executed successfully", cmd),
-            Err(x) => tracing::warn!("{} failed with: {}", cmd, x),
+            Err(x) => tracing::warn!("{} failed with: {:?}", cmd, x),
         }
     }
 

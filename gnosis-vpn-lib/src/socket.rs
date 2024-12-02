@@ -9,6 +9,16 @@ pub enum ReturnValue {
     NoResponse,
 }
 
+#[cfg(target_family = "unix")]
+pub fn socket_path() -> PathBuf {
+    PathBuf::from("/var/run/gnosis-vpn.sock")
+}
+
+// #[cfg(target_family = "windows")]
+// pub fn socket_path() -> PathBuf {
+// PathBuf::from("//./pipe/Gnosis VPN")
+// }
+
 pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
     let sock_path = socket_path();
 
@@ -78,13 +88,3 @@ fn pull_response(socket: &mut net::UnixStream) -> Result<String, Error> {
         Err(x) => Err(Error::ReadSocketIO(x)),
     }
 }
-
-#[cfg(target_family = "unix")]
-fn socket_path() -> PathBuf {
-    PathBuf::from("/var/run/gnosis-vpn.sock")
-}
-
-// #[cfg(target_family = "windows")]
-// fn socket_path() -> PathBuf {
-// PathBuf::from("//./pipe/Gnosis VPN")
-// }
