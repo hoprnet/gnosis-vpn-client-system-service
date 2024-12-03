@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context};
 use clap::Parser;
-use gnosis_vpn_lib::Command;
+use gnosis_vpn_lib::command::Command;
+use gnosis_vpn_lib::socket;
 use std::fs;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
@@ -28,7 +29,7 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<gnosis_vpn_lib::Command> {
+fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<Command> {
     let mut incoming = String::new();
     stream.read_to_string(&mut incoming)?;
     incoming
@@ -117,7 +118,7 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let _args = Cli::parse();
-    let socket_path = gnosis_vpn_lib::socket_path();
+    let socket_path = socket::socket_path();
     let res = daemon(socket_path);
     match res {
         Ok(_) => tracing::info!("stopped gracefully"),
