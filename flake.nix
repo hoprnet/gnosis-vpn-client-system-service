@@ -161,6 +161,10 @@
             inherit gnosisvpn-clippy;
           };
 
+          apps = {
+            check = run-check;
+          };
+
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
             inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux;

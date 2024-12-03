@@ -39,13 +39,13 @@ jobs:
         USER: runner
 
     - name: Build
-      run: nix run .#gnosisvpn
+      run: nix build .#gnosisvpn -L
 
     # - name: Format
     #   run: cargo fmt --check
 
     - name: Lint
-      run: nix run  .#gnosisvpn-clippy
+      run: nix run .#check
 
     # - name: Tests
     #   run: cargo test --verbose
