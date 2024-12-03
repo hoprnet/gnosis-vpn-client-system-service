@@ -155,6 +155,9 @@
 
             programs.nixpkgs-fmt.enable = true;
             settings.formatter.nixpkgs-fmt.excludes = [ "./vendor/*" ];
+
+            programs.taplo.enable = true;
+            settings.formatter.taplo.excludes = [ "./vendor/*" "./ethereum/contracts/*" ];
           };
 
           checks = {
