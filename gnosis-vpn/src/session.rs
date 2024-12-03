@@ -37,21 +37,20 @@ pub fn open(
 ) -> anyhow::Result<()> {
     let headers = remote_data::authentication_headers(en.api_token.as_str())?;
     let url = en.endpoint.join("/api/v3/session/udp")?;
-    let en_lh = en.listen_host.as_ref().map(|lh| (lh.host(), lh.port()));
 
-    let listen_host = match en_lh {
-        Some((Some(h), Some(p))) => format!("{}:{}", h, p),
-        Some((Some(h), None)) => format!("{}:60006", h),
-        Some((None, Some(p))) => format!("0.0.0.0:{}", p),
-        Some((None, None)) | None => "0.0.0.0:60006".to_string(),
+    let mut json = serde_json::Map::new();
+    json.insert("capabilities".to_string(), json!(["Segmentation"]));
+    json.insert("destination".to_string(), json!(xn.peer_id.to_base58()));
+    json.insert(
+        "target".to_string(),
+        json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
+    );
+    json.insert("path".to_string(), json!({"Hops": en.hop }));
+    if let Some(lh) = &en.listen_host {
+        json.insert("listenHost".to_string(), json!(lh));
     };
-    let body = json!({
-        "capabilities": ["Segmentation"],
-        "destination": xn.peer_id.to_base58(),
-        "path": {"Hops": 1 },
-        "target": {"Plain": "wireguard.staging.hoprnet.link:51820"},
-        "listenHost": listen_host,
-    });
+
+    let body = serde_json::to_string(&json)?;
     let sender = sender.clone();
     let client = client.clone();
     thread::spawn(move || {

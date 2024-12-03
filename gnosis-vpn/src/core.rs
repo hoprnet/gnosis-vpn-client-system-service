@@ -1,4 +1,4 @@
-use gnosis_vpn_lib::Command;
+use gnosis_vpn_lib::command::Command;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ impl Core {
     }
 
     #[instrument(level = "info", skip(self, cmd), ret(level = tracing::Level::DEBUG))]
-    pub fn handle_cmd(&mut self, cmd: gnosis_vpn_lib::Command) -> anyhow::Result<Option<String>> {
+    pub fn handle_cmd(&mut self, cmd: Command) -> anyhow::Result<Option<String>> {
         tracing::info!(%cmd, "Handling command");
         tracing::debug!(state_before = %self, "State cmd change");
 
@@ -72,7 +72,8 @@ impl Core {
                 endpoint,
                 api_token,
                 listen_host,
-            } => self.entry_node(endpoint, api_token, listen_host.clone()),
+                hop,
+            } => self.entry_node(endpoint, api_token, listen_host.clone(), hop),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
@@ -304,13 +305,14 @@ impl Core {
         &mut self,
         endpoint: Url,
         api_token: String,
-        listen_port: Option<Url>,
+        listen_port: Option<String>,
+        hop: u8,
     ) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
         self.cancel_session_monitoring();
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port));
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port, hop));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
