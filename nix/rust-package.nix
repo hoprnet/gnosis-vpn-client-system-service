@@ -93,7 +93,7 @@ let
   sharedArgs =
     if runTests then sharedArgsBase // {
       # exclude hopr-socks-server because it requires access to the internet
-      cargoTestExtraArgs = "--workspace -F runtime-async-std -F runtime-tokio --exclude hopr-socks-server";
+      cargoTestExtraArgs = "--workspace";
       doCheck = true;
     }
     else if runClippy then sharedArgsBase // { cargoClippyExtraArgs = "-- -Dwarnings"; }

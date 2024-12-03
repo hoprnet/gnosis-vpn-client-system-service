@@ -41,10 +41,7 @@ jobs:
     - name: Build
       run: nix build .#gnosisvpn -L
 
-    # - name: Format
-    #   run: cargo fmt --check
-
-    - name: Lint
+    - name: Lint incl formatting check
       run: nix run .#check
 
     # - name: Tests
