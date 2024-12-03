@@ -44,5 +44,5 @@ jobs:
     - name: Lint incl formatting check
       run: nix run .#check
 
-    # - name: Tests
-    #   run: cargo test --verbose
+    - name: Tests
+      run: nix run .#gnosisvpn-test
