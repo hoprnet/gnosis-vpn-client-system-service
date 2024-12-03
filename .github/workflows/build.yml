@@ -41,11 +41,11 @@ jobs:
     - name: Build
       run: nix run .#gnosisvpn
 
-    # - name: Format
-    #   run: cargo fmt --check
+    - name: Format
+      run: nix build .#checks.fmt
 
     - name: Lint
-      run: nix run  .#gnosisvpn-clippy
+      run: nix build .#checks.lint
 
-    # - name: Tests
-    #   run: cargo test --verbose
+    - name: Tests
+      run: nix build .#checks.tests
