@@ -6,7 +6,7 @@ use thiserror::Error;
 pub enum Error {
     #[error("service not running")]
     ServiceNotRunning,
-    #[error("error accessing socket at `{socket_path:?}`: {error:?}")]
+    #[error("error accessing socket at `{socket_path}`: {error}")]
     SocketPathIO {
         socket_path: path::PathBuf,
         error: io::Error,
