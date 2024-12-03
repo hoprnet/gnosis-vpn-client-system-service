@@ -118,6 +118,8 @@
           # CAVEAT: must be built from a darwin system
           gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
+          gnosisvpn-clippy = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runClippy = true; });
+
           gnosisvpn-debug = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { CARGO_PROFILE = "dev"; });
 
           defaultDevShell = import ./nix/shell.nix { inherit pkgs config crane; };
@@ -153,20 +155,17 @@
 
             programs.nixpkgs-fmt.enable = true;
             settings.formatter.nixpkgs-fmt.excludes = [ "./vendor/*" ];
+
+            programs.taplo.enable = true;
+            settings.formatter.taplo.excludes = [ "./vendor/*" "./ethereum/contracts/*" ];
           };
 
           checks = {
-            lint = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runClippy = true; });
+            inherit gnosisvpn-clippy;
+          };
 
-            tests = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runTests = true; });
-
-            fmt = pkgs.runCommand "fmt-check" { 
-              buildInputs = [ pkgs.rustc pkgs.cargo pkgs.rustfmt ];
-            } ''
-              cargo test --manifest-path ./Cargo.toml
-              cargo fmt --check
-              touch $out
-            '';
+          apps = {
+            check = run-check;
           };
 
           packages = {

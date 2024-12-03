@@ -39,13 +39,10 @@ jobs:
         USER: runner
 
     - name: Build
-      run: nix run .#gnosisvpn
+      run: nix build .#gnosisvpn -L
 
-    - name: Format
-      run: nix build .#checks.fmt
-
-    - name: Lint
-      run: nix build .#checks.lint
+    - name: Lint and formatting check
+      run: nix run .#check
 
     - name: Tests
-      run: nix build .#checks.tests
+      run: nix run .#gnosisvpn-test
