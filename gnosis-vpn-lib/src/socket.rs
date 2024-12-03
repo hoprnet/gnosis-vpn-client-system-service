@@ -19,18 +19,19 @@ pub fn socket_path() -> PathBuf {
 // PathBuf::from("//./pipe/Gnosis VPN")
 // }
 
+#[tracing::instrument(level = tracing::Level::DEBUG)]
 pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
-    let sock_path = socket_path();
+    let socket_path = socket_path();
 
-    tracing::debug!(socket_path = ?sock_path, "using socket path");
-    check_path(&sock_path)?;
-    tracing::debug!(sock_path = ?sock_path, "socket path verified");
+    tracing::debug!(socket_path = ?socket_path, "using socket path");
+    check_path(&socket_path)?;
+    tracing::debug!(socket_path = ?socket_path, "socket path verified");
 
-    let mut stream = connect_stream(&sock_path)?;
+    let mut stream = connect_stream(&socket_path)?;
     tracing::debug!(?stream, "stream connected");
 
     let json_cmd = serialize_command(cmd)?;
-    tracing::debug!(?json_cmd, "command serialized");
+    tracing::trace!(?json_cmd, "command serialized");
 
     push_command(&mut stream, &json_cmd)?;
     tracing::debug!(?json_cmd, "command pushed");
@@ -44,18 +45,24 @@ pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
     }
 }
 
-fn check_path(sock_path: &Path) -> Result<(), Error> {
-    match sock_path.try_exists() {
+fn check_path(socket_path: &Path) -> Result<(), Error> {
+    match socket_path.try_exists() {
         Ok(true) => Ok(()),
         Ok(false) => Err(Error::ServiceNotRunning),
-        Err(x) => Err(Error::SocketPathIO(x)),
+        Err(x) => Err(Error::SocketPathIO {
+            socket_path: socket_path.to_path_buf(),
+            error: x,
+        }),
     }
 }
 
-fn connect_stream(sock_path: &PathBuf) -> Result<net::UnixStream, Error> {
-    match net::UnixStream::connect(sock_path) {
+fn connect_stream(socket_path: &PathBuf) -> Result<net::UnixStream, Error> {
+    match net::UnixStream::connect(socket_path) {
         Ok(socket) => Ok(socket),
-        Err(x) => Err(Error::ConnectSocketIO(x)),
+        Err(x) => Err(Error::ConnectSocketIO {
+            socket_path: socket_path.to_path_buf(),
+            error: x,
+        }),
     }
 }
 

@@ -18,14 +18,8 @@ pub enum Error {
     },
     #[error("failed serializing command: {0}")]
     CommandSerialization(serde_json::Error),
-    #[error("error writing to socket at `{socket_path:?}`: {error:?}")]
-    WriteSocketIO {
-        socket_path: path::PathBuf,
-        error: io::Error,
-    },
-    #[error("error reading from socket at `{socket_path:?}`: {error:?}")]
-    ReadSocketIO {
-        socket_path: path::PathBuf,
-        error: io::Error,
-    },
+    #[error("error writing to socket at: {0}")]
+    WriteSocketIO(io::Error),
+    #[error("error reading from socket: {0}")]
+    ReadSocketIO(io::Error),
 }
