@@ -138,9 +138,9 @@ jobs:
           gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis-vpn-ctl --source=binaries/gnosis-vpn-ctl-${{ steps.vars.outputs.architecture}}
 
 
-      - name: Upload ${{ steps.vars.outputs.binary }} binaries
+      - name: Upload ${{ steps.vars.outputs.architecture }} binaries
         if: steps.vars.outputs.publish_type == 'workflow'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.vars.outputs.binary }}-${{ steps.vars.outputs.architecture }}
+          name: binary-${{ steps.vars.outputs.architecture }}
           path: ${{ github.workspace }}/binaries/*

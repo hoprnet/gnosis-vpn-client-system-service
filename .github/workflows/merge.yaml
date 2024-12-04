@@ -140,7 +140,7 @@ jobs:
 
     merge-linux:
         name: Publish ${{ matrix.architecture }}
-        runs-on: self-hosted-hoprnet-bigger
+        runs-on: self-hosted-hoprnet-big
         needs: delete-artifacts
         strategy:
             matrix:
