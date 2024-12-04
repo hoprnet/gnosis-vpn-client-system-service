@@ -13,7 +13,9 @@ pub enum Command {
         endpoint: Url,
         api_token: String,
         listen_host: Option<String>,
-        hop: u8,
+        hop: Option<u8>,
+        #[serde_as(as = "Option<DisplayFromStr>")]
+        intermediate_id: Option<PeerId>,
     },
     ExitNode {
         #[serde_as(as = "DisplayFromStr")]
@@ -28,12 +30,14 @@ impl fmt::Display for Command {
                 hop,
                 listen_host,
                 endpoint,
-                ..
+                api_token: _,
+                intermediate_id,
             } => Command::EntryNode {
                 endpoint: endpoint.clone(),
                 api_token: "*****".to_string(),
                 listen_host: listen_host.clone(),
                 hop: *hop,
+                intermediate_id: *intermediate_id,
             },
             c => c.clone(),
         };

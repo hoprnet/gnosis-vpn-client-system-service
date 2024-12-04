@@ -9,7 +9,7 @@ use tracing::instrument;
 use url::Url;
 
 use crate::entry_node;
-use crate::entry_node::EntryNode;
+use crate::entry_node::{EntryNode, Path};
 use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
 use crate::exit_node::ExitNode;
 use crate::remote_data;
@@ -73,7 +73,8 @@ impl Core {
                 api_token,
                 listen_host,
                 hop,
-            } => self.entry_node(endpoint, api_token, listen_host.clone(), hop),
+                intermediate_id,
+            } => self.entry_node(endpoint, api_token, listen_host.clone(), hop, intermediate_id),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
@@ -306,13 +307,22 @@ impl Core {
         endpoint: Url,
         api_token: String,
         listen_port: Option<String>,
-        hop: u8,
+        hop: Option<u8>,
+        intermediate_id: Option<PeerId>,
     ) -> anyhow::Result<Option<String>> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
         self.cancel_session_monitoring();
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port, hop));
+
+        // TODO move this to library and enhance CLI to only allow one option
+        // hop has precedence over intermediate_id
+        let path = match (hop, intermediate_id) {
+            (Some(h), _) => Path::Hop(h),
+            (_, Some(id)) => Path::IntermediateId(id),
+            _ => Path::Hop(1),
+        };
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port, path));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
