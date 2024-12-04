@@ -71,7 +71,6 @@ jobs:
           else
             publish_type="artifact-registry"
           fi
-
           echo "Invocation parameters:"
           echo "branch=${branch}" | tee -a $GITHUB_OUTPUT
           echo "architecture=${architecture}" | tee -a $GITHUB_OUTPUT
