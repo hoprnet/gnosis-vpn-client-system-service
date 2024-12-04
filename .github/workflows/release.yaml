@@ -25,10 +25,10 @@ jobs:
           binary:
             - architecture: x86_64-linux
               runner: self-hosted-hoprnet-big
-            # - architecture: aarch64-linux
-            #   runner: self-hosted-hoprnet-big
-            # - architecture: armv7l-linux
-            #   runner: self-hosted-hoprnet-big
+            - architecture: aarch64-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: armv7l-linux
+              runner: self-hosted-hoprnet-big
             # - architecture: aarch64-darwin
             #   runner: macos-14
             # - architecture: x86_64-darwin
