@@ -31,8 +31,15 @@ pub enum Command {
             )
         )]
         listen_host: Option<String>,
-        #[bpaf(short, long, fallback(1), guard(maxhop, "must be less or equal to 3"))]
-        hop: u8,
+        #[bpaf(
+            short,
+            long,
+            guard(maxhop, "must be less or equal to 3"),
+            help("Maximum number of hops - takes precedence over intermediate_id")
+        )]
+        hop: Option<u8>,
+        #[bpaf(short, long, help("Manually specify intermediate relay node"))]
+        intermediate_id: Option<PeerId>,
     },
     /// Specifies the exit node
     #[bpaf(command, adjacent)]
@@ -45,8 +52,11 @@ pub enum Command {
     Status,
 }
 
-fn maxhop(hop: &u8) -> bool {
-    *hop <= 3
+fn maxhop(hop: &Option<u8>) -> bool {
+    match hop {
+        Some(h) => *h <= 3,
+        None => true,
+    }
 }
 
 fn valid_listen_host(listen_host: &Option<String>) -> bool {
