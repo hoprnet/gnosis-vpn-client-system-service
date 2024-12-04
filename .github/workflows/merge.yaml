@@ -68,24 +68,32 @@ jobs:
               env:
                   USER: runner
 
-            - name: Build
+
+            - name: Get version
+              id: version
+              run: |
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+
+            - name: Build gnosis-vpn
               run: nix build .#gnosisvpn-aarch64-darwin -L
               continue-on-error: true
 
-            - name: Publish binary
-              id: binary
+            - name: Publish gnosis-vpn
               run: |
-                set -x
-                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
-                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
-                mkdir -p results/bin
-                echo "Dummy content" > results/bin/gnosis-vpn
-                echo "Dummy content" > results/bin/gnosis-vpn-ctl
-                mv results/bin/gnosis-vpn results/bin/gnosis-vpn-aarch64-darwin
-                mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-aarch64-darwin
-                gcloud config set artifacts/location europe-west3
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-aarch64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-aarch64-darwin
+                echo "Some content" > ./result
+                cp ./result ./gnosis-vpn-aarch64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-aarch64-darwin
+
+            - name: Build gnosis-vpn-ctl
+              run: nix build .#gnosisvpn-ctl-aarch64-darwin -L
+              continue-on-error: true
+
+            - name: Publish gnosis-vpn-ctl
+              run: |
+                echo "Some content" > ./result
+                cp ./result ./gnosis-vpn-ctl-aarch64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-aarch64-darwin
 
     merge-x86_64-darwin:
         name: Publish x86_64-darwin
@@ -117,24 +125,29 @@ jobs:
               env:
                   USER: runner
 
-            - name: Build
+            - name: Get version
+              id: version
+              run: |
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+
+            - name: Build gnosis-vpn
               run: nix build .#gnosisvpn-x86_64-darwin -L
               continue-on-error: true
 
-            - name: Publish binary
-              id: binary
+            - name: Publish gnosis-vpn
               run: |
-                set -x
-                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
-                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
-                mkdir -p results/bin
-                echo "Dummy content" > results/bin/gnosis-vpn
-                echo "Dummy content" > results/bin/gnosis-vpn-ctl
-                mv results/bin/gnosis-vpn results/bin/gnosis-vpn-x86_64-darwin
-                mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-x86_64-darwin
-                gcloud config set artifacts/location europe-west3
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-x86_64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-x86_64-darwin
+                cp ./result ./gnosis-vpn-x86_64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-x86_64-darwin
+
+            - name: Build gnosis-vpn-ctl
+              run: nix build .#gnosisvpn-ctl-x86_64-darwin -L
+              continue-on-error: true
+
+            - name: Publish gnosis-vpn-ctl
+              run: |
+                cp ./result ./gnosis-vpn-ctl-x86_64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-x86_64-darwin
 
     merge-linux:
         name: Publish ${{ matrix.architecture }}
@@ -172,21 +185,27 @@ jobs:
               env:
                   USER: runner
 
-            - name: Build
-              run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
-
-            - name: Publish binary
-              id: binary
+            - name: Get version
+              id: version
               run: |
-                set -x
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
-                find . -type d -name "vendor" -prune -o -exec ls -aldR {} + | grep -v ".git"
-                cp results/bin/gnosis-vpn ./gnosis-vpn-${{ matrix.architecture }}
-                cp results/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-${{ matrix.architecture }}
-                gcloud config set artifacts/location europe-west3
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=./gnosis-vpn-${{ matrix.architecture }}
-                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-${{ matrix.architecture }}
+
+            - name: Build gnosis-vpn
+              run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
+
+            - name: Publish gnosis-vpn
+              run: |
+                cp ./result ./gnosis-vpn-${{ matrix.architecture }}
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-${{ matrix.architecture }}
+
+            - name: Build gnosis-vpn-ctl
+              run: nix build .#gnosisvpn-ctl-${{ matrix.architecture }} -L
+
+            - name: Publish gnosis-vpn-ctl
+              run: |
+                cp ./result ./gnosis-vpn-ctl-${{ matrix.architecture }}
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.pr_version }} --package=gnosis-vpn-ctl  --source=./gnosis-vpn-ctl-${{ matrix.architecture }}
 
     comment:
         name: Comment PR
