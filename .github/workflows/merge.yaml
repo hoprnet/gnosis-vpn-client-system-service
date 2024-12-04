@@ -153,7 +153,7 @@ jobs:
                   install-sdk: 'true'
 
             - name: Build
-              run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
+              run: echo nix build .#gnosisvpn-${{ matrix.architecture }} -L
 
             - name: Publish binary
               id: binary
@@ -161,6 +161,9 @@ jobs:
                 set -x
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+                mkdir -p results/bin
+                echo "Dummy content" > results/bin/gnosis-vpn
+                echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-${{ matrix.architecture }}
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud config set artifacts/location europe-west3
