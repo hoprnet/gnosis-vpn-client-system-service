@@ -44,4 +44,4 @@ jobs:
       run: nix run .#check
 
     - name: Tests
-      run: nix run .#gnosisvpn-test
+      run: nix build .#gnosisvpn-test
