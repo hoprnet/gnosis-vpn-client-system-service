@@ -47,7 +47,7 @@ jobs:
       run: nix build .#gnosisvpn-test
 
 
-  build-binaries-linux:
+  build-binaries:
     strategy:
       matrix:
         binary:
