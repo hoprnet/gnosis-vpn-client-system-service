@@ -43,7 +43,7 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: echo nix build .#gnosisvpn-aarch64-darwin -L && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
+              run: echo nix build .#gnosisvpn-aarch64-darwin -L && mkdir -p results/bin && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
 
             - name: Publish binary
               id: publish-binary
@@ -94,7 +94,7 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: echo nix build .#gnosisvpn-x86_64-darwin -L && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
+              run: echo nix build .#gnosisvpn-x86_64-darwin -L && mkdir -p results/bin && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
 
             - name: Publish binary
               id: publish-binary
