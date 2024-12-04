@@ -109,9 +109,7 @@
           gnosisvpn = rust-builder-local.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
           gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
-
           gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
-
           gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           # CAVEAT: must be built from a darwin system
           gnosisvpn-x86_64-darwin = rust-builder-x86_64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
@@ -119,7 +117,7 @@
           gnosisvpn-aarch64-darwin = rust-builder-aarch64-darwin.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
           gnosisvpn-clippy = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runClippy = true; });
-
+          gnosisvpn-test = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { runTests = true; });
           gnosisvpn-debug = rust-builder-local.callPackage ./nix/rust-package.nix (gnosisvpnBuildArgs // { CARGO_PROFILE = "dev"; });
 
           defaultDevShell = import ./nix/shell.nix { inherit pkgs config crane; };
@@ -170,10 +168,13 @@
 
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
+            inherit gnosisvpn-test;
             inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux;
             # FIXME: Darwin cross-builds are currently broken.
             # Follow https://github.com/nixos/nixpkgs/pull/256590
             inherit gnosisvpn-aarch64-darwin gnosisvpn-x86_64-darwin;
+
+
             default = gnosisvpn;
           };
 
