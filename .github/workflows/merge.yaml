@@ -173,16 +173,15 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
+              run: echo nix build .#gnosisvpn-${{ matrix.architecture }} -L
 
             - name: Publish binary
               id: binary
               run: |
                 set -x
                 nix-env -q
-                nix-env -i coreutils
-                nix-env -q
                 nix-shell -p coreutils --run "awk --version"
+                nix-env -qaP --description \* | grep -i "coreutils"
                 echo FOO
                 pr_version=$(nix-shell -p coreutils --run "grep -E '^version\\s*=' Cargo.toml | awk -F\\\" '{print \$2}'")-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
