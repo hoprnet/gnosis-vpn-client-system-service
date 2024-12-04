@@ -15,7 +15,6 @@ concurrency:
 jobs:
     delete-artifacts:
         name: Delete artifacts
-        if: false
         runs-on: self-hosted-hoprnet-small
         #if: github.event.pull_request.merged == true
 
