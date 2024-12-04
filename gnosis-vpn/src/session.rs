@@ -58,25 +58,23 @@ pub fn open(
         json.insert("listenHost".to_string(), json!(lh));
     };
 
-    let body = serde_json::to_string(&json)?;
     let sender = sender.clone();
     let client = client.clone();
     thread::spawn(move || {
         tracing::debug!(
-            "post open session - headers: {:?}, url: {:?}, body: {:?}",
+            "post open session [headers: {:?}, body: {:?}, url: {:?}",
             headers,
-            url,
-            body
+            json,
+            url
         );
+
         let fetch_res = client
             .post(url)
-            .json(&body)
+            .json(&json)
             .timeout(std::time::Duration::from_secs(30))
             .headers(headers)
             .send()
             .map(|res| (res.status(), res.json::<serde_json::Value>()));
-
-        tracing::debug!("open session response: {:?}", fetch_res);
 
         let evt = match fetch_res {
             Ok((status, Ok(json))) if status.is_success() => {
