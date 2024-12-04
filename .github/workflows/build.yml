@@ -45,3 +45,29 @@ jobs:
 
     - name: Tests
       run: nix build .#gnosisvpn-test
+
+
+  build-binaries-linux:
+    strategy:
+      matrix:
+        binary:
+          - architecture: x86_64-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: aarch64-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: armv7l-linux
+            runner: self-hosted-hoprnet-big
+          - architecture: aarch64-darwin
+            runner: macos-14
+          - architecture: x86_64-darwin
+            runner: macos-13
+    name: Binary ${{ matrix.binary.architecture }}
+    # needs: 
+    #   - build
+    uses: ./.github/workflows/build-binaries.yaml
+    with:
+      branch: ${{ github.event.pull_request.head.ref }}
+      runner: ${{ matrix.binary.runner }}
+      architecture: ${{ matrix.binary.architecture }}
+      version_type: 'commit'
+    secrets: inherit
