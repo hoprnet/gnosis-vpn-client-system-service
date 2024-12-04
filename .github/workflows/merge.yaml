@@ -173,17 +173,26 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: echo nix build .#gnosisvpn-${{ matrix.architecture }} -L
+              run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
+
+            - name: Ronny make this step work
+              id: ronny
+              run: |
+                set -x
+                nix-shell -p coreutils --run awk
+                nix-env -i coreutils
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+              continue-on-error: true
 
             - name: Publish binary
               id: binary
               run: |
                 set -x
-                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                nix-shell -p coreutils --run awk
+                nix-env -i coreutils
+                pr_version=0.3.0-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
-                mkdir -p results/bin
-                echo "Dummy content" > results/bin/gnosis-vpn
-                echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-${{ matrix.architecture }}
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud config set artifacts/location europe-west3
@@ -194,8 +203,8 @@ jobs:
         name: Comment PR
         runs-on: self-hosted-hoprnet-small
         needs:
-            - merge-aarch64-darwin
-            - merge-x86_64-darwin
+            # - merge-aarch64-darwin
+            # - merge-x86_64-darwin
             - merge-linux
         #if: github.event.pull_request.merged == true
 
