@@ -46,7 +46,6 @@ jobs:
     - name: Tests
       run: nix build .#gnosisvpn-test
 
-
   build-binaries:
     strategy:
       matrix:
@@ -62,8 +61,6 @@ jobs:
           - architecture: x86_64-darwin
             runner: macos-13
     name: Binary ${{ matrix.binary.architecture }}
-    # needs: 
-    #   - build
     uses: ./.github/workflows/build-binaries.yaml
     with:
       branch: ${{ github.event.pull_request.head.ref }}
