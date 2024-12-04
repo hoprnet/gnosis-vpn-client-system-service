@@ -8,7 +8,7 @@ use std::thread;
 use std::time;
 use url::Url;
 
-use crate::entry_node::EntryNode;
+use crate::entry_node::{EntryNode, Path};
 use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
@@ -29,6 +29,7 @@ pub fn open_session_backoff() -> Backoff {
     Backoff::new(attempts, min, max)
 }
 
+#[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]
 pub fn open(
     client: &blocking::Client,
     sender: &crossbeam_channel::Sender<Event>,
@@ -45,18 +46,31 @@ pub fn open(
         "target".to_string(),
         json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
     );
-    json.insert("path".to_string(), json!({"Hops": en.hop }));
+    match en.path {
+        Path::Hop(hop) => {
+            json.insert("path".to_string(), json!({"Hops": hop}));
+        }
+        Path::IntermediateId(id) => {
+            json.insert("path".to_string(), json!({ "IntermediatePath": [id.to_base58()]}));
+        }
+    }
     if let Some(lh) = &en.listen_host {
         json.insert("listenHost".to_string(), json!(lh));
     };
 
-    let body = serde_json::to_string(&json)?;
     let sender = sender.clone();
     let client = client.clone();
     thread::spawn(move || {
+        tracing::debug!(
+            "post open session [headers: {:?}, body: {:?}, url: {:?}",
+            headers,
+            json,
+            url
+        );
+
         let fetch_res = client
             .post(url)
-            .json(&body)
+            .json(&json)
             .timeout(std::time::Duration::from_secs(30))
             .headers(headers)
             .send()

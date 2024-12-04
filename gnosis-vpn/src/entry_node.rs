@@ -1,4 +1,5 @@
 use exponential_backoff::Backoff;
+use libp2p_identity::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -10,16 +11,23 @@ use url::Url;
 use crate::event::Event;
 use crate::remote_data;
 
+#[derive(Debug)]
 pub struct EntryNode {
     // TODO store multiple entry nodes and exit nodes and separate user_input
     pub endpoint: Url,
     pub api_token: String,
     pub listen_host: Option<String>,
-    pub hop: u8,
+    pub path: Path,
     pub addresses: Option<Addresses>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
+pub enum Path {
+    Hop(u8),
+    IntermediateId(PeerId),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Addresses {
     hopr: String,
     native: String,
@@ -91,6 +99,10 @@ impl fmt::Display for EntryNode {
             ("endpoint", self.endpoint.to_string()),
             ("api_token", "*****".to_string()),
         ]);
+        print.insert("path", format!("{}", self.path));
+        if let Some(listen_host) = &self.listen_host {
+            print.insert("listen_host", listen_host.to_string());
+        }
         if let Some(addresses) = &self.addresses {
             let val = serde_json::to_string(&addresses).unwrap();
             print.insert("addresses", val);
@@ -100,14 +112,23 @@ impl fmt::Display for EntryNode {
     }
 }
 
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Path::Hop(hop) => write!(f, "hop: {}", hop),
+            Path::IntermediateId(peer_id) => write!(f, "intermediate_id: {}", peer_id),
+        }
+    }
+}
+
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, hop: u8) -> EntryNode {
+    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, path: Path) -> EntryNode {
         EntryNode {
             endpoint,
             api_token,
             addresses: None,
             listen_host,
-            hop,
+            path,
         }
     }
 

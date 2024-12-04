@@ -9,11 +9,13 @@ fn as_internal_cmd(cmd: &Command) -> command::Command {
             api_token,
             listen_host,
             hop,
+            intermediate_id,
         } => command::Command::EntryNode {
             endpoint: endpoint.clone(),
             api_token: api_token.clone(),
             listen_host: listen_host.clone(),
             hop: *hop,
+            intermediate_id: *intermediate_id,
         },
         Command::ExitNode { peer_id } => command::Command::ExitNode { peer_id: *peer_id },
     }
