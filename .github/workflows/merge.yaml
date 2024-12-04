@@ -138,7 +138,7 @@ jobs:
 
     merge-linux:
         name: Publish ${{ matrix.architecture }}
-        runs-on: self-hosted-hoprnet-bigger
+        runs-on: self-hosted-hoprnet-big
         needs: delete-artifacts
         strategy:
             matrix:
@@ -179,11 +179,7 @@ jobs:
               id: binary
               run: |
                 set -x
-                nix-env -q
-                nix-shell -p coreutils --run "awk --version"
-                nix-env -qaP --description \* | grep -i "coreutils"
-                echo FOO
-                pr_version=$(nix-shell -p coreutils --run "grep -E '^version\\s*=' Cargo.toml | awk -F\\\" '{print \$2}'")-pr.${{ github.event.pull_request.number }}
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-${{ matrix.architecture }}
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
