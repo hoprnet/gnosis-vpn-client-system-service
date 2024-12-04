@@ -113,7 +113,7 @@ jobs:
 
       - name: Build binary ${{ steps.vars.outputs.architecture}}
         run: |
-          nix build .#gnosis-vpn-${{ steps.vars.outputs.architecture}} -L
+          nix build .#gnosisvpn-${{ steps.vars.outputs.architecture}} -L
           mkdir -p binaries
           cp ./result/bin/gnosis-vpn binaries/gnosis-vpn-${{ steps.vars.outputs.architecture}}
           cp ./result/bin/gnosis-vpn-ctl binaries/gnosis-vpn-ctl-${{ steps.vars.outputs.architecture}}
