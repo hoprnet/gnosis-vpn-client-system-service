@@ -57,8 +57,11 @@ jobs:
                 echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-aarch64-darwin
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-aarch64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-aarch64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-aarch64-darwin
+                gcloud config set artifacts/location europe-west3
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn:${pr_version}:gnosis-vpn-aarch64-darwin 2> /dev/null || true
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn-ctl:${pr_version}:gnosis-vpn-ctl-aarch64-darwin 2> /dev/null || true
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-aarch64-darwin
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-aarch64-darwin
 
             - name: Create comment
               uses: peter-evans/create-or-update-comment@v4
@@ -115,8 +118,11 @@ jobs:
                 echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-x86_64-darwin
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-x86_64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-x86_64-darwin
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-x86_64-darwin
+                gcloud config set artifacts/location europe-west3
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn:${pr_version}:gnosis-vpn-x86_64-darwin 2> /dev/null || true
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn-ctl:${pr_version}:gnosis-vpn-ctl-x86_64-darwin 2> /dev/null || true
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-x86_64-darwin
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-x86_64-darwin
 
             - name: Create comment
               uses: peter-evans/create-or-update-comment@v4
@@ -167,6 +173,8 @@ jobs:
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-${{ matrix.architecture }}
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud config set artifacts/location europe-west3
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn:${pr_version}:gnosis-vpn-${{ matrix.architecture }} 2> /dev/null || true
+                gcloud artifacts files delete --repository="rust-binaries" gnosis-vpn-ctl:${pr_version}:gnosis-vpn-ctl-${{ matrix.architecture }} 2> /dev/null || true
                 gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-${{ matrix.architecture }}
                 gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
 
