@@ -63,7 +63,7 @@ jobs:
 
     #         - uses: cachix/cachix-action@v15
     #           with:
-    #               name: hoprnet
+    #               name: gnosis-vpn-client
     #               authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
     #           env:
     #               USER: runner
@@ -74,11 +74,11 @@ jobs:
     #             pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
     #             echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
 
-    #         - name: Build gnosis-vpn
+    #         - name: Build
     #           run: nix build .#gnosisvpn-aarch64-darwin -L
     #           continue-on-error: true
 
-    #         - name: Publish gnosis-vpn
+    #         - name: Publish
     #           run: |
     #             echo "Some content" > ./result
     #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-aarch64-darwin
@@ -111,7 +111,7 @@ jobs:
 
     #         - uses: cachix/cachix-action@v15
     #           with:
-    #               name: hoprnet
+    #               name: gnosis-vpn-client
     #               authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
     #           env:
     #               USER: runner
@@ -122,11 +122,11 @@ jobs:
     #             pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
     #             echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
 
-    #         - name: Build gnosis-vpn
+    #         - name: Build
     #           run: nix build .#gnosisvpn-x86_64-darwin -L
     #           continue-on-error: true
 
-    #         - name: Publish gnosis-vpn
+    #         - name: Publish
     #           run: |
     #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-x86_64-darwin
     #             cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-x86_64-darwin
@@ -164,7 +164,7 @@ jobs:
 
             - uses: cachix/cachix-action@v15
               with:
-                  name: hoprnet
+                  name: gnosis-vpn-client
                   authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
               env:
                   USER: runner
@@ -175,10 +175,10 @@ jobs:
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
 
-            - name: Build gnosis-vpn
+            - name: Build
               run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
 
-            - name: Publish gnosis-vpn
+            - name: Publish
               run: |
                 ls -alRh ./result/bin/gnosis-vpn
                 cp ./result/bin/gnosis-vpn ./gnosis-vpn-${{ matrix.architecture }}

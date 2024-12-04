@@ -106,7 +106,7 @@ jobs:
       - uses: cachix/cachix-action@v15
         if: steps.vars.outputs.runner_needs_nix_setup == 'true'
         with:
-          name: hoprnet
+          name: gnosis-vpn-client
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner
