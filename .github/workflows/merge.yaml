@@ -80,6 +80,7 @@ jobs:
 
             - name: Publish
               run: |
+                mkdir -p ./result/bin
                 echo "Some content" > ./result/bin/gnosis-vpn
                 echo "Some content" > ./result/bin/gnosis-vpn-ctl
                 cp ./result/bin/gnosis-vpn ./gnosis-vpn-aarch64-darwin
@@ -129,6 +130,7 @@ jobs:
 
             - name: Publish
               run: |
+                mkdir -p ./result/bin
                 echo "Some content" > ./result/bin/gnosis-vpn
                 echo "Some content" > ./result/bin/gnosis-vpn-ctl
                 cp ./result/bin/gnosis-vpn ./gnosis-vpn-x86_64-darwin
@@ -217,19 +219,19 @@ jobs:
                     The binaries for this PR can be downloaded from:
                     ```
                     mkdir ./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-aarch64-linux --destination=./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-aarch64-linux --destination=./binaries
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-aarch64-linux --destination=./binaries --local-filename=gnosis-vpn-aarch64-linux
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-aarch64-linux --destination=./binaries --local-filename=gnosis-vpn-ctl-aarch64-linux
 
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-x86_64-linux --destination=./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-x86_64-linux --destination=./binaries
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-x86_64-linux --destination=./binaries --local-filename=gnosis-vpn-x86_64-linux
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-x86_64-linux --destination=./binaries --local-filename=gnosis-vpn-x86_64-linux
 
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-armv7l-linux --destination=./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-armv7l-linux --destination=./binaries
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-armv7l-linux --destination=./binaries --local-filename=gnosis-vpn-armv7l-linux
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-armv7l-linux --destination=./binaries --local-filename=gnosis-vpn-armv7l-linux
 
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-aarch64-darwin --destination=./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-aarch64-darwin --destination=./binaries
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-aarch64-darwin --destination=./binaries --local-filename=gnosis-vpn-aarch64-darwin
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-aarch64-darwin --destination=./binaries --local-filename=gnosis-vpn-aarch64-darwin
 
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-x86_64-darwin --destination=./binaries
-                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-x86_64-darwin --destination=./binaries
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-x86_64-darwin --destination=./binaries --local-filename=gnosis-vpn-x86_64-darwin
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.vars.outputs.pr_version }}:gnosis-vpn-ctl-x86_64-darwin --destination=./binaries --local-filename=gnosis-vpn-x86_64-darwin
 
                     ```
