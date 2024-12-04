@@ -81,17 +81,9 @@ jobs:
     #         - name: Publish gnosis-vpn
     #           run: |
     #             echo "Some content" > ./result
-    #             cp ./result ./gnosis-vpn-aarch64-darwin
+    #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-aarch64-darwin
+    #             cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-aarch64-darwin
     #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-aarch64-darwin
-
-    #         - name: Build gnosis-vpn-ctl
-    #           run: nix build .#gnosisvpn-ctl-aarch64-darwin -L
-    #           continue-on-error: true
-
-    #         - name: Publish gnosis-vpn-ctl
-    #           run: |
-    #             echo "Some content" > ./result
-    #             cp ./result ./gnosis-vpn-ctl-aarch64-darwin
     #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-aarch64-darwin
 
     # merge-x86_64-darwin:
@@ -136,16 +128,9 @@ jobs:
 
     #         - name: Publish gnosis-vpn
     #           run: |
-    #             cp ./result ./gnosis-vpn-x86_64-darwin
+    #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-x86_64-darwin
+    #             cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-x86_64-darwin
     #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-x86_64-darwin
-
-    #         - name: Build gnosis-vpn-ctl
-    #           run: nix build .#gnosisvpn-ctl-x86_64-darwin -L
-    #           continue-on-error: true
-
-    #         - name: Publish gnosis-vpn-ctl
-    #           run: |
-    #             cp ./result ./gnosis-vpn-ctl-x86_64-darwin
     #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-x86_64-darwin
 
     merge-linux:
@@ -195,17 +180,10 @@ jobs:
 
             - name: Publish gnosis-vpn
               run: |
-                ls -alR ./result/
-                ls -alR ./results/
-                cp ./result ./gnosis-vpn-${{ matrix.architecture }}
+                ls -alRh ./result/bin/gnosis-vpn
+                cp ./result/bin/gnosis-vpn ./gnosis-vpn-${{ matrix.architecture }}
+                cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-${{ matrix.architecture }}
-
-            - name: Build gnosis-vpn-ctl
-              run: nix build .#gnosisvpn-ctl-${{ matrix.architecture }} -L
-
-            - name: Publish gnosis-vpn-ctl
-              run: |
-                cp ./result ./gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl  --source=./gnosis-vpn-ctl-${{ matrix.architecture }}
 
     comment:
