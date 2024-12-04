@@ -107,7 +107,7 @@ jobs:
             echo "binary_version=${base_version}-commit.$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           elif [[ ${{ inputs.version_type }} == "pr" ]]; then
             echo "binary_version=${base_version}-pr.${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          elif [[ ${{ inputs.version_type }} == "tag" ]]; then
+          elif [[ ${{ inputs.version_type }} == "release" ]]; then
             echo "binary_version=${base_version}" >> $GITHUB_OUTPUT
           else
             echo "Invalid version type"

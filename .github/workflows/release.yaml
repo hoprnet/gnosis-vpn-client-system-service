@@ -18,8 +18,34 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
+
+    build-binaries:
+      strategy:
+        matrix:
+          binary:
+            - architecture: x86_64-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: aarch64-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: armv7l-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: aarch64-darwin
+              runner: macos-14
+            - architecture: x86_64-darwin
+              runner: macos-13
+      name: Binary ${{ matrix.binary.architecture }}
+      uses: ./.github/workflows/build-binaries.yaml
+      with:
+        branch: main
+        runner: ${{ matrix.binary.runner }}
+        architecture: ${{ matrix.binary.architecture }}
+        version_type: 'release'
+      secrets: inherit
+
     release:
         name: Close release
+        needs: 
+          - build-binaries
         runs-on: self-hosted-hoprnet-small
 
         steps:
@@ -34,7 +60,7 @@ jobs:
               uses: hoprnet/hopr-workflows/actions/setup-gcp@master
               with:
                   google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-                  login-artifact-registry: 'true'
+                  install-sdk: 'true'
 
             - name: Setup environment variables
               id: environment
@@ -52,11 +78,12 @@ jobs:
             - name: Publish binaries
               run: |
                   architectures=("aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" "armv7l-linux" )
+                  mkdir -p binaries
                   for architecture in "${architectures[@]}"; do
-                      gcloud artifacts generic download --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/latest/${architecture}/gnosis-vpn"     --destination="gnosis-vpn-${architecture}"
-                      gcloud artifacts generic download --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/latest/${architecture}/gnosis-vpn-ctl" --destination="gnosis-vpn-ctl-${architecture}"
-                      gcloud artifacts generic upload   --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/${{ steps.environment.outputs.release_version }}/${architecture}/gnosis-vpn"     --source=gnosis-vpn-${architecture}  
-                      gcloud artifacts generic upload   --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/${{ steps.environment.outputs.release_version }}/${architecture}/gnosis-vpn-ctl" --source=gnosis-vpn-ctl-${architecture}
+                      gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
+                      gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis-vpn-ctl-${architecture}
+                      gh release upload v${{ steps.environment.outputs.release_version }} "gnosis-vpn-${architecture}" --clobber
+                      gh release upload v${{ steps.environment.outputs.release_version }} "gnosis-vpn-ctl-${architecture}" --clobber
                   done
 
             - name: Tag version in git
