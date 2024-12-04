@@ -31,9 +31,14 @@ pub enum Command {
             )
         )]
         listen_host: Option<String>,
-        #[bpaf(short, long, guard(maxhop, "must be less or equal to 3"))]
+        #[bpaf(
+            short,
+            long,
+            guard(maxhop, "must be less or equal to 3"),
+            help("Maximum number of hops - takes precedence over intermediate_id")
+        )]
         hop: Option<u8>,
-        #[bpaf(short, long)]
+        #[bpaf(short, long, help("Manually specify intermediate relay node"))]
         intermediate_id: Option<PeerId>,
     },
     /// Specifies the exit node
