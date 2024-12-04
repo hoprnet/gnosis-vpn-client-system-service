@@ -181,6 +181,7 @@ jobs:
                 set -x
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+                find . -type d -name "vendor" -prune -o -exec ls -aldR {} + | grep -v ".git"
                 cp results/bin/gnosis-vpn ./gnosis-vpn-${{ matrix.architecture }}
                 cp results/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-${{ matrix.architecture }}
                 gcloud config set artifacts/location europe-west3
