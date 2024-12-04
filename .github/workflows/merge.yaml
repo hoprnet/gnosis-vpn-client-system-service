@@ -16,7 +16,7 @@ jobs:
     merge-aarch64-darwin:
         name: Publish aarch64-darwin
         runs-on: macos-14
-        if: github.event.pull_request.merged == true
+        #if: github.event.pull_request.merged == true
 
         steps:
             - name: Checkout repository
@@ -68,7 +68,7 @@ jobs:
     merge-x86_64-darwin:
         name: Publish x86_64-darwin
         runs-on: macos-13
-        if: github.event.pull_request.merged == true
+        #if: github.event.pull_request.merged == true
 
         steps:
             - name: Checkout repository
@@ -126,7 +126,7 @@ jobs:
                     - x86_64-linux
                     - aarch64-linux
                     - armv7l-linux
-        if: github.event.pull_request.merged == true
+        #if: github.event.pull_request.merged == true
 
         steps:
             - name: Checkout repository
