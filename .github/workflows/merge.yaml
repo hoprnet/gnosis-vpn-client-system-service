@@ -28,7 +28,6 @@ jobs:
               with:
                   google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
                   install-sdk: 'true'
-                  login-artifact-registry: 'true'
 
             - name: Install Nix
               uses: cachix/install-nix-action@v29
@@ -80,7 +79,6 @@ jobs:
               with:
                   google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
                   install-sdk: 'true'
-                  login-artifact-registry: 'true'
 
             - name: Install Nix
               uses: cachix/install-nix-action@v29
@@ -138,7 +136,6 @@ jobs:
               with:
                   google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
                   install-sdk: 'true'
-                  login-artifact-registry: 'true'
 
             - name: Build
               run: nix build .#gnosisvpn-${{ matrix.architecture }} -L
