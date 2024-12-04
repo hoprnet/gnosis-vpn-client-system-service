@@ -61,7 +61,7 @@ impl Core {
         }
     }
 
-    #[instrument(level = "info", skip(self, cmd), ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self, cmd), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: Command) -> anyhow::Result<Option<String>> {
         tracing::info!(%cmd, "Handling command");
         tracing::debug!(state_before = %self, "State cmd change");
@@ -83,7 +83,7 @@ impl Core {
         res
     }
 
-    #[instrument(level = "info", skip(self, event), ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self, event), ret(level = tracing::Level::DEBUG))]
     pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
         tracing::info!(%event, "Handling event");
         tracing::debug!(state_before = %self, "State evt change");
