@@ -1,4 +1,5 @@
 use exponential_backoff::Backoff;
+use libp2p_identity::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,8 +16,13 @@ pub struct EntryNode {
     pub endpoint: Url,
     pub api_token: String,
     pub listen_host: Option<String>,
-    pub hop: u8,
+    pub path: Path,
     pub addresses: Option<Addresses>,
+}
+
+pub enum Path {
+    Hop(u8),
+    IntermediateId(PeerId),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,13 +107,13 @@ impl fmt::Display for EntryNode {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, hop: u8) -> EntryNode {
+    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, path: Path) -> EntryNode {
         EntryNode {
             endpoint,
             api_token,
             addresses: None,
             listen_host,
-            hop,
+            path,
         }
     }
 

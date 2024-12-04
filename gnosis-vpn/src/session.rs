@@ -8,7 +8,7 @@ use std::thread;
 use std::time;
 use url::Url;
 
-use crate::entry_node::EntryNode;
+use crate::entry_node::{EntryNode, Path};
 use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
@@ -45,7 +45,14 @@ pub fn open(
         "target".to_string(),
         json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
     );
-    json.insert("path".to_string(), json!({"Hops": en.hop }));
+    match en.path {
+        Path::Hop(hop) => {
+            json.insert("path".to_string(), json!({"Hops": hop}));
+        }
+        Path::IntermediateId(id) => {
+            json.insert("path".to_string(), json!({ "IntermediatePath": [id.to_base58()]}));
+        }
+    }
     if let Some(lh) = &en.listen_host {
         json.insert("listenHost".to_string(), json!(lh));
     };
