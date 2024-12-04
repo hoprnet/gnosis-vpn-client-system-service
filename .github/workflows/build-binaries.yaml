@@ -68,6 +68,8 @@ jobs:
           fi
           if [[ "${{ github.event_name}}" == "workflow_dispatch" ]]; then
             publish_type="workflow"
+          elif [[ ${{ inputs.version_type}} != "undefined" && ${{ inputs.version_type}} != "" ]]; then
+            publish_type="workflow"
           else
             publish_type="artifact-registry"
           fi
