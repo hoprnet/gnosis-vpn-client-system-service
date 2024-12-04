@@ -13,130 +13,130 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    # delete-artifacts:
-    #     name: Delete artifacts
-    #     runs-on: self-hosted-hoprnet-small
-    #     #if: github.event.pull_request.merged == true
+    delete-artifacts:
+        name: Delete artifacts
+        runs-on: self-hosted-hoprnet-small
+        #if: github.event.pull_request.merged == true
 
-    #     steps:
-    #         - name: Checkout repository
-    #           uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    #         - name: Setup GCP
-    #           id: gcp
-    #           uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-    #           with:
-    #               google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-    #               install-sdk: 'true'
+            - name: Setup GCP
+              id: gcp
+              uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+              with:
+                  google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+                  install-sdk: 'true'
 
-    #         - name: Delete artifacts
-    #           run: |
-    #             set -x
-    #             pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
-    #             echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
-    #             gcloud config set artifacts/location europe-west3
-    #             gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn ${pr_version}  2> /dev/null || true
-    #             gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn-ctl ${pr_version}  2> /dev/null || true
+            - name: Delete artifacts
+              run: |
+                set -x
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+                gcloud config set artifacts/location europe-west3
+                gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn ${pr_version}  2> /dev/null || true
+                gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn-ctl ${pr_version}  2> /dev/null || true
 
-    # merge-aarch64-darwin:
-    #     name: Publish aarch64-darwin
-    #     runs-on: macos-14
-    #     needs: delete-artifacts
-    #     #if: github.event.pull_request.merged == true
+    merge-aarch64-darwin:
+        name: Publish aarch64-darwin
+        runs-on: macos-14
+        needs: delete-artifacts
+        #if: github.event.pull_request.merged == true
 
-    #     steps:
-    #         - name: Checkout repository
-    #           uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    #         - name: Setup GCP
-    #           id: gcp
-    #           uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-    #           with:
-    #               google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-    #               install-sdk: 'true'
+            - name: Setup GCP
+              id: gcp
+              uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+              with:
+                  google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+                  install-sdk: 'true'
 
-    #         - name: Install Nix
-    #           uses: cachix/install-nix-action@v29
-    #           with:
-    #               github_access_token: ${{ secrets.GITHUB_TOKEN }}
-    #               nix_path: nixpkgs=channel:nixos-24.05
+            - name: Install Nix
+              uses: cachix/install-nix-action@v29
+              with:
+                  github_access_token: ${{ secrets.GITHUB_TOKEN }}
+                  nix_path: nixpkgs=channel:nixos-24.05
 
-    #         - uses: cachix/cachix-action@v15
-    #           with:
-    #               name: gnosis-vpn-client
-    #               authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-    #           env:
-    #               USER: runner
+            - uses: cachix/cachix-action@v15
+              with:
+                  name: gnosis-vpn-client
+                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+              env:
+                  USER: runner
 
-    #         - name: Get version
-    #           id: vars
-    #           run: |
-    #             pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
-    #             echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
+            - name: Get version
+              id: vars
+              run: |
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
 
-    #         - name: Build
-    #           run: nix build .#gnosisvpn-aarch64-darwin -L
-    #           continue-on-error: true
+            - name: Build
+              run: nix build .#gnosisvpn-aarch64-darwin -L
+              continue-on-error: true
 
-    #         - name: Publish
-    #           run: |
-    #             echo "Some content" > ./result
-    #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-aarch64-darwin
-    #             cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-aarch64-darwin
-    #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-aarch64-darwin
-    #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-aarch64-darwin
+            - name: Publish
+              run: |
+                echo "Some content" > ./result
+                cp ./result/bin/gnosis-vpn ./gnosis-vpn-aarch64-darwin
+                cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-aarch64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-aarch64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-aarch64-darwin
 
-    # merge-x86_64-darwin:
-    #     name: Publish x86_64-darwin
-    #     runs-on: macos-13
-    #     needs: delete-artifacts
-    #     #if: github.event.pull_request.merged == true
+    merge-x86_64-darwin:
+        name: Publish x86_64-darwin
+        runs-on: macos-13
+        needs: delete-artifacts
+        #if: github.event.pull_request.merged == true
 
-    #     steps:
-    #         - name: Checkout repository
-    #           uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-    #         - name: Setup GCP
-    #           id: gcp
-    #           uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-    #           with:
-    #               google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-    #               install-sdk: 'true'
+            - name: Setup GCP
+              id: gcp
+              uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+              with:
+                  google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+                  install-sdk: 'true'
 
-    #         - name: Install Nix
-    #           uses: cachix/install-nix-action@v29
-    #           with:
-    #               github_access_token: ${{ secrets.GITHUB_TOKEN }}
-    #               nix_path: nixpkgs=channel:nixos-24.05
+            - name: Install Nix
+              uses: cachix/install-nix-action@v29
+              with:
+                  github_access_token: ${{ secrets.GITHUB_TOKEN }}
+                  nix_path: nixpkgs=channel:nixos-24.05
 
-    #         - uses: cachix/cachix-action@v15
-    #           with:
-    #               name: gnosis-vpn-client
-    #               authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-    #           env:
-    #               USER: runner
+            - uses: cachix/cachix-action@v15
+              with:
+                  name: gnosis-vpn-client
+                  authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+              env:
+                  USER: runner
 
-    #         - name: Get version
-    #           id: vars
-    #           run: |
-    #             pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
-    #             echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
+            - name: Get version
+              id: vars
+              run: |
+                pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
+                echo "pr_version=$pr_version" >> $GITHUB_OUTPUT
 
-    #         - name: Build
-    #           run: nix build .#gnosisvpn-x86_64-darwin -L
-    #           continue-on-error: true
+            - name: Build
+              run: nix build .#gnosisvpn-x86_64-darwin -L
+              continue-on-error: true
 
-    #         - name: Publish
-    #           run: |
-    #             cp ./result/bin/gnosis-vpn ./gnosis-vpn-x86_64-darwin
-    #             cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-x86_64-darwin
-    #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-x86_64-darwin
-    #             gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-x86_64-darwin
+            - name: Publish
+              run: |
+                cp ./result/bin/gnosis-vpn ./gnosis-vpn-x86_64-darwin
+                cp ./result/bin/gnosis-vpn-ctl ./gnosis-vpn-ctl-x86_64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn --source=./gnosis-vpn-x86_64-darwin
+                gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.vars.outputs.pr_version }} --package=gnosis-vpn-ctl --source=./gnosis-vpn-ctl-x86_64-darwin
 
     merge-linux:
         name: Publish ${{ matrix.architecture }}
         runs-on: self-hosted-hoprnet-big
-        # needs: delete-artifacts
+        needs: delete-artifacts
         strategy:
             matrix:
                 architecture:
