@@ -1,0 +1,119 @@
+name: Close release
+
+on:
+    workflow_dispatch:
+        inputs:
+            release_type:
+                description: 'Next version type'
+                required: true
+                type: choice
+                default: 'patch'
+                options:
+                    - patch
+                    - minor
+                    - major
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    release:
+        name: Close release
+        runs-on: self-hosted-hoprnet-small
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: main # if you want to use a different branch keep in mind that the bump version step will be affected
+                  token: '${{ secrets.GH_RUNNER_TOKEN }}'
+
+            - name: Setup GCP
+              id: gcp
+              uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+              with:
+                  google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+                  login-artifact-registry: 'true'
+
+            - name: Setup environment variables
+              id: environment
+              run: |
+                  release_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
+                  echo "release_version=${release_version}" >> $GITHUB_OUTPUT
+
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
+                  tag_name: v${{ steps.environment.outputs.release_version }}
+
+            - name: Publish binaries
+              run: |
+                  architectures=("aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" "armv7l-linux" )
+                  for architecture in "${architectures[@]}"; do
+                      gcloud artifacts generic download --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/latest/${architecture}/gnosis-vpn"     --destination="gnosis-vpn-${architecture}"
+                      gcloud artifacts generic download --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/latest/${architecture}/gnosis-vpn-ctl" --destination="gnosis-vpn-ctl-${architecture}"
+                      gcloud artifacts generic upload   --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/${{ steps.environment.outputs.release_version }}/${architecture}/gnosis-vpn"     --source=gnosis-vpn-${architecture}  
+                      gcloud artifacts generic upload   --repository="rust-binaries" --location="europe-west3" --path="${{ github.repository }}/${{ steps.environment.outputs.release_version }}/${architecture}/gnosis-vpn-ctl" --source=gnosis-vpn-ctl-${architecture}
+                  done
+
+            - name: Tag version in git
+              run: |
+                git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
+                git push origin v${{ steps.environment.outputs.release_version }}
+
+            - name: Bump Version
+              id: bump
+              run: |
+                CURRENT_VERSION=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
+
+                # Split the version into components
+                IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+                # Bump the appropriate part
+                case "${{ inputs.release_type }}" in
+                    major)
+                        ((MAJOR++))
+                        MINOR=0
+                        PATCH=0
+                        ;;
+                    minor)
+                        ((MINOR++))
+                        PATCH=0
+                        ;;
+                    patch)
+                        ((PATCH++))
+                        ;;
+                esac
+
+                BUMP_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                echo "Updating version from $CURRENT_VERSION to $BUMP_VERSION"
+
+                # Update the version in Cargo.toml
+                # capture group 1: version = "
+                # capture group 2: the version number
+                # capture group 3: "
+                sed -i.bak -E "s/(^version\s*=\s*\")([0-9]+\.[0-9]+\.[0-9]+)(\")/\1${BUMP_VERSION}\3/" Cargo.toml
+                rm Cargo.toml.bak
+                echo "bump_version=${BUMP_VERSION}" >> $GITHUB_OUTPUT
+
+            - uses: EndBug/add-and-commit@v9
+              with:
+                  add: 'Cargo.toml'
+                  new_branch: main
+                  message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
+                  pathspec_error_handling: exitImmediately
+
+            - name: Notify new release
+              uses: zulip/github-actions-zulip/send-message@v1
+              with:
+                  api-key: ${{ secrets.ZULIP_API_KEY }}
+                  email: ${{ secrets.ZULIP_EMAIL }}
+                  organization-url: 'https://hopr.zulipchat.com'
+                  type: 'stream'
+                  to: 'Releases'
+                  topic: 'main'
+                  content: |
+                      I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
