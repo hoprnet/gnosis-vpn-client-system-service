@@ -43,7 +43,8 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: echo nix build .#gnosisvpn-aarch64-darwin -L && mkdir -p results/bin && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
+              run: nix build .#gnosisvpn-aarch64-darwin -L
+              continue-on-error: true
 
             - name: Publish binary
               id: binary
@@ -51,6 +52,9 @@ jobs:
                 set -x
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+                mkdir -p results/bin
+                echo "Dummy content" > results/bin/gnosis-vpn
+                echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-aarch64-darwin
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-aarch64-darwin
                 gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-aarch64-darwin
@@ -62,8 +66,10 @@ jobs:
                 issue-number: ${{ github.event.pull_request.number }}
                 body: |
                     The aarch64-darwin binaries for this PR can be downloaded from:
-                    - [Gnosis VPN](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-aarch64-darwin)
-                    - [Gnosis VPN CTL](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn-ctl/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-ctl-aarch64-darwin)
+                    ```
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-aarch64-darwin --output=gnosis-vpn
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-ctl-aarch64-darwin --output=gnosis-vpn-ctl
+                    ```
 
     merge-x86_64-darwin:
         name: Publish x86_64-darwin
@@ -95,7 +101,8 @@ jobs:
                   USER: runner
 
             - name: Build
-              run: echo nix build .#gnosisvpn-x86_64-darwin -L && mkdir -p results/bin && echo "Dummy content" > results/bin/gnosis-vpn && echo "Dummy content" > results/bin/gnosis-vpn-ctl
+              run: nix build .#gnosisvpn-x86_64-darwin -L
+              continue-on-error: true
 
             - name: Publish binary
               id: binary
@@ -103,6 +110,9 @@ jobs:
                 set -x
                 pr_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')-pr.${{ github.event.pull_request.number }}
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
+                mkdir -p results/bin
+                echo "Dummy content" > results/bin/gnosis-vpn
+                echo "Dummy content" > results/bin/gnosis-vpn-ctl
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-x86_64-darwin
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-x86_64-darwin
                 gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-x86_64-darwin
@@ -114,8 +124,11 @@ jobs:
                 issue-number: ${{ github.event.pull_request.number }}
                 body: |
                     The x86_64-darwin binaries for this PR can be downloaded from:
-                    - [Gnosis VPN](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-x86_64-darwin)
-                    - [Gnosis VPN CTL](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn-ctl/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-ctl-x86_64-darwin)
+                    ```
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-x86_64-darwin --output=gnosis-vpn
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-ctl-x86_64-darwin --output=gnosis-vpn-ctl
+                    ```
+
 
     merge-linux:
         name: Publish ${{ matrix.architecture }}
@@ -150,8 +163,9 @@ jobs:
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
                 mv results/bin/gnosis-vpn results/bin/gnosis-vpn-${{ matrix.architecture }}
                 mv results/bin/gnosis-vpn-ctl results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-${{ matrix.architecture }}
-                gcloud artifacts generic upload --repository="rust-binaries" --location="europe-west3" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
+                gcloud config set artifacts/location europe-west3
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn     --source=results/bin/gnosis-vpn-${{ matrix.architecture }}
+                gcloud artifacts generic upload --repository="rust-binaries" --version=${pr_version} --package=gnosis-vpn-ctl --source=results/bin/gnosis-vpn-ctl-${{ matrix.architecture }}
 
 
             - name: Create comment
@@ -160,5 +174,7 @@ jobs:
                 issue-number: ${{ github.event.pull_request.number }}
                 body: |
                     The ${{ matrix.architecture }} binaries for this PR can be downloaded from:
-                    - [Gnosis VPN](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-${{ matrix.architecture }})
-                    - [Gnosis VPN CTL](https://europe-west3-artifactregistry.googleapis.com/v1/projects/hoprassociation/locations/europe-west3/repositories/rust-binaries/files/gnosis-vpn-ctl/${{ steps.binary.outputs.pr_version }}/gnosis-vpn-ctl-${{ matrix.architecture }})
+                    ```
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-${{ matrix.architecture }} --output=gnosis-vpn
+                    gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries --file=gnosis-vpn:${{ steps.binary.outputs.pr_version }}:gnosis-vpn-ctl-${{ matrix.architecture }} --output=gnosis-vpn-ctl
+                    ```
