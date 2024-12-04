@@ -29,6 +29,7 @@ pub fn open_session_backoff() -> Backoff {
     Backoff::new(attempts, min, max)
 }
 
+#[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]
 pub fn open(
     client: &blocking::Client,
     sender: &crossbeam_channel::Sender<Event>,
@@ -61,6 +62,12 @@ pub fn open(
     let sender = sender.clone();
     let client = client.clone();
     thread::spawn(move || {
+        tracing::debug!(
+            "post open session - headers: {:?}, url: {:?}, body: {:?}",
+            headers,
+            url,
+            body
+        );
         let fetch_res = client
             .post(url)
             .json(&body)
@@ -68,6 +75,8 @@ pub fn open(
             .headers(headers)
             .send()
             .map(|res| (res.status(), res.json::<serde_json::Value>()));
+
+        tracing::debug!("open session response: {:?}", fetch_res);
 
         let evt = match fetch_res {
             Ok((status, Ok(json))) if status.is_success() => {

@@ -11,6 +11,7 @@ use url::Url;
 use crate::event::Event;
 use crate::remote_data;
 
+#[derive(Debug)]
 pub struct EntryNode {
     // TODO store multiple entry nodes and exit nodes and separate user_input
     pub endpoint: Url,
@@ -20,12 +21,13 @@ pub struct EntryNode {
     pub addresses: Option<Addresses>,
 }
 
+#[derive(Debug)]
 pub enum Path {
     Hop(u8),
     IntermediateId(PeerId),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Addresses {
     hopr: String,
     native: String,
@@ -97,12 +99,25 @@ impl fmt::Display for EntryNode {
             ("endpoint", self.endpoint.to_string()),
             ("api_token", "*****".to_string()),
         ]);
+        print.insert("path", format!("{}", self.path));
+        if let Some(listen_host) = &self.listen_host {
+            print.insert("listen_host", listen_host.to_string());
+        }
         if let Some(addresses) = &self.addresses {
             let val = serde_json::to_string(&addresses).unwrap();
             print.insert("addresses", val);
         }
         let val = serde_json::to_string(&print).unwrap();
         write!(f, "{}", val)
+    }
+}
+
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Path::Hop(hop) => write!(f, "hop: {}", hop),
+            Path::IntermediateId(peer_id) => write!(f, "intermediate_id: {}", peer_id),
+        }
     }
 }
 
