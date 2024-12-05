@@ -115,28 +115,29 @@ jobs:
                 # Split the version into components MAJOR, MINOR, PATCH
                 declare -i MAJOR MINOR PATCH
                 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-                declare -p MAJOR MINOR PATCH
-                declare -i MAJOR_INT MINOR_INT PATCH_INT
-                MAJOR_INT=$((MAJOR))
-                MINOR_INT=$((MINOR))
-                PATCH_INT=$((PATCH))
+                # declare -i MAJOR_INT MINOR_INT PATCH_INT
+                declare -i MAJOR_INT="$MAJOR"
+                declare -i MINOR_INT="$MINOR"
+                declare -i PATCH_INT="$PATCH"
+                declare -p MAJOR MINOR PATCH MAJOR_INT MINOR_INT PATCH_INT
 
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
                     major)
                         echo "Bumping major version"
                         ((MAJOR_INT++))
-                        MINOR=0
-                        PATCH=0
+                        MINOR_INT=0
+                        PATCH_INT=0
                         ;;
                     minor)
                         echo "Bumping minor version"
                         ((MINOR_INT++))
-                        PATCH=0
+                        PATCH_INT=0
                         ;;
                     patch)
                         echo "Bumping patch version"
                         ((PATCH_INT++))
+                        echo "Bumpped patch version"
                         ;;
                     *)
                         echo "Invalid release type"
