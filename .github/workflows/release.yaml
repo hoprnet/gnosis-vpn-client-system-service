@@ -75,6 +75,7 @@ jobs:
 
             - name: Publish binaries
               run: |
+                  set -x
                   architectures=("aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" "armv7l-linux" )
                   architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux")
                   mkdir -p binaries
