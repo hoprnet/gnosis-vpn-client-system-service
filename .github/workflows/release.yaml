@@ -19,33 +19,33 @@ concurrency:
 
 jobs:
 
-    build-binaries:
-      strategy:
-        matrix:
-          binary:
-            - architecture: x86_64-linux
-              runner: self-hosted-hoprnet-big
-            - architecture: aarch64-linux
-              runner: self-hosted-hoprnet-big
-            - architecture: armv7l-linux
-              runner: self-hosted-hoprnet-big
-            # - architecture: aarch64-darwin
-            #   runner: macos-14
-            # - architecture: x86_64-darwin
-            #   runner: macos-13
-      name: Binary ${{ matrix.binary.architecture }}
-      uses: ./.github/workflows/build-binaries.yaml
-      with:
-        branch: main
-        runner: ${{ matrix.binary.runner }}
-        architecture: ${{ matrix.binary.architecture }}
-        version_type: 'release'
-      secrets: inherit
+    # build-binaries:
+    #   strategy:
+    #     matrix:
+    #       binary:
+    #         - architecture: x86_64-linux
+    #           runner: self-hosted-hoprnet-big
+    #         - architecture: aarch64-linux
+    #           runner: self-hosted-hoprnet-big
+    #         - architecture: armv7l-linux
+    #           runner: self-hosted-hoprnet-big
+    #         - architecture: aarch64-darwin
+    #           runner: macos-14
+    #         - architecture: x86_64-darwin
+    #           runner: macos-13
+    #   name: Binary ${{ matrix.binary.architecture }}
+    #   uses: ./.github/workflows/build-binaries.yaml
+    #   with:
+    #     branch: main
+    #     runner: ${{ matrix.binary.runner }}
+    #     architecture: ${{ matrix.binary.architecture }}
+    #     version_type: 'release'
+    #   secrets: inherit
 
     release:
         name: Close release
-        needs: 
-          - build-binaries
+        # needs: 
+        #   - build-binaries
         runs-on: self-hosted-hoprnet-small
 
         steps:
@@ -67,14 +67,15 @@ jobs:
                   release_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
                   echo "release_version=${release_version}" >> $GITHUB_OUTPUT
 
-            - name: Create Release
-              uses: softprops/action-gh-release@v2
-              with:
-                  name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
-                  tag_name: v${{ steps.environment.outputs.release_version }}
+            # - name: Create Release
+            #   uses: softprops/action-gh-release@v2
+            #   with:
+            #       name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
+            #       tag_name: v${{ steps.environment.outputs.release_version }}
 
             - name: Publish binaries
               run: |
+                  set -x
                   architectures=("aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" "armv7l-linux" )
                   architectures=("x86_64-linux")
                   mkdir -p binaries

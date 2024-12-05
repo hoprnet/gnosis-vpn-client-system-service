@@ -71,7 +71,6 @@ jobs:
           echo "Invocation parameters:"
           echo "branch=${branch}" | tee -a $GITHUB_OUTPUT
           echo "architecture=${architecture}" | tee -a $GITHUB_OUTPUT
-          echo "publish_type=${publish_type}" | tee -a $GITHUB_OUTPUT
 
       - name: Checkout repository
         uses: actions/checkout@v4
