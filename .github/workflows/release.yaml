@@ -85,10 +85,10 @@ jobs:
                       gh release upload v${{ steps.environment.outputs.release_version }} "gnosis-vpn-ctl-${architecture}" --clobber
                   done
 
-            - name: Tag version in git
-              run: |
-                git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
-                git push origin v${{ steps.environment.outputs.release_version }}
+            # - name: Tag version in git
+            #   run: |
+            #     git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
+            #     git push origin v${{ steps.environment.outputs.release_version }}
 
             - name: Bump Version
               id: bump
@@ -125,21 +125,21 @@ jobs:
                 rm Cargo.toml.bak
                 echo "bump_version=${BUMP_VERSION}" >> $GITHUB_OUTPUT
 
-            - uses: EndBug/add-and-commit@v9
-              with:
-                  add: 'Cargo.toml'
-                  new_branch: main
-                  message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
-                  pathspec_error_handling: exitImmediately
+            # - uses: EndBug/add-and-commit@v9
+            #   with:
+            #       add: 'Cargo.toml'
+            #       new_branch: main
+            #       message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
+            #       pathspec_error_handling: exitImmediately
 
-            - name: Notify new release
-              uses: zulip/github-actions-zulip/send-message@v1
-              with:
-                  api-key: ${{ secrets.ZULIP_API_KEY }}
-                  email: ${{ secrets.ZULIP_EMAIL }}
-                  organization-url: 'https://hopr.zulipchat.com'
-                  type: 'stream'
-                  to: 'Releases'
-                  topic: 'main'
-                  content: |
-                      I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
+            # - name: Notify new release
+            #   uses: zulip/github-actions-zulip/send-message@v1
+            #   with:
+            #       api-key: ${{ secrets.ZULIP_API_KEY }}
+            #       email: ${{ secrets.ZULIP_EMAIL }}
+            #       organization-url: 'https://hopr.zulipchat.com'
+            #       type: 'stream'
+            #       to: 'Releases'
+            #       topic: 'main'
+            #       content: |
+            #           I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
