@@ -117,18 +117,26 @@ jobs:
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
                     major)
+                        echo "Bumping major version"
                         ((MAJOR++))
                         MINOR=0
                         PATCH=0
                         ;;
                     minor)
+                        echo "Bumping minor version"
                         ((MINOR++))
                         PATCH=0
                         ;;
                     patch)
+                        echo "Bumping patch version"
                         ((PATCH++))
                         ;;
+                    *)
+                        echo "Invalid release type"
+                        exit 1
+                        ;;
                 esac
+                echo "New version: $MAJOR.$MINOR.$PATCH"
 
                 BUMP_VERSION="${MAJOR}.${MINOR}.${PATCH}"
                 echo "Updating version from $CURRENT_VERSION to $BUMP_VERSION"
