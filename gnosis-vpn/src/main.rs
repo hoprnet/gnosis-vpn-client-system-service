@@ -9,6 +9,14 @@ use std::os::unix::net;
 use std::path::PathBuf;
 use std::thread;
 
+mod backoff;
+mod core;
+mod entry_node;
+mod event;
+mod exit_node;
+mod remote_data;
+mod session;
+
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
 struct Cli {}

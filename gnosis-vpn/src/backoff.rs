@@ -29,7 +29,7 @@ pub fn list_sessions() -> Backoff {
     Backoff::new(attempts, min, max)
 }
 
-trait FromIteratorToSeries {
+pub trait FromIteratorToSeries {
     fn to_vec(&self) -> Vec<time::Duration>;
 }
 
@@ -44,6 +44,6 @@ impl FromIteratorToSeries for Backoff {
             acc
         });
         vec.reverse();
-        return vec;
+        vec
     }
 }

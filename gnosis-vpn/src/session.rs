@@ -1,11 +1,9 @@
-use exponential_backoff::Backoff;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::cmp;
 use std::fmt;
 use std::thread;
-use std::time;
 use url::Url;
 
 use crate::entry_node::{EntryNode, Path};
@@ -104,29 +102,6 @@ pub fn open(
     Ok(())
 }
 
-pub fn schedule_retry_open(
-    delay: std::time::Duration,
-    sender: &crossbeam_channel::Sender<Event>,
-) -> crossbeam_channel::Sender<()> {
-    let sender = sender.clone();
-    let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
-    thread::spawn(move || {
-        crossbeam_channel::select! {
-            recv(cancel_receiver) -> _ => {}
-            default(delay) => {
-            let res = sender.send(Event::FetchOpenSession(remote_data::Event::Retry));
-            match res {
-                Ok(_) => {}
-                Err(e) => {
-                    tracing::warn!("sending delayed event failed: {:?}", e);
-                }
-            }
-            }
-        }
-    });
-    cancel_sender
-}
-
 pub fn schedule_check_session(
     delay: std::time::Duration,
     sender: &crossbeam_channel::Sender<Event>,
@@ -141,7 +116,53 @@ pub fn schedule_check_session(
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending delayed event failed: {:?}", e);
+                    tracing::warn!("sending delayed event failed: {}", e);
+                }
+            }
+            }
+        }
+    });
+    cancel_sender
+}
+
+pub fn schedule_retry_open(
+    delay: std::time::Duration,
+    sender: &crossbeam_channel::Sender<Event>,
+) -> crossbeam_channel::Sender<()> {
+    let sender = sender.clone();
+    let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
+    thread::spawn(move || {
+        crossbeam_channel::select! {
+            recv(cancel_receiver) -> _ => {}
+            default(delay) => {
+            let res = sender.send(Event::FetchOpenSession(remote_data::Event::Retry));
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending delayed event failed: {}", e);
+                }
+            }
+            }
+        }
+    });
+    cancel_sender
+}
+
+pub fn schedule_retry_close(
+    delay: std::time::Duration,
+    sender: &crossbeam_channel::Sender<Event>,
+) -> crossbeam_channel::Sender<()> {
+    let sender = sender.clone();
+    let (cancel_sender, cancel_receiver) = crossbeam_channel::bounded(1);
+    thread::spawn(move || {
+        crossbeam_channel::select! {
+            recv(cancel_receiver) -> _ => {}
+            default(delay) => {
+            let res = sender.send(Event::FetchCloseSession(remote_data::Event::Retry));
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending delayed event failed: {}", e);
                 }
             }
             }
@@ -189,7 +210,7 @@ impl Session {
 
             let evt = match fetch_res {
                 Ok((status, Ok(json))) if status.is_success() => {
-                    Event::FetchDeleteSession(remote_data::Event::Response(json))
+                    Event::FetchCloseSession(remote_data::Event::Response(json))
                 }
                 Ok((status, Ok(json))) => {
                     let e = remote_data::CustomError {
@@ -197,7 +218,7 @@ impl Session {
                         status: Some(status),
                         value: Some(json),
                     };
-                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                    Event::FetchCloseSession(remote_data::Event::Error(e))
                 }
                 Ok((status, Err(e))) => {
                     let e = remote_data::CustomError {
@@ -205,7 +226,7 @@ impl Session {
                         status: Some(status),
                         value: None,
                     };
-                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                    Event::FetchCloseSession(remote_data::Event::Error(e))
                 }
                 Err(e) => {
                     let e = remote_data::CustomError {
@@ -213,7 +234,7 @@ impl Session {
                         status: None,
                         value: None,
                     };
-                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                    Event::FetchCloseSession(remote_data::Event::Error(e))
                 }
             };
 
