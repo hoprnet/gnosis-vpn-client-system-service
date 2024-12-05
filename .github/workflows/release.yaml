@@ -112,8 +112,7 @@ jobs:
                 set -x
                 current_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
                 # Extract parts without IFS or read
-                IFS='.'
-                read -a major_version minor_version patch_version <<< "${current_version}"
+                IFS='.' read -r major_version minor_version patch_version <<< "${current_version}"
                 echo "Current version $major_version $minor_version $patch_version"
 
                 # Bump the appropriate part
