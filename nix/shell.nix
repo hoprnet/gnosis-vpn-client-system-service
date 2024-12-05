@@ -21,12 +21,14 @@ craneLib.devShell {
     patchelf
 
     # testing utilities
-    jq
-    yq-go
-    curl
     bash
+    curl
+    # gnu awk
+    gawk
     gnumake
+    jq
     which
+    yq-go
 
     # github integration
     gh

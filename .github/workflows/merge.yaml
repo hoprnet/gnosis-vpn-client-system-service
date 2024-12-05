@@ -53,7 +53,7 @@ jobs:
             - architecture: x86_64-darwin
               runner: macos-13
       name: Binary ${{ matrix.binary.architecture }}
-      needs: 
+      needs:
         - delete-artifacts
       uses: ./.github/workflows/build-binaries.yaml
       with:
