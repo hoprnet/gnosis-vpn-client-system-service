@@ -132,7 +132,7 @@ jobs:
         if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
         run: |
           gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis-vpn --source=binaries/gnosis-vpn-${{ steps.vars.outputs.architecture}}
-          gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis-vpn-ctl --source=binaries/gnosis-vpn-ctl-${{ steps.vars.outputs.architecture}}
+          gcloud artifacts generic upload --location=europe-west3 --repository="rust-binaries" --version=${{ steps.version.outputs.binary_version }} --package=gnosis-vpn --source=binaries/gnosis-vpn-ctl-${{ steps.vars.outputs.architecture}}
 
 
       - name: Upload ${{ steps.vars.outputs.architecture }} binaries
