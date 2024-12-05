@@ -65,6 +65,7 @@ jobs:
           else
             echo "The workflow is triggered manually"
             branch=${{ github.ref_name }}
+            echo "The other architecture is: ${{ inputs.architecture }}"
             architecture=${{ github.event.inputs.architecture }}
           fi
           if [[ "${{ github.event_name}}" == "workflow_dispatch" ]]; then
