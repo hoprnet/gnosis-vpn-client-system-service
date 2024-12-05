@@ -113,35 +113,39 @@ jobs:
                 CURRENT_VERSION=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
 
                 # Split the version into components MAJOR, MINOR, PATCH
-                IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
                 declare -i MAJOR MINOR PATCH
-                declare -p PATCH
+                IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+                declare -p MAJOR MINOR PATCH
+                declare -i MAJOR_INT MINOR_INT PATCH_INT
+                MAJOR_INT=$((MAJOR))
+                MINOR_INT=$((MINOR))
+                PATCH_INT=$((PATCH))
 
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
                     major)
                         echo "Bumping major version"
-                        ((MAJOR++))
+                        ((MAJOR_INT++))
                         MINOR=0
                         PATCH=0
                         ;;
                     minor)
                         echo "Bumping minor version"
-                        ((MINOR++))
+                        ((MINOR_INT++))
                         PATCH=0
                         ;;
                     patch)
                         echo "Bumping patch version"
-                        ((PATCH++))
+                        ((PATCH_INT++))
                         ;;
                     *)
                         echo "Invalid release type"
                         exit 1
                         ;;
                 esac
-                echo "New version: $MAJOR.$MINOR.$PATCH"
+                echo "New version: ${MAJOR_INT}.${MINOR_INT}.${PATCH_INT}"
 
-                BUMP_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                BUMP_VERSION="${MAJOR_INT}.${MINOR_INT}.${PATCH_INT}"
                 echo "Updating version from $CURRENT_VERSION to $BUMP_VERSION"
 
                 # Update the version in Cargo.toml
