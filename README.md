@@ -1,5 +1,28 @@
 # Gnosis VPN Client System Service
 
+The service currently opens a hoprd session and monitors that session.
+It will reopen that session if it goes down.
+
+## General usage
+
+In order to work ther service needs to be started in the background.
+Run `sudo gnosis-vpn` to start the service.
+Open a separate shell to interact with the service.
+Run `gnosis-vpn-ctl --help` to see available commands.
+
+A session needs to know the entry and the exit node on which it should connect.
+Here is a sample command to open a session on a local cluster:
+
+```
+gnosis-vpn-ctl \
+    entry-node \
+        --endpoint http://127.0.0.1:19091 \
+        --api-token ^^LOCAL-testing-123^^ \
+        --listen-host ":60006" \
+    exit-node \
+        --peer-id 12D3KooWKjT35UopfVhGHa8dxGZ6ds8r4rfQdd9rw4PiQZp8HXiA
+```
+
 ## Development usage
 
 `cargo build`
