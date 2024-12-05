@@ -19,33 +19,33 @@ concurrency:
 
 jobs:
 
-    # build-binaries:
-    #   strategy:
-    #     matrix:
-    #       binary:
-    #         - architecture: x86_64-linux
-    #           runner: self-hosted-hoprnet-big
-    #         - architecture: aarch64-linux
-    #           runner: self-hosted-hoprnet-big
-    #         - architecture: armv7l-linux
-    #           runner: self-hosted-hoprnet-big
-    #         # - architecture: aarch64-darwin
-    #         #   runner: macos-14
-    #         # - architecture: x86_64-darwin
-    #         #   runner: macos-13
-    #   name: Binary ${{ matrix.binary.architecture }}
-    #   uses: ./.github/workflows/build-binaries.yaml
-    #   with:
-    #     branch: main
-    #     runner: ${{ matrix.binary.runner }}
-    #     architecture: ${{ matrix.binary.architecture }}
-    #     version_type: 'release'
-    #   secrets: inherit
+    build-binaries:
+      strategy:
+        matrix:
+          binary:
+            - architecture: x86_64-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: aarch64-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: armv7l-linux
+              runner: self-hosted-hoprnet-big
+            - architecture: aarch64-darwin
+              runner: macos-14
+            - architecture: x86_64-darwin
+              runner: macos-13
+      name: Binary ${{ matrix.binary.architecture }}
+      uses: ./.github/workflows/build-binaries.yaml
+      with:
+        branch: main
+        runner: ${{ matrix.binary.runner }}
+        architecture: ${{ matrix.binary.architecture }}
+        version_type: 'release'
+      secrets: inherit
 
     release:
         name: Close release
-        # needs: 
-        #   - build-binaries
+        needs: 
+          - build-binaries
         runs-on: self-hosted-hoprnet-small
 
         steps:
@@ -54,12 +54,12 @@ jobs:
               with:
                   token: ${{ secrets.GH_RUNNER_TOKEN }}
 
-            # - name: Setup GCP
-            #   id: gcp
-            #   uses: hoprnet/hopr-workflows/actions/setup-gcp@master
-            #   with:
-            #       google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-            #       install-sdk: 'true'
+            - name: Setup GCP
+              id: gcp
+              uses: hoprnet/hopr-workflows/actions/setup-gcp@master
+              with:
+                  google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
+                  install-sdk: 'true'
 
             - name: Install Nix
               uses: cachix/install-nix-action@v29
@@ -80,36 +80,35 @@ jobs:
                   release_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
                   echo "release_version=${release_version}" >> $GITHUB_OUTPUT
 
-            # - name: Create Release
-            #   uses: softprops/action-gh-release@v2
-            #   with:
-            #       name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
-            #       tag_name: v${{ steps.environment.outputs.release_version }}
+            - name: Create Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
+                  tag_name: v${{ steps.environment.outputs.release_version }}
 
-            # - name: Publish binaries
-            #   run: |
-            #       architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
-            #       architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux")
-            #       mkdir -p binaries
-            #       for architecture in "${architectures[@]}"; do
-            #           gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
-            #           gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis-vpn-ctl-${architecture}
-            #           gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-${architecture}" --clobber
-            #           gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-ctl-${architecture}" --clobber
-            #       done
-            #   env:
-            #     GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
+            - name: Publish binaries
+              run: |
+                  architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
+                  architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux")
+                  mkdir -p binaries
+                  for architecture in "${architectures[@]}"; do
+                      gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
+                      gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis-vpn-ctl-${architecture}
+                      gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-${architecture}" --clobber
+                      gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-ctl-${architecture}" --clobber
+                  done
+              env:
+                GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
 
-            # - name: Tag version in git
-            #   run: |
-            #     git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
-            #     git push origin v${{ steps.environment.outputs.release_version }}
+            - name: Tag version in git
+              run: |
+                git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
+                git push origin v${{ steps.environment.outputs.release_version }}
 
             - name: Bump Version
               id: bump
               shell: bash
               run: |
-                set -x
                 current_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
                 # Extract parts without IFS or read
                 IFS='.' read -r major_version minor_version patch_version <<< "${current_version}"
@@ -149,21 +148,21 @@ jobs:
                 nix develop --command cargo generate-lockfile
                 echo "bump_version=${bump_version}" >> $GITHUB_OUTPUT
 
-            # - uses: EndBug/add-and-commit@v9
-            #   with:
-            #       add: 'Cargo.*'
-            #       new_branch: main
-            #       message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
-            #       pathspec_error_handling: exitImmediately
+            - uses: EndBug/add-and-commit@v9
+              with:
+                  add: 'Cargo.*'
+                  new_branch: main
+                  message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
+                  pathspec_error_handling: exitImmediately
 
-            # - name: Notify new release
-            #   uses: zulip/github-actions-zulip/send-message@v1
-            #   with:
-            #       api-key: ${{ secrets.ZULIP_API_KEY }}
-            #       email: ${{ secrets.ZULIP_EMAIL }}
-            #       organization-url: 'https://hopr.zulipchat.com'
-            #       type: 'stream'
-            #       to: 'Releases'
-            #       topic: 'main'
-            #       content: |
-            #           I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
+            - name: Notify new release
+              uses: zulip/github-actions-zulip/send-message@v1
+              with:
+                  api-key: ${{ secrets.ZULIP_API_KEY }}
+                  email: ${{ secrets.ZULIP_EMAIL }}
+                  organization-url: 'https://hopr.zulipchat.com'
+                  type: 'stream'
+                  to: 'Releases'
+                  topic: 'main'
+                  content: |
+                      I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
