@@ -52,7 +52,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  token: '${{ secrets.GH_RUNNER_TOKEN }}'
+                  token: ${{ secrets.GH_RUNNER_TOKEN }}
 
             - name: Setup GCP
               id: gcp
@@ -78,14 +78,16 @@ jobs:
                   set -x
                   architectures=("aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" "armv7l-linux" )
                   architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux")
+                  echo "${{ secrets.GH_RUNNER_TOKEN }}" | gh auth login --with-token
                   mkdir -p binaries
                   for architecture in "${architectures[@]}"; do
                       gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
                       gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis-vpn-ctl-${architecture}
                       ls -alR binaries
-                      echo gh release upload v${{ steps.environment.outputs.release_version }} "./binaries/gnosis-vpn-${architecture}" --clobber
-                      gh release upload v${{ steps.environment.outputs.release_version }} "./binaries/gnosis-vpn-${architecture}" --clobber
-                      gh release upload v${{ steps.environment.outputs.release_version }} "./binaries/gnosis-vpn-ctl-${architecture}" --clobber
+                      gh release view v${{ steps.environment.outputs.release_version }}
+                      echo gh release upload v${{ steps.environment.outputs.release_version }} "$PWD//binaries/gnosis-vpn-${architecture}" --clobber
+                      gh release upload v${{ steps.environment.outputs.release_version }} "$PWD//binaries/gnosis-vpn-${architecture}" --clobber
+                      gh release upload v${{ steps.environment.outputs.release_version }} "$PWD//binaries/gnosis-vpn-ctl-${architecture}" --clobber
                   done
               env:
                 GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
