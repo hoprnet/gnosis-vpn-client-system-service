@@ -36,7 +36,7 @@ jobs:
                 echo "pr_version=$pr_version" >> ·GITHUB_OUTPUT
                 gcloud config set artifacts/location europe-west3
                 gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn ${pr_version}  2> /dev/null || true
-                gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn-ctl ${pr_version}  2> /dev/null || true
+                gcloud artifacts versions delete --quiet --repository="rust-binaries" --package=gnosis-vpn ${pr_version}  2> /dev/null || true
 
     build-binaries:
       strategy:
