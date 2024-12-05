@@ -113,7 +113,7 @@ jobs:
 
                 # Split the version into components
                 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
+                echo Splitted variables $MAJOR $MINOR $PATCH
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
                     major)
