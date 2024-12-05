@@ -209,13 +209,11 @@ impl Core {
                         backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs);
-                        Ok(())
+                        self.repeat_fetch_list_sessions(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
                         let mut backoffs = backoff::list_sessions().to_vec();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs);
-                        Ok(())
+                        self.repeat_fetch_list_sessions(err, &mut backoffs)
                     }
                     _ => {
                         // should not happen
@@ -296,10 +294,15 @@ impl Core {
             };
         } else {
             self.fetch_data.open_session = RemoteData::Failure { error };
+            self.status = Status::Idle;
         }
     }
 
-    fn repeat_fetch_list_sessions(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+    fn repeat_fetch_list_sessions(
+        &mut self,
+        error: remote_data::CustomError,
+        backoffs: &mut Vec<time::Duration>,
+    ) -> anyhow::Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -307,8 +310,15 @@ impl Core {
                 cancel_sender,
                 backoffs: backoffs.clone(),
             };
+            Ok(())
         } else {
             self.fetch_data.list_sessions = RemoteData::Failure { error };
+            if let Status::MonitoringSession { .. } = self.status {
+                self.check_close_session()
+            } else {
+                tracing::warn!("failed list session call while not monitoring session");
+                Ok(())
+            }
         }
     }
 
@@ -322,6 +332,11 @@ impl Core {
             };
         } else {
             self.fetch_data.close_session = RemoteData::Failure { error };
+            if let Status::ClosingSession { .. } = self.status {
+                self.status = Status::Idle;
+            } else {
+                tracing::warn!("failed close session call while not closing session");
+            }
         }
     }
 
