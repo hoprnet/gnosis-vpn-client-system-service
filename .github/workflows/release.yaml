@@ -84,6 +84,8 @@ jobs:
                       gh release upload v${{ steps.environment.outputs.release_version }} "./binaries/gnosis-vpn-${architecture}" --clobber
                       gh release upload v${{ steps.environment.outputs.release_version }} "./binaries/gnosis-vpn-ctl-${architecture}" --clobber
                   done
+              env:
+                GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
 
             # - name: Tag version in git
             #   run: |
