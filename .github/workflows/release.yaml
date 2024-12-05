@@ -87,7 +87,6 @@ jobs:
             - name: Publish binaries
               run: |
                   architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
-                  architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux")
                   mkdir -p binaries
                   for architecture in "${architectures[@]}"; do
                       gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
