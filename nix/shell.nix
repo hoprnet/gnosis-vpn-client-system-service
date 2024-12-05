@@ -27,7 +27,6 @@ craneLib.devShell {
     bash
     gnumake
     which
-    awk
 
     # github integration
     gh
