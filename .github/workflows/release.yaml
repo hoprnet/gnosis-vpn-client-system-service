@@ -107,6 +107,7 @@ jobs:
 
             - name: Bump Version
               id: bump
+              shell: bash
               run: |
                 set -x
                 CURRENT_VERSION=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
@@ -114,6 +115,7 @@ jobs:
                 # Split the version into components MAJOR, MINOR, PATCH
                 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
                 declare -i MAJOR MINOR PATCH
+                declare -p PATCH
 
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
