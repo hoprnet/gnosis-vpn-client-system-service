@@ -109,34 +109,26 @@ jobs:
               id: bump
               shell: bash
               run: |
-                set -x
-                CURRENT_VERSION=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
-
+                current_version=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
                 # Extract parts without IFS or read
                 IFS='.'
-                read -a major_version minor_version patch_version <<< "${CURRENT_VERSION}"
-                # read -a current_version_splitted <<< "${CURRENT_VERSION}"
-                # declare -i major_version="${current_version_splitted[0]}"
-                # declare -i minor_version="${current_version_splitted[1]}"
-                # declare -i patch_version="${current_version_splitted[2]}"
+                read -a major_version minor_version patch_version <<< "${current_version}"
+                echo "Current version $major_version $minor_version $patch_version"
 
                 # Bump the appropriate part
+                echo "Bumping ${{ inputs.release_type }} version"
                 case "${{ inputs.release_type }}" in
                     major)
-                        echo "Bumping major version"
                         major_version=$((major_version+1))
                         minor_version=0
                         patch_version=0
                         ;;
                     minor)
-                        echo "Bumping minor version"
                         minor_version=$((minor_version+1))
                         patch_version=0
                         ;;
                     patch)
-                        echo "Bumping patch version"
                         patch_version=$((patch_version+1))
-                        echo "Bumpped patch version"
                         ;;
                     *)
                         echo "Invalid release type"
@@ -145,17 +137,17 @@ jobs:
                 esac
                 echo "New version: ${major_version}.${minor_version}.${patch_version}"
 
-                BUMP_VERSION="${MAJOR}.${minor_version}.${patch_version}"
-                echo "Updating version from $CURRENT_VERSION to $BUMP_VERSION"
+                bump_version="${major_version}.${minor_version}.${patch_version}"
+                echo "Updating version from $current_version to $bump_version"
 
                 # Update the version in Cargo.toml
                 # capture group 1: version = "
                 # capture group 2: the version number
                 # capture group 3: "
-                sed -i.bak -E "s/(^version = \")([0-9]+\.[0-9]+\.[0-9]+)(\")/\1${BUMP_VERSION}\3/" Cargo.toml
+                sed -i.bak -E "s/(^version = \")([0-9]+\.[0-9]+\.[0-9]+)(\")/\1${bump_version}\3/" Cargo.toml
                 rm Cargo.toml.bak
                 nix develop --command cargo generate-lockfile
-                echo "bump_version=${BUMP_VERSION}" >> $GITHUB_OUTPUT
+                echo "bump_version=${bump_version}" >> $GITHUB_OUTPUT
 
             # - uses: EndBug/add-and-commit@v9
             #   with:
