@@ -113,28 +113,29 @@ jobs:
                 CURRENT_VERSION=$(grep -E '^version\s*=' Cargo.toml | awk -F\" '{print $2}')
 
                 # Extract parts without IFS or read
-                declare -i MAJOR MINOR PATCH
-                MAJOR="${CURRENT_VERSION%%.*}"       # Extract the part before the first dot
-                MINOR="${CURRENT_VERSION#*.}"        # Remove the part before the first dot
-                MINOR="${MINOR%%.*}"                 # Now extract the part before the next dot
-                PATCH="${CURRENT_VERSION##*.}"       # Extract the part after the last dot
+                IFS='.'
+                read -a major_version minor_version patch_version <<< "${CURRENT_VERSION}"
+                # read -a current_version_splitted <<< "${CURRENT_VERSION}"
+                # declare -i major_version="${current_version_splitted[0]}"
+                # declare -i minor_version="${current_version_splitted[1]}"
+                # declare -i patch_version="${current_version_splitted[2]}"
 
                 # Bump the appropriate part
                 case "${{ inputs.release_type }}" in
                     major)
                         echo "Bumping major version"
-                        ((MAJOR++))
-                        MINOR=0
-                        PATCH=0
+                        major_version=$((major_version+1))
+                        minor_version=0
+                        patch_version=0
                         ;;
                     minor)
                         echo "Bumping minor version"
-                        ((MINOR++))
-                        PATCH=0
+                        minor_version=$((minor_version+1))
+                        patch_version=0
                         ;;
                     patch)
                         echo "Bumping patch version"
-                        ((PATCH++))
+                        patch_version=$((patch_version+1))
                         echo "Bumpped patch version"
                         ;;
                     *)
@@ -142,9 +143,9 @@ jobs:
                         exit 1
                         ;;
                 esac
-                echo "New version: ${MAJOR}.${MINOR}.${PATCH}"
+                echo "New version: ${major_version}.${minor_version}.${patch_version}"
 
-                BUMP_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                BUMP_VERSION="${MAJOR}.${minor_version}.${patch_version}"
                 echo "Updating version from $CURRENT_VERSION to $BUMP_VERSION"
 
                 # Update the version in Cargo.toml
