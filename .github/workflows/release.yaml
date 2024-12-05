@@ -99,6 +99,8 @@ jobs:
 
             - name: Tag version in git
               run: |
+                git config --global user.name "Hopr Bot"
+                git config --global user.email "hopr-bot@hoprnet.org"
                 git tag v${{ steps.environment.outputs.release_version }} -m "Release v${{ steps.environment.outputs.release_version }}"
                 git push origin v${{ steps.environment.outputs.release_version }}
 
