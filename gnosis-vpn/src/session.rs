@@ -220,6 +220,10 @@ impl Session {
                     };
                     Event::FetchCloseSession(remote_data::Event::Error(e))
                 }
+                // TODO hanlde empty expected response better
+                Ok((status, Err(_))) if status.is_success() => {
+                    Event::FetchCloseSession(remote_data::Event::Response(serde_json::Value::Null))
+                }
                 Ok((status, Err(e))) => {
                     let e = remote_data::CustomError {
                         reqw_err: Some(e),

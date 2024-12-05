@@ -557,7 +557,7 @@ impl fmt::Display for Status {
             )
             .to_string(),
             Status::ClosingSession { start_time } => &format!(
-                "closing session for {}",
+                "closing session for {}s",
                 start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
             )
             .to_string(),
