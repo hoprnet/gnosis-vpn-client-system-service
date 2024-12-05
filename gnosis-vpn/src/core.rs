@@ -16,6 +16,7 @@ use crate::remote_data;
 use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
+use crate::backoff;
 
 pub struct Core {
     status: Status,
@@ -31,6 +32,7 @@ struct FetchData {
     addresses: RemoteData,
     open_session: RemoteData,
     list_sessions: RemoteData,
+    close_session: RemoteData,
 }
 
 enum Status {
@@ -55,6 +57,7 @@ impl Core {
                 addresses: RemoteData::NotAsked,
                 open_session: RemoteData::NotAsked,
                 list_sessions: RemoteData::NotAsked,
+                close_session: RemoteData::NotAsked,
             },
             sender,
             session: None,
@@ -92,6 +95,7 @@ impl Core {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
             Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
+            Event::FetchDeleteSession(evt) => self.evt_fetch_delete_session(evt),
             Event::CheckSession => self.evt_check_session(),
         };
 
@@ -246,6 +250,40 @@ impl Core {
         }
     }
 
+    fn evt_fetch_delete_session(&mut self, evt: remote_data::Evet) -> anyhow::Result<()> {
+        match evt {
+            remote_data::Event::Response(_) => {
+                self.fetch_data.close_session = RemoteData::Success;
+                Ok(())
+            }
+            remote_data::Event::Error(err) => {
+                match &self.fetch_data.close_session {
+                    RemoteData::RetryFetching {
+                        backoffs: old_backoffs, ..
+                    } => {
+                        let mut backoffs = old_backoffs.clone();
+                        self.repeat_fetch_close_session(err, &mut backoffs);
+                            Ok(())
+                    }
+                    RemoteData::Fetching {..} => {
+                        let mut backoffs = backoff::close_session().to_vec();
+                        self.repeat_close_session(err, &mut backoffs);
+                            Ok(())
+                    }
+                    _ => {
+                        // should not happen
+                        tracing::error!("unexpected event state");
+                        Ok(())
+                    }
+
+                }
+            }
+            remote_data::Event::Retry => {
+                self.close_session(),
+            }
+        }
+    }
+
     fn evt_check_session(&mut self) -> anyhow::Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
             (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
@@ -373,6 +411,13 @@ impl Core {
     fn fetch_list_sessions(&mut self) -> anyhow::Result<()> {
         match &self.entry_node {
             Some(en) => en.list_sessions(&self.client, &self.sender),
+            _ => Ok(()),
+        }
+    }
+
+    fn fetch_close_session(&mut self) -> anyhow::Result<()> {
+        match (&self.entry_node, &self.session) {
+            (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
             _ => Ok(()),
         }
     }

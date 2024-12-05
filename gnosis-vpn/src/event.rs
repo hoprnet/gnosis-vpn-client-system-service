@@ -6,6 +6,7 @@ pub enum Event {
     FetchAddresses(remote_data::Event),
     FetchOpenSession(remote_data::Event),
     FetchListSessions(remote_data::Event),
+    FetchDeleteSession(remote_data::Event),
     CheckSession,
 }
 
@@ -23,6 +24,7 @@ impl fmt::Display for Event {
             Event::FetchAddresses(evt) => write!(f, "FetchAddresses: {}", evt),
             Event::FetchOpenSession(evt) => write!(f, "FetchOpenSessions: {}", evt),
             Event::FetchListSessions(evt) => write!(f, "FetchListSessions: {}", evt),
+            Event::FetchDeleteSession(evt) => write!(f, "FetchDeleteSession: {}", evt),
             Event::CheckSession => write!(f, "CheckSession"),
         }
     }

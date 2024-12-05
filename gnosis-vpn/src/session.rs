@@ -22,13 +22,6 @@ pub struct Session {
     target: Url,
 }
 
-pub fn open_session_backoff() -> Backoff {
-    let attempts = 3;
-    let min = time::Duration::from_secs(1);
-    let max = time::Duration::from_secs(5);
-    Backoff::new(attempts, min, max)
-}
-
 #[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]
 pub fn open(
     client: &blocking::Client,
@@ -160,6 +153,73 @@ pub fn schedule_check_session(
 impl Session {
     pub fn verify_open(&self, sessions: &[Session]) -> bool {
         sessions.iter().any(|entry| entry == self)
+    }
+
+    pub fn close(
+        &self,
+        client: &blocking::Client,
+        sender: &crossbeam_channel::Sender<Event>,
+        entry_node: &EntryNode,
+    ) -> anyhow::Result<()> {
+        let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
+        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
+
+        let mut json = serde_json::Map::new();
+        json.insert("listeningIp".to_string(), json!(self.ip));
+        json.insert("port".to_string(), json!(self.port));
+
+        let sender = sender.clone();
+        let client = client.clone();
+
+        thread::spawn(move || {
+            tracing::debug!(
+                "delete session [headers: {:?}, body: {:?}, url: {:?}",
+                headers,
+                json,
+                url
+            );
+
+            let fetch_res = client
+                .delete(url)
+                .json(&json)
+                .timeout(std::time::Duration::from_secs(30))
+                .headers(headers)
+                .send()
+                .map(|res| (res.status(), res.json::<serde_json::Value>()));
+
+            let evt = match fetch_res {
+                Ok((status, Ok(json))) if status.is_success() => {
+                    Event::FetchDeleteSession(remote_data::Event::Response(json))
+                }
+                Ok((status, Ok(json))) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: None,
+                        status: Some(status),
+                        value: Some(json),
+                    };
+                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                }
+                Ok((status, Err(e))) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: Some(e),
+                        status: Some(status),
+                        value: None,
+                    };
+                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                }
+                Err(e) => {
+                    let e = remote_data::CustomError {
+                        reqw_err: Some(e),
+                        status: None,
+                        value: None,
+                    };
+                    Event::FetchDeleteSession(remote_data::Event::Error(e))
+                }
+            };
+
+            sender.send(evt)
+        });
+        Ok(())
     }
 }
 
