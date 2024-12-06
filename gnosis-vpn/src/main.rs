@@ -6,7 +6,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net;
-use std::path::PathBuf;
+use std::path::Path;
 use std::thread;
 
 mod backoff;
@@ -47,7 +47,7 @@ fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::
     Ok(())
 }
 
-fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
+fn daemon(socket_path: &Path) -> anyhow::Result<()> {
     let ctrl_c_events = ctrl_channel()?;
 
     let res_exists = socket_path.try_exists();
@@ -55,14 +55,14 @@ fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
     // set up unix stream listener
     let listener = match res_exists {
         Ok(true) => Err(anyhow!(format!("already running"))),
-        Ok(false) => net::UnixListener::bind(socket_path.as_path()).context("failed to bind socket"),
+        Ok(false) => net::UnixListener::bind(socket_path).context("failed to bind socket"),
         Err(x) => Err(anyhow!(x)),
     }?;
 
     // update permissions to allow unprivileged access
     // TODO this would better be handled by allowing group access and let the installer create a
     // gvpn group and additionally add users to it
-    fs::set_permissions(socket_path.as_path(), fs::Permissions::from_mode(0o666))?;
+    fs::set_permissions(socket_path, fs::Permissions::from_mode(0o666))?;
 
     let (sender_socket, receiver_socket) = crossbeam_channel::unbounded::<net::UnixStream>();
     thread::spawn(move || {
@@ -109,8 +109,6 @@ fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
             }
         }
     }
-
-    fs::remove_file(socket_path)?;
     Ok(())
 }
 
@@ -120,13 +118,20 @@ fn main() {
 
     let _args = Cli::parse();
     let socket_path = socket::socket_path();
-    let res = daemon(socket_path);
-    match res {
+
+    // run continously until ctrl-c
+    match daemon(&socket_path) {
         Ok(_) => tracing::info!("stopped gracefully"),
         Err(e) => {
             // Log the error and its chain in one line
             let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
             tracing::error!(?error_chain, "Exiting with error");
         }
+    }
+
+    // cleanup
+    match fs::remove_file(socket_path) {
+        Ok(_) => (),
+        Err(e) => tracing::warn!("error removing socket: {}", e),
     }
 }
