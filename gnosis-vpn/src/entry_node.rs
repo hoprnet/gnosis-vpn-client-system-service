@@ -1,11 +1,9 @@
-use exponential_backoff::Backoff;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::thread;
-use std::time;
 use url::Url;
 
 use crate::event::Event;
@@ -33,20 +31,6 @@ pub struct Addresses {
     native: String,
 }
 
-pub fn addressses_backoff() -> Backoff {
-    let attempts = 10;
-    let min = time::Duration::from_secs(1);
-    let max = time::Duration::from_secs(60);
-    Backoff::new(attempts, min, max)
-}
-
-pub fn list_sessions_backoff() -> Backoff {
-    let attempts = 3;
-    let min = time::Duration::from_secs(1);
-    let max = time::Duration::from_secs(5);
-    Backoff::new(attempts, min, max)
-}
-
 pub fn schedule_retry_query_addresses(
     delay: std::time::Duration,
     sender: &crossbeam_channel::Sender<Event>,
@@ -61,7 +45,7 @@ pub fn schedule_retry_query_addresses(
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending retry event failed: {:?}", e);
+                    tracing::warn!("sending retry event failed: {}", e);
                 }
             }
             }
@@ -84,7 +68,7 @@ pub fn schedule_retry_list_sessions(
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending retry event failed: {:?}", e);
+                    tracing::warn!("sending retry event failed: {}", e);
                 }
             }
             }

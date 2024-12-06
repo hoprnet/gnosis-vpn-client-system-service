@@ -9,6 +9,7 @@ use std::os::unix::net;
 use std::path::PathBuf;
 use std::thread;
 
+mod backoff;
 mod core;
 mod entry_node;
 mod event;

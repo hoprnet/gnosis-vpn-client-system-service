@@ -8,6 +8,8 @@ use std::time::SystemTime;
 use tracing::instrument;
 use url::Url;
 
+use crate::backoff;
+use crate::backoff::FromIteratorToSeries;
 use crate::entry_node;
 use crate::entry_node::{EntryNode, Path};
 use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
@@ -17,6 +19,7 @@ use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
 
+//
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
@@ -31,6 +34,7 @@ struct FetchData {
     addresses: RemoteData,
     open_session: RemoteData,
     list_sessions: RemoteData,
+    close_session: RemoteData,
 }
 
 enum Status {
@@ -41,6 +45,9 @@ enum Status {
     MonitoringSession {
         start_time: SystemTime,
         cancel_sender: crossbeam_channel::Sender<()>,
+    },
+    ClosingSession {
+        start_time: SystemTime,
     },
 }
 
@@ -55,6 +62,7 @@ impl Core {
                 addresses: RemoteData::NotAsked,
                 open_session: RemoteData::NotAsked,
                 list_sessions: RemoteData::NotAsked,
+                close_session: RemoteData::NotAsked,
             },
             sender,
             session: None,
@@ -92,6 +100,7 @@ impl Core {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
             Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
+            Event::FetchCloseSession(evt) => self.evt_fetch_close_session(evt),
             Event::CheckSession => self.evt_check_session(),
         };
 
@@ -110,7 +119,7 @@ impl Core {
                             en.addresses = Some(addr);
                         }
                         Err(e) => {
-                            tracing::error!("failed to parse addresses: {:?}", e);
+                            tracing::error!("failed to parse addresses: {}", e);
                         }
                     }
                 }
@@ -124,16 +133,7 @@ impl Core {
                         self.repeat_fetch_addresses(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> =
-                            entry_node::addressses_backoff()
-                                .into_iter()
-                                .fold(Vec::new(), |mut acc, e| {
-                                    if let Some(dur) = e {
-                                        acc.push(dur);
-                                    }
-                                    acc
-                                });
-                        backoffs.reverse();
+                        let mut backoffs = backoff::get_addresses().to_vec();
                         self.repeat_fetch_addresses(err, &mut backoffs);
                     }
                     _ => {
@@ -162,7 +162,7 @@ impl Core {
                         };
                     }
                     Err(e) => {
-                        tracing::error!("failed to parse session: {:?}", e);
+                        tracing::error!("failed to parse session: {}", e);
                     }
                 }
             }
@@ -175,16 +175,7 @@ impl Core {
                         self.repeat_fetch_open_session(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> =
-                            session::open_session_backoff()
-                                .into_iter()
-                                .fold(Vec::new(), |mut acc, e| {
-                                    if let Some(dur) = e {
-                                        acc.push(dur);
-                                    }
-                                    acc
-                                });
-                        backoffs.reverse();
+                        let mut backoffs = backoff::open_session().to_vec();
                         self.repeat_fetch_open_session(err, &mut backoffs);
                     }
                     _ => {
@@ -206,7 +197,7 @@ impl Core {
                 match res_sessions {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
-                        tracing::error!("stopped monitoring - failed to parse sessions: {:?}", e);
+                        tracing::error!("stopped monitoring - failed to parse sessions: {}", e);
                         self.status = Status::Idle;
                         Ok(())
                     }
@@ -218,22 +209,11 @@ impl Core {
                         backoffs: old_backoffs, ..
                     } => {
                         let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs);
-                        Ok(())
+                        self.repeat_fetch_list_sessions(err, &mut backoffs)
                     }
                     RemoteData::Fetching { .. } => {
-                        let mut backoffs: Vec<time::Duration> =
-                            entry_node::list_sessions_backoff()
-                                .into_iter()
-                                .fold(Vec::new(), |mut acc, e| {
-                                    if let Some(dur) = e {
-                                        acc.push(dur);
-                                    }
-                                    acc
-                                });
-                        backoffs.reverse();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs);
-                        Ok(())
+                        let mut backoffs = backoff::list_sessions().to_vec();
+                        self.repeat_fetch_list_sessions(err, &mut backoffs)
                     }
                     _ => {
                         // should not happen
@@ -243,6 +223,38 @@ impl Core {
                 }
             }
             remote_data::Event::Retry => self.fetch_list_sessions(),
+        }
+    }
+
+    fn evt_fetch_close_session(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+        match evt {
+            remote_data::Event::Response(_) => {
+                self.fetch_data.close_session = RemoteData::Success;
+                self.status = Status::Idle;
+                self.check_open_session()
+            }
+            remote_data::Event::Error(err) => {
+                match &self.fetch_data.close_session {
+                    RemoteData::RetryFetching {
+                        backoffs: old_backoffs, ..
+                    } => {
+                        let mut backoffs = old_backoffs.clone();
+                        self.repeat_fetch_close_session(err, &mut backoffs);
+                        Ok(())
+                    }
+                    RemoteData::Fetching { .. } => {
+                        let mut backoffs = backoff::close_session().to_vec();
+                        self.repeat_fetch_close_session(err, &mut backoffs);
+                        Ok(())
+                    }
+                    _ => {
+                        // should not happen
+                        tracing::error!("unexpected event state");
+                        Ok(())
+                    }
+                }
+            }
+            remote_data::Event::Retry => self.fetch_close_session(),
         }
     }
 
@@ -282,10 +294,15 @@ impl Core {
             };
         } else {
             self.fetch_data.open_session = RemoteData::Failure { error };
+            self.status = Status::Idle;
         }
     }
 
-    fn repeat_fetch_list_sessions(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+    fn repeat_fetch_list_sessions(
+        &mut self,
+        error: remote_data::CustomError,
+        backoffs: &mut Vec<time::Duration>,
+    ) -> anyhow::Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -293,8 +310,33 @@ impl Core {
                 cancel_sender,
                 backoffs: backoffs.clone(),
             };
+            Ok(())
         } else {
             self.fetch_data.list_sessions = RemoteData::Failure { error };
+            if let Status::MonitoringSession { .. } = self.status {
+                self.check_close_session()
+            } else {
+                tracing::warn!("failed list session call while not monitoring session");
+                Ok(())
+            }
+        }
+    }
+
+    fn repeat_fetch_close_session(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+        if let Some(backoff) = backoffs.pop() {
+            let cancel_sender = session::schedule_retry_close(backoff, &self.sender);
+            self.fetch_data.close_session = RemoteData::RetryFetching {
+                error,
+                cancel_sender,
+                backoffs: backoffs.clone(),
+            };
+        } else {
+            self.fetch_data.close_session = RemoteData::Failure { error };
+            if let Status::ClosingSession { .. } = self.status {
+                self.status = Status::Idle;
+            } else {
+                tracing::warn!("failed close session call while not closing session");
+            }
         }
     }
 
@@ -310,10 +352,7 @@ impl Core {
         hop: Option<u8>,
         intermediate_id: Option<PeerId>,
     ) -> anyhow::Result<Option<String>> {
-        self.cancel_fetch_addresses();
-        self.cancel_fetch_open_session();
-        self.cancel_fetch_list_sessions();
-        self.cancel_session_monitoring();
+        self.check_close_session()?;
 
         // TODO move this to library and enhance CLI to only allow one option
         // hop has precedence over intermediate_id
@@ -332,10 +371,7 @@ impl Core {
     }
 
     fn exit_node(&mut self, peer_id: PeerId) -> anyhow::Result<Option<String>> {
-        self.cancel_fetch_open_session();
-        self.cancel_fetch_list_sessions();
-        self.cancel_session_monitoring();
-        self.status = Status::Idle;
+        self.check_close_session()?;
         self.exit_node = Some(ExitNode { peer_id });
         self.check_open_session()?;
         Ok(None)
@@ -351,6 +387,26 @@ impl Core {
                     started_at: SystemTime::now(),
                 };
                 self.fetch_open_session()
+            }
+            _ => Ok(()),
+        }
+    }
+
+    fn check_close_session(&mut self) -> anyhow::Result<()> {
+        self.cancel_fetch_addresses();
+        self.cancel_fetch_open_session();
+        self.cancel_fetch_list_sessions();
+        self.cancel_fetch_close_session();
+        self.cancel_session_monitoring();
+        match &self.status {
+            Status::MonitoringSession { .. } => {
+                self.status = Status::ClosingSession {
+                    start_time: SystemTime::now(),
+                };
+                self.fetch_data.close_session = RemoteData::Fetching {
+                    started_at: SystemTime::now(),
+                };
+                self.fetch_close_session()
             }
             _ => Ok(()),
         }
@@ -373,6 +429,13 @@ impl Core {
     fn fetch_list_sessions(&mut self) -> anyhow::Result<()> {
         match &self.entry_node {
             Some(en) => en.list_sessions(&self.client, &self.sender),
+            _ => Ok(()),
+        }
+    }
+
+    fn fetch_close_session(&mut self) -> anyhow::Result<()> {
+        match (&self.entry_node, &self.session) {
+            (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
             _ => Ok(()),
         }
     }
@@ -415,7 +478,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {:?}", e);
+                    tracing::warn!("sending cancel event failed: {}", e);
                 }
             }
         }
@@ -427,7 +490,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {:?}", e);
+                    tracing::warn!("sending cancel event failed: {}", e);
                 }
             }
         }
@@ -439,7 +502,19 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {:?}", e);
+                    tracing::warn!("sending cancel event failed: {}", e);
+                }
+            }
+        }
+    }
+
+    fn cancel_fetch_close_session(&self) {
+        if let RemoteData::RetryFetching { cancel_sender, .. } = &self.fetch_data.close_session {
+            let res = cancel_sender.send(());
+            match res {
+                Ok(_) => {}
+                Err(e) => {
+                    tracing::warn!("sending cancel event failed: {}", e);
                 }
             }
         }
@@ -451,7 +526,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {:?}", e);
+                    tracing::warn!("sending cancel event failed: {}", e);
                 }
             }
         }
@@ -471,12 +546,21 @@ impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Status::Idle => "idle",
-            Status::OpeningSession { start_time } => {
-                &format!("opening session for {}", start_time.elapsed().unwrap().as_secs()).to_string()
-            }
-            Status::MonitoringSession { start_time, .. } => {
-                &format!("monitoring session for {}s", start_time.elapsed().unwrap().as_secs()).to_string()
-            }
+            Status::OpeningSession { start_time } => &format!(
+                "opening session for {}",
+                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
+            )
+            .to_string(),
+            Status::MonitoringSession { start_time, .. } => &format!(
+                "monitoring session for {}s",
+                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
+            )
+            .to_string(),
+            Status::ClosingSession { start_time } => &format!(
+                "closing session for {}s",
+                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
+            )
+            .to_string(),
         };
         write!(f, "{}", val)
     }
