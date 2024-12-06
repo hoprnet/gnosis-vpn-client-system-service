@@ -121,7 +121,7 @@ fn main() {
 
     // run continously until ctrl-c
     match daemon(&socket_path) {
-        Ok(_) => tracing::info!("stopped gracefully"),
+        Ok(_) => (),
         Err(e) => {
             // Log the error and its chain in one line
             let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
@@ -131,7 +131,7 @@ fn main() {
 
     // cleanup
     match fs::remove_file(socket_path) {
-        Ok(_) => (),
+        Ok(_) => tracing::info!("stopped gracefully"),
         Err(e) => tracing::warn!("error removing socket: {}", e),
     }
 }
