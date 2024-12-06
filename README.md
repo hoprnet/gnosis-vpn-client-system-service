@@ -49,7 +49,7 @@ Build for a target, e.g. `x86_64-linux`:
 
 `nix build .#gnosisvpn-x86_64-linux`
 
-The resulting binaries are in `results/bin/`.
+The resulting binaries are in `results/bin/`:
 
 ```
 $ ls -l result*/bin/
