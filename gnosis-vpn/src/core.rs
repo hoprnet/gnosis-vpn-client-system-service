@@ -1,4 +1,5 @@
 use gnosis_vpn_lib::command::Command;
+use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -444,11 +445,7 @@ impl Core {
         match (&self.session, &self.status) {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
-                    tracing::info!(
-                        "session {}: verified open for {}s",
-                        sess,
-                        start_time.elapsed().unwrap().as_secs()
-                    );
+                    tracing::info!("{} verified open since {}", sess, log_output::elapsed(start_time));
                     let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
                     self.status = Status::MonitoringSession {
                         start_time: *start_time,
@@ -537,7 +534,7 @@ impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let peer = self.peer_id.to_base58();
         let print = HashMap::from([("peer_id", peer.as_str())]);
-        let val = serde_json::to_string(&print).unwrap();
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }
@@ -546,21 +543,15 @@ impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Status::Idle => "idle",
-            Status::OpeningSession { start_time } => &format!(
-                "opening session for {}",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
-            Status::MonitoringSession { start_time, .. } => &format!(
-                "monitoring session for {}s",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
-            Status::ClosingSession { start_time } => &format!(
-                "closing session for {}s",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
+            Status::OpeningSession { start_time } => {
+                &format!("opening session since {}", log_output::elapsed(start_time)).to_string()
+            }
+            Status::MonitoringSession { start_time, .. } => {
+                &format!("monitoring session since {}", log_output::elapsed(start_time)).to_string()
+            }
+            Status::ClosingSession { start_time } => {
+                &format!("closing session since {}", log_output::elapsed(start_time)).to_string()
+            }
         };
         write!(f, "{}", val)
     }
@@ -583,7 +574,7 @@ impl fmt::Display for Core {
             ("entry_node", en_str),
             ("exit_node", xn_str),
         ]);
-        let val = serde_json::to_string(&print).unwrap();
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }

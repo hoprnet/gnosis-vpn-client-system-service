@@ -5,7 +5,7 @@ use std::fmt;
 use std::str::FromStr;
 use url::Url;
 
-use crate::utils;
+use crate::log_output;
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -43,7 +43,7 @@ impl fmt::Display for Command {
             },
             c => c.clone(),
         };
-        let s = utils::display_serialize(&c);
+        let s = log_output::serialize(&c);
         write!(f, "{}", s)
     }
 }

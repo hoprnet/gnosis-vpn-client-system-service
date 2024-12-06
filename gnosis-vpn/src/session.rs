@@ -261,7 +261,7 @@ impl fmt::Display for Session {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Session: {}:{} {} {}",
+            "Session[{}:{} {} {}]",
             self.ip, self.port, self.protocol, self.target
         )
     }

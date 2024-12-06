@@ -1,3 +1,4 @@
+use gnosis_vpn_lib::log_output;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time;
@@ -58,7 +59,7 @@ impl std::fmt::Display for RemoteData {
         match self {
             RemoteData::NotAsked => write!(f, "NotAsked"),
             RemoteData::Fetching { started_at } => {
-                write!(f, "Fetching for {:?}", started_at.elapsed().unwrap())
+                write!(f, "Fetching since {}", log_output::elapsed(started_at))
             }
             RemoteData::RetryFetching {
                 error,

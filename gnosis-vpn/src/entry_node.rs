@@ -1,3 +1,4 @@
+use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
@@ -87,11 +88,11 @@ impl fmt::Display for EntryNode {
         if let Some(listen_host) = &self.listen_host {
             print.insert("listen_host", listen_host.to_string());
         }
+        // TODO avoid nesting json
         if let Some(addresses) = &self.addresses {
-            let val = serde_json::to_string(&addresses).unwrap();
-            print.insert("addresses", val);
+            print.insert("addresses", log_output::serialize(&addresses));
         }
-        let val = serde_json::to_string(&print).unwrap();
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }
