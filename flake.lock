@@ -127,6 +127,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-oldstable": {
+      "locked": {
+        "lastModified": 1733470908,
+        "narHash": "sha256-hz/sbcjRiQ+ENHarHdHtmaWtuGuA7QojDadjbvvzTQ0=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "000e437bbc65b0d45dd8473d8685f1d01bb2e54f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "release-24.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "pre-commit": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -159,6 +175,7 @@
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs",
+        "nixpkgs-oldstable": "nixpkgs-oldstable",
         "pre-commit": "pre-commit",
         "rust-overlay": "rust-overlay",
         "treefmt-nix": "treefmt-nix"
@@ -203,7 +220,7 @@
     "treefmt-nix": {
       "inputs": {
         "nixpkgs": [
-          "nixpkgs"
+          "nixpkgs-oldstable"
         ]
       },
       "locked": {

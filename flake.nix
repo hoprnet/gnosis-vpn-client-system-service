@@ -5,6 +5,7 @@
     flake-utils.url = github:numtide/flake-utils;
     flake-parts.url = github:hercules-ci/flake-parts;
     nixpkgs.url = github:NixOS/nixpkgs/release-24.11;
+    nixpkgs-oldstable.url = github:NixOS/nixpkgs/release-24.05;
     rust-overlay.url = github:oxalica/rust-overlay/master;
     # using a fork with an added source filter
     crane.url = github:hoprnet/crane/tb/20240117-find-filter;
@@ -18,7 +19,7 @@
     pre-commit.inputs.nixpkgs-stable.follows = "nixpkgs";
     pre-commit.inputs.nixpkgs.follows = "nixpkgs";
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs-oldstable";
   };
 
   outputs = { self, nixpkgs, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
