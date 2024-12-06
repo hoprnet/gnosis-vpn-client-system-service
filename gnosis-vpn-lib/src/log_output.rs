@@ -2,9 +2,9 @@ use humantime::format_duration;
 use serde::ser::Serialize;
 use std::time::SystemTime;
 
-pub fn serialize<T: ?Sized>(v: &T) -> String
+pub fn serialize<T>(v: &T) -> String
 where
-    T: Serialize,
+    T: ?Sized + Serialize,
 {
     match serde_json::to_string(&v) {
         Ok(s) => s,
