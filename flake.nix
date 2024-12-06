@@ -141,21 +141,21 @@
             inherit (config.flake-root) projectRootFile;
 
             programs.yamlfmt.enable = true;
-            settings.formatter.yamlfmt.includes = [ "./.github/workflows/*.yaml" ];
-            settings.formatter.yamlfmt.excludes = [ "./vendor/*" ];
+            settings.formatter.yamlfmt.includes = [ ".github/workflows/*.yaml" ];
+            settings.formatter.yamlfmt.excludes = [ "vendor/*" ];
 
             programs.prettier.enable = true;
             settings.formatter.prettier.includes = [ "*.md" "*.json" ];
-            settings.formatter.prettier.excludes = [ "./vendor/*" "*.yml" "*.yaml" ];
+            settings.formatter.prettier.excludes = [ "vendor/*" "*.yml" "*.yaml" ];
 
             programs.rustfmt.enable = true;
-            settings.formatter.rustfmt.excludes = [ "./vendor/*" ];
+            settings.formatter.rustfmt.excludes = [ "vendor/*" ];
 
             programs.nixpkgs-fmt.enable = true;
-            settings.formatter.nixpkgs-fmt.excludes = [ "./vendor/*" ];
+            settings.formatter.nixpkgs-fmt.excludes = [ "vendor/*" ];
 
             programs.taplo.enable = true;
-            settings.formatter.taplo.excludes = [ "./vendor/*" "./ethereum/contracts/*" ];
+            settings.formatter.taplo.excludes = [ "vendor/*" "ethereum/contracts/*" ];
           };
 
           checks = {
