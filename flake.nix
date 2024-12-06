@@ -144,18 +144,18 @@
             settings.formatter.yamlfmt.includes = [ "./.github/workflows/*.yaml" ];
             settings.formatter.yamlfmt.excludes = [ "./vendor/*" ];
 
-            programs.prettier.enable = true;
-            settings.formatter.prettier.includes = [ "*.md" "*.json" ];
-            settings.formatter.prettier.excludes = [ "./vendor/*" "*.yml" "*.yaml" ];
+            # programs.prettier.enable = true;
+            # settings.formatter.prettier.includes = [ "*.md" "*.json" ];
+            # settings.formatter.prettier.excludes = [ "./vendor/*" "*.yml" "*.yaml" ];
 
             # programs.rustfmt.enable = true;
             # settings.formatter.rustfmt.excludes = [ "./vendor/*" ];
 
-            programs.nixpkgs-fmt.enable = true;
-            settings.formatter.nixpkgs-fmt.excludes = [ "./vendor/*" ];
+            # programs.nixpkgs-fmt.enable = true;
+            # settings.formatter.nixpkgs-fmt.excludes = [ "./vendor/*" ];
 
-            programs.taplo.enable = true;
-            settings.formatter.taplo.excludes = [ "./vendor/*" "./ethereum/contracts/*" ];
+            # programs.taplo.enable = true;
+            # settings.formatter.taplo.excludes = [ "./vendor/*" "./ethereum/contracts/*" ];
           };
 
           checks = {
