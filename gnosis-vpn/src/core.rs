@@ -559,21 +559,13 @@ impl fmt::Display for Status {
 
 impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let en_str: String = self
-            .entry_node
-            .as_ref()
-            .map(|en| en.to_string())
-            .unwrap_or("".to_string());
-        let xn_str: String = self
-            .exit_node
-            .as_ref()
-            .map(|xn| xn.to_string())
-            .unwrap_or("".to_string());
-        let print = HashMap::from([
-            ("status", self.status.to_string()),
-            ("entry_node", en_str),
-            ("exit_node", xn_str),
-        ]);
+        let mut print = HashMap::from([("status", self.status.to_string())]);
+        if let Some(en) = &self.entry_node {
+            print.insert("entry_node", en.to_string());
+        }
+        if let Some(xn) = &self.exit_node {
+            print.insert("exit_node", xn.to_string());
+        }
         let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
