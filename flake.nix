@@ -142,11 +142,11 @@
 
             programs.yamlfmt.enable = true;
             settings.formatter.yamlfmt.includes = [ "./.github/workflows/*.yaml" ];
-            settings.formatter.yamlfmt.excludes = [ "./vendor/*" ];
+            settings.formatter.yamlfmt.excludes = [ "vendor/*" ];
 
-            # programs.prettier.enable = true;
-            # settings.formatter.prettier.includes = [ "*.md" "*.json" ];
-            # settings.formatter.prettier.excludes = [ "./vendor/*" "*.yml" "*.yaml" ];
+            programs.prettier.enable = true;
+            settings.formatter.prettier.includes = [ "*.md" "*.json" ];
+            settings.formatter.prettier.excludes = [ "vendor/*" "*.yml" "*.yaml" ];
 
             # programs.rustfmt.enable = true;
             # settings.formatter.rustfmt.excludes = [ "./vendor/*" ];

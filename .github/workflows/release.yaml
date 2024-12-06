@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Next version type'
+        description: "Next version type"
         required: true
         type: choice
-        default: 'patch'
+        default: "patch"
         options:
           - patch
           - minor
@@ -35,7 +35,7 @@ jobs:
       branch: main
       runner: ${{ matrix.binary.runner }}
       architecture: ${{ matrix.binary.architecture }}
-      version_type: 'release'
+      version_type: "release"
     secrets: inherit
   release:
     name: Close release
@@ -50,7 +50,7 @@ jobs:
         uses: hoprnet/hopr-workflows/actions/setup-gcp@master
         with:
           google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-          install-sdk: 'true'
+          install-sdk: "true"
       - name: Install Nix
         uses: cachix/install-nix-action@v29
         with:
@@ -70,7 +70,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: 'gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}'
+          name: "gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}"
           tag_name: v${{ steps.environment.outputs.release_version }}
       - name: Publish binaries
         run: |
@@ -128,18 +128,18 @@ jobs:
           echo "bump_version=${bump_version}" >> $GITHUB_OUTPUT
       - uses: EndBug/add-and-commit@v9
         with:
-          add: 'Cargo.*'
+          add: "Cargo.*"
           new_branch: main
-          message: 'Bump to version ${{ steps.bump.outputs.bump_version }}'
+          message: "Bump to version ${{ steps.bump.outputs.bump_version }}"
           pathspec_error_handling: exitImmediately
       - name: Notify new release
         uses: zulip/github-actions-zulip/send-message@v1
         with:
           api-key: ${{ secrets.ZULIP_API_KEY }}
           email: ${{ secrets.ZULIP_EMAIL }}
-          organization-url: 'https://hopr.zulipchat.com'
-          type: 'stream'
-          to: 'Releases'
-          topic: 'main'
+          organization-url: "https://hopr.zulipchat.com"
+          type: "stream"
+          to: "Releases"
+          topic: "main"
           content: |-
             I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.

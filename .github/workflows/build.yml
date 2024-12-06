@@ -55,5 +55,5 @@ jobs:
       branch: ${{ github.event.pull_request.head.ref }}
       runner: ${{ matrix.binary.runner }}
       architecture: ${{ matrix.binary.architecture }}
-      version_type: 'commit'
+      version_type: "commit"
     secrets: inherit

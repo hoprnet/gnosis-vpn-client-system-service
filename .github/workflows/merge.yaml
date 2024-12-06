@@ -22,7 +22,7 @@ jobs:
         uses: hoprnet/hopr-workflows/actions/setup-gcp@master
         with:
           google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-          install-sdk: 'true'
+          install-sdk: "true"
       - name: Delete artifacts
         run: |
           set -x
@@ -53,7 +53,7 @@ jobs:
       branch: ${{ github.event.pull_request.head.ref }}
       runner: ${{ matrix.binary.runner }}
       architecture: ${{ matrix.binary.architecture }}
-      version_type: 'pr'
+      version_type: "pr"
     secrets: inherit
   comment:
     name: Comment PR

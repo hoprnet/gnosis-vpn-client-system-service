@@ -26,7 +26,7 @@ on:
           - macos-13
           - macos-14
         required: true
-        description: 'GH Runner to use: macos-13=x86_64-darwin and macos-14=aarch64-darwin'
+        description: "GH Runner to use: macos-13=x86_64-darwin and macos-14=aarch64-darwin"
       architecture:
         type: choice
         options:
@@ -36,7 +36,7 @@ on:
           - x86_64-darwin
           - armv7l-linux
         required: true
-        description: 'Architecture to build for'
+        description: "Architecture to build for"
 concurrency:
   group: ${{ github.ref }}-build-binary-${{ inputs.architecture }}
   cancel-in-progress: true
@@ -113,7 +113,7 @@ jobs:
         uses: hoprnet/hopr-workflows/actions/setup-gcp@master
         with:
           google-credentials: ${{ secrets.GOOGLE_HOPRASSOCIATION_CREDENTIALS_REGISTRY }}
-          install-sdk: 'true'
+          install-sdk: "true"
       - name: Publish Artifact registry
         if: steps.version.outputs.publish_type == 'artifact-registry' || steps.version.outputs.publish_type == 'github'
         run: |
