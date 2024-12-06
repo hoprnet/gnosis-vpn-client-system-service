@@ -5,6 +5,8 @@ use std::fmt;
 use std::str::FromStr;
 use url::Url;
 
+use crate::utils;
+
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Command {
@@ -41,7 +43,7 @@ impl fmt::Display for Command {
             },
             c => c.clone(),
         };
-        let s = serde_json::to_string(&c).unwrap();
+        let s = utils::display_serialize(&c);
         write!(f, "{}", s)
     }
 }
