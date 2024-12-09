@@ -41,7 +41,7 @@ fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<Command> {
 
 fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
     if let Some(resp) = res {
-        tracing::info!("responding: {}", resp);
+        tracing::info!(response = %resp);
         stream.write_all(resp.as_bytes())?;
         stream.flush()?;
     }
@@ -88,24 +88,24 @@ fn daemon(socket_path: &Path) -> anyhow::Result<()> {
                 break;
             }
             recv(receiver_socket) -> stream => {
-                let res = match stream  {
+                let res = match stream {
                     Ok(mut s) =>
                         incoming_stream(&mut s)
                             .and_then(|cmd| state.handle_cmd(cmd))
                             .and_then(|res| respond_stream(&mut s, res)),
-                    Err(x) => Err(anyhow!(x))
+                    Err(err) => Err(anyhow!(err))
                 };
-                if let Err(x) = res {
-                    tracing::error!("error handling incoming stream: {:?}", x);
+                if let Err(err) = res {
+                    tracing::error!(%err, "handling incoming stream")
                 }
             },
             recv(receiver_core_loop) -> event => {
                 let res = match event {
                     Ok(evt) => state.handle_event(evt),
-                    Err(x) => Err(anyhow!(x))
+                    Err(err) => Err(anyhow!(err))
                 };
-                if let Err(x) = res {
-                    tracing::error!("error handling event: {:?}", x);
+                if let Err(err) = res {
+                    tracing::error!(%err, "handling event: {:?}", err);
                 }
             }
         }
