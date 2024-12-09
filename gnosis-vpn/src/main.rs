@@ -8,6 +8,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net;
 use std::path::Path;
 use std::thread;
+use tracing::Level;
 
 mod backoff;
 mod core;
@@ -56,7 +57,7 @@ fn daemon(socket_path: &Path) -> anyhow::Result<()> {
     let listener = match res_exists {
         Ok(true) => Err(anyhow!(format!("already running"))),
         Ok(false) => net::UnixListener::bind(socket_path).context("failed to bind socket"),
-        Err(x) => Err(anyhow!(x)),
+        Err(err) => Err(anyhow!(err)),
     }?;
 
     // update permissions to allow unprivileged access
@@ -69,9 +70,9 @@ fn daemon(socket_path: &Path) -> anyhow::Result<()> {
         for stream in listener.incoming() {
             _ = match stream {
                 Ok(stream) => sender_socket.send(stream).context("failed to send stream to channel"),
-                Err(x) => {
-                    tracing::error!("error waiting for incoming message: {:?}", x);
-                    Err(anyhow!(x))
+                Err(err) => {
+                    tracing::error!(%err, "waiting for incoming message");
+                    Err(anyhow!(err))
                 }
             };
         }
@@ -79,7 +80,7 @@ fn daemon(socket_path: &Path) -> anyhow::Result<()> {
 
     let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<event::Event>();
     let mut state = core::Core::init(sender_core_loop);
-    tracing::info!("started successfully in listening mode");
+    tracing::info!("started in listening mode");
     loop {
         crossbeam_channel::select! {
             recv(ctrl_c_events) -> _ => {
@@ -132,6 +133,6 @@ fn main() {
     // cleanup
     match fs::remove_file(socket_path) {
         Ok(_) => tracing::info!("stopped gracefully"),
-        Err(e) => tracing::warn!("error removing socket: {}", e),
+        Err(err) => tracing::warn!(%err, "failed removing socket"),
     }
 }
