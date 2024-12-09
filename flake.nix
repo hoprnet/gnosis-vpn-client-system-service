@@ -153,20 +153,23 @@
 
             programs.yamlfmt.enable = true;
             settings.formatter.yamlfmt.includes = [ ".github/workflows/*.yaml" ];
-            settings.formatter.yamlfmt.excludes = [ "vendor/*" ];
+            settings.formatter.yamlfmt.settings = {
+              formatter.type = "basic";
+              formatter.max_line_length = 120;
+              formatter.trim_trailing_whitespace = true;
+              formatter.scan_folded_as_literal = true;
+              formatter.include_document_start = true;
+            };
 
             programs.prettier.enable = true;
             settings.formatter.prettier.includes = [ "*.md" "*.json" ];
-            settings.formatter.prettier.excludes = [ "vendor/*" "*.yml" "*.yaml" ];
+            settings.formatter.prettier.excludes = [ "*.yml" "*.yaml" ];
 
             programs.rustfmt.enable = true;
-            settings.formatter.rustfmt.excludes = [ "vendor/*" ];
 
             programs.nixpkgs-fmt.enable = true;
-            settings.formatter.nixpkgs-fmt.excludes = [ "vendor/*" ];
 
             programs.taplo.enable = true;
-            settings.formatter.taplo.excludes = [ "vendor/*" "ethereum/contracts/*" ];
           };
 
           checks = {
