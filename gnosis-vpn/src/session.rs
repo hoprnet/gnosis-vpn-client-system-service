@@ -11,7 +11,7 @@ use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     // listen host
     ip: String,

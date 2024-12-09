@@ -107,12 +107,12 @@ impl fmt::Display for Path {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, path: Path) -> EntryNode {
+    pub fn new(endpoint: &Url, api_token: &str, listen_host: Option<&str>, path: Path) -> EntryNode {
         EntryNode {
-            endpoint,
-            api_token,
+            endpoint: endpoint.clone(),
+            api_token: api_token.to_string(),
             addresses: None,
-            listen_host,
+            listen_host: listen_host.map(|s| s.to_string()),
             path,
         }
     }

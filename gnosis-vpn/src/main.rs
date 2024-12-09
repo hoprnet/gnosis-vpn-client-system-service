@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Context};
 use clap::Parser;
 use gnosis_vpn_lib::command::Command;
 use gnosis_vpn_lib::socket;
@@ -31,21 +30,60 @@ fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
     Ok(receiver)
 }
 
-fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<Command> {
-    let mut incoming = String::new();
-    stream.read_to_string(&mut incoming)?;
-    incoming
-        .parse::<Command>()
-        .with_context(|| format!("error parsing incoming stream: {}", incoming))
-}
+#[tracing::instrument(skip(res_stream), level = Level::DEBUG) ]
+fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, std::io::Error>) -> () {
+    let mut stream: net::UnixStream = match res_stream {
+        Ok(stream) => stream,
+        Err(err) => {
+            tracing::error!(%err, "error receiving stream");
+            return;
+        }
+    };
 
-fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
+    let mut msg = String::new();
+    if let Err(err) = stream.read_to_string(&mut msg) {
+        tracing::error!(%err, "error reading message");
+        return;
+    };
+
+    let cmd = match msg.parse::<Command>() {
+        Ok(cmd) => cmd,
+        Err(err) => {
+            tracing::error!(%err, %msg, "error parsing command");
+            return;
+        }
+    };
+    tracing::debug!(%cmd, "parsed command");
+
+    let res = match state.handle_cmd(&cmd) {
+        Ok(res) => res,
+        Err(err) => {
+            tracing::error!(%err, "error handling command");
+            return;
+        }
+    };
+
     if let Some(resp) = res {
         tracing::info!(response = %resp);
-        stream.write_all(resp.as_bytes())?;
-        stream.flush()?;
+        if let Err(err) = stream.write_all(resp.as_bytes()) {
+            tracing::error!(%err, "error writing response");
+            return;
+        }
+        if let Err(err) = stream.flush() {
+            tracing::error!(%err, "error flushing stream");
+            return;
+        }
     }
-    Ok(())
+}
+
+fn incoming_event(event: Result<event::Event, crossbeam_channel::RecvError>) {
+    match event {
+        Ok(evt) => {
+            let res = state.handle_event(evt);
+            foo
+        }
+        Err(err) => (),
+    }
 }
 
 fn daemon(socket_path: &Path) -> anyhow::Result<()> {
@@ -87,27 +125,8 @@ fn daemon(socket_path: &Path) -> anyhow::Result<()> {
                 tracing::info!("shutting down");
                 break;
             }
-            recv(receiver_socket) -> stream => {
-                let res = match stream {
-                    Ok(mut s) =>
-                        incoming_stream(&mut s)
-                            .and_then(|cmd| state.handle_cmd(cmd))
-                            .and_then(|res| respond_stream(&mut s, res)),
-                    Err(err) => Err(anyhow!(err))
-                };
-                if let Err(err) = res {
-                    tracing::error!(%err, "handling incoming stream")
-                }
-            },
-            recv(receiver_core_loop) -> event => {
-                let res = match event {
-                    Ok(evt) => state.handle_event(evt),
-                    Err(err) => Err(anyhow!(err))
-                };
-                if let Err(err) = res {
-                    tracing::error!(%err, "handling event: {:?}", err);
-                }
-            }
+            recv(receiver_socket) -> stream => incoming_stream(&mut stream),
+            recv(receiver_core_loop) -> event => incoming_event(event),
         }
     }
     Ok(())

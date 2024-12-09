@@ -20,7 +20,7 @@ use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
 
-//
+#[derive(Debug)]
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
@@ -31,6 +31,7 @@ pub struct Core {
     session: Option<Session>,
 }
 
+#[derive(Debug)]
 struct FetchData {
     addresses: RemoteData,
     open_session: RemoteData,
@@ -38,6 +39,7 @@ struct FetchData {
     close_session: RemoteData,
 }
 
+#[derive(Debug)]
 enum Status {
     Idle,
     OpeningSession {
@@ -71,7 +73,7 @@ impl Core {
     }
 
     #[instrument(level = tracing::Level::INFO, skip(self, cmd), ret(level = tracing::Level::DEBUG))]
-    pub fn handle_cmd(&mut self, cmd: Command) -> anyhow::Result<Option<String>> {
+    pub fn handle_cmd(&mut self, cmd: &Command) -> anyhow::Result<Option<String>> {
         tracing::info!(%cmd, "Handling command");
         tracing::debug!(state_before = %self, "State cmd change");
 
@@ -83,7 +85,7 @@ impl Core {
                 listen_host,
                 hop,
                 intermediate_id,
-            } => self.entry_node(endpoint, api_token, listen_host.clone(), hop, intermediate_id),
+            } => self.entry_node(endpoint, api_token, listen_host, hop, intermediate_id),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
         };
 
@@ -347,11 +349,11 @@ impl Core {
 
     fn entry_node(
         &mut self,
-        endpoint: Url,
-        api_token: String,
-        listen_port: Option<String>,
+        endpoint: &Url,
+        api_token: &str,
+        listen_port: Option<&str>,
         hop: Option<u8>,
-        intermediate_id: Option<PeerId>,
+        intermediate_id: Option<&PeerId>,
     ) -> anyhow::Result<Option<String>> {
         self.check_close_session()?;
 
@@ -359,7 +361,7 @@ impl Core {
         // hop has precedence over intermediate_id
         let path = match (hop, intermediate_id) {
             (Some(h), _) => Path::Hop(h),
-            (_, Some(id)) => Path::IntermediateId(id),
+            (_, Some(id)) => Path::IntermediateId(*id),
             _ => Path::Hop(1),
         };
         self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port, path));
@@ -371,9 +373,11 @@ impl Core {
         Ok(None)
     }
 
-    fn exit_node(&mut self, peer_id: PeerId) -> anyhow::Result<Option<String>> {
+    fn exit_node(&mut self, peer_id: &PeerId) -> anyhow::Result<Option<String>> {
         self.check_close_session()?;
-        self.exit_node = Some(ExitNode { peer_id });
+        self.exit_node = Some(ExitNode {
+            peer_id: peer_id.clone(),
+        });
         self.check_open_session()?;
         Ok(None)
     }

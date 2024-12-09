@@ -5,6 +5,7 @@ use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
 
+#[derive(Debug)]
 pub enum RemoteData {
     NotAsked,
     Fetching {
@@ -29,6 +30,7 @@ pub struct CustomError {
     pub value: Option<serde_json::Value>,
 }
 
+#[derive(Debug)]
 pub enum Event {
     Response(serde_json::Value),
     Retry,
