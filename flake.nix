@@ -140,6 +140,17 @@
           treefmt = {
             inherit (config.flake-root) projectRootFile;
 
+            settings.global.excludes = [
+              "LICENSE"
+              "nix/setup-hook-darwin.sh"
+              "target/*"
+              "vendor/*"
+            ];
+
+            programs.shfmt.enable = true;
+            settings.formatter.shfmt.includes = [ "*.sh" ];
+
+
             programs.yamlfmt.enable = true;
             settings.formatter.yamlfmt.includes = [ ".github/workflows/*.yaml" ];
             settings.formatter.yamlfmt.excludes = [ "vendor/*" ];
