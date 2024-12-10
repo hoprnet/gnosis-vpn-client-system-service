@@ -153,30 +153,28 @@ impl Core {
                             start_time: SystemTime::now(),
                             cancel_sender,
                         };
+                        Ok(())
                     }
-                    Err(e) => {
-                        tracing::error!("failed to parse session: {}", e);
-                    }
+                    Err(err) => Err(CoreError::JsonParseError(err)),
                 }
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.open_session {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_open_session(err, &mut backoffs)
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::open_session().to_vec();
-                        self.repeat_fetch_open_session(err, &mut backoffs);
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.open_session {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_open_session(err, &mut backoffs);
+                    Ok(())
                 }
-            }
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::open_session().to_vec();
+                    self.repeat_fetch_open_session(err, &mut backoffs);
+                    Ok(())
+                }
+                _ => Err(CoreError::UnexpectedInternalState(
+                    "remote data result while not fetching".to_string(),
+                )),
+            },
             remote_data::Event::Retry => self.fetch_open_session(),
         };
         Ok(())
@@ -190,31 +188,27 @@ impl Core {
                 match res_sessions {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
-                        tracing::error!("stopped monitoring - failed to parse sessions: {}", e);
+                        tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        Ok(())
+                        Err(CoreError::JsonParseError(e))
                     }
                 }
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.list_sessions {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs)
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::list_sessions().to_vec();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs)
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                        Ok(())
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.list_sessions {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
-            }
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::list_sessions().to_vec();
+                    self.repeat_fetch_list_sessions(err, &mut backoffs)
+                }
+                _ => Err(CoreError::UnexpectedInternalState(
+                    "remote data result while not fetching".to_string(),
+                )),
+            },
             remote_data::Event::Retry => self.fetch_list_sessions(),
         }
     }
@@ -226,27 +220,23 @@ impl Core {
                 self.status = Status::Idle;
                 self.check_open_session()
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.close_session {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_close_session(err, &mut backoffs);
-                        Ok(())
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::close_session().to_vec();
-                        self.repeat_fetch_close_session(err, &mut backoffs);
-                        Ok(())
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                        Ok(())
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.close_session {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_close_session(err, &mut backoffs);
+                    Ok(())
                 }
-            }
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::close_session().to_vec();
+                    self.repeat_fetch_close_session(err, &mut backoffs);
+                    Ok(())
+                }
+                _ => Err(CoreError::UnexpectedInternalState(
+                    "remote data result while not fetching".to_string(),
+                )),
+            },
             remote_data::Event::Retry => self.fetch_close_session(),
         }
     }
@@ -295,7 +285,7 @@ impl Core {
         &mut self,
         error: remote_data::CustomError,
         backoffs: &mut Vec<time::Duration>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), CoreError> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -309,13 +299,18 @@ impl Core {
             if let Status::MonitoringSession { .. } = self.status {
                 self.check_close_session()
             } else {
-                tracing::warn!("failed list session call while not monitoring session");
-                Ok(())
+                Err(CoreError::UnexpectedInternalState(
+                    "failed list session call while not monitoring session".to_string(),
+                ))
             }
         }
     }
 
-    fn repeat_fetch_close_session(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+    fn repeat_fetch_close_session(
+        &mut self,
+        error: remote_data::CustomError,
+        backoffs: &mut Vec<time::Duration>,
+    ) -> Result<(), CoreError> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = session::schedule_retry_close(backoff, &self.sender);
             self.fetch_data.close_session = RemoteData::RetryFetching {
@@ -323,12 +318,16 @@ impl Core {
                 cancel_sender,
                 backoffs: backoffs.clone(),
             };
+            Ok(())
         } else {
             self.fetch_data.close_session = RemoteData::Failure { error };
             if let Status::ClosingSession { .. } = self.status {
                 self.status = Status::Idle;
+                Ok(())
             } else {
-                tracing::warn!("failed close session call while not closing session");
+                Err(CoreError::UnexpectedInternalState(
+                    "failed close session call while not closing session".to_string(),
+                ))
             }
         }
     }
@@ -372,7 +371,7 @@ impl Core {
         Ok(None)
     }
 
-    fn check_open_session(&mut self) -> anyhow::Result<()> {
+    fn check_open_session(&mut self) -> Result<(), CoreError> {
         match (&self.status, &self.entry_node, &self.exit_node) {
             (Status::Idle, Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
@@ -387,7 +386,7 @@ impl Core {
         }
     }
 
-    fn check_close_session(&mut self) -> anyhow::Result<()> {
+    fn check_close_session(&mut self) -> Result<(), CoreError> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
@@ -407,21 +406,21 @@ impl Core {
         }
     }
 
-    fn fetch_addresses(&mut self) -> anyhow::Result<()> {
+    fn fetch_addresses(&mut self) -> Result<(), CoreError> {
         match &self.entry_node {
             Some(en) => en.query_addresses(&self.client, &self.sender),
             _ => Ok(()),
         }
     }
 
-    fn fetch_open_session(&mut self) -> anyhow::Result<()> {
+    fn fetch_open_session(&mut self) -> Result<(), CoreError> {
         match (&self.entry_node, &self.exit_node) {
             (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
             _ => Ok(()),
         }
     }
 
-    fn fetch_list_sessions(&mut self) -> anyhow::Result<()> {
+    fn fetch_list_sessions(&mut self) -> Result<(), CoreError> {
         match &self.entry_node {
             Some(en) => en.list_sessions(&self.client, &self.sender),
             _ => Ok(()),
@@ -435,11 +434,11 @@ impl Core {
         }
     }
 
-    fn verify_session(&mut self, sessions: &[session::Session]) -> anyhow::Result<()> {
+    fn verify_session(&mut self, sessions: &[session::Session]) -> Result<(), CoreError> {
         match (&self.session, &self.status) {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
-                    tracing::info!("{} verified open since {}", sess, log_output::elapsed(start_time));
+                    tracing::info!(session = ?sess, since = log_output::elapsed(start_time), "verified session open");
                     let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
                     self.status = Status::MonitoringSession {
                         start_time: *start_time,
@@ -447,19 +446,17 @@ impl Core {
                     };
                     Ok(())
                 } else {
-                    tracing::info!("session no longer open");
+                    tracing::warn!(session = ?sess, "session no longer open");
                     self.status = Status::Idle;
                     self.check_open_session()
                 }
             }
-            (Some(sess), _) => {
-                tracing::warn!("skip verifying session {} - no longer monitoring", sess);
-                Ok(())
-            }
-            (None, status) => {
-                tracing::warn!("skip verifiying session - no session to verify in status {}", status);
-                Ok(())
-            }
+            (Some(_sess), _) => Err(CoreError::UnexpectedInternalState(
+                "session verification while not monitoring session".to_string(),
+            )),
+            (None, _status) => Err(CoreError::UnexpectedInternalState(
+                "session verification while no session".to_string(),
+            )),
         }
     }
 
@@ -469,7 +466,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel query addresses");
                 }
             }
         }
@@ -481,7 +478,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel open session");
                 }
             }
         }
@@ -493,7 +490,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel list sessions");
                 }
             }
         }
@@ -505,7 +502,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel close session");
                 }
             }
         }
@@ -517,7 +514,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel monitoring session");
                 }
             }
         }

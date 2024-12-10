@@ -38,8 +38,8 @@ fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode>
             tracing::error!("multiple handlers");
             Err(exitcode::UNAVAILABLE)
         }
-        Err(CtrlcError::System(err)) => {
-            tracing::error!(%err, "system error");
+        Err(CtrlcError::System(e)) => {
+            tracing::error!(error = ?e, "system error");
             Err(exitcode::IOERR)
         }
     }
@@ -53,16 +53,16 @@ fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net:
             return Err(exitcode::TEMPFAIL);
         }
         Ok(false) => (),
-        Err(err) => {
-            tracing::error!(%err, "error checking socket path");
+        Err(e) => {
+            tracing::error!(error = ?e, "error checking socket path");
             return Err(exitcode::IOERR);
         }
     };
 
     let stream = match net::UnixListener::bind(socket_path) {
         Ok(listener) => listener,
-        Err(err) => {
-            tracing::error!(%err, "error binding socket");
+        Err(e) => {
+            tracing::error!(error = ?e, "error binding socket");
             return Err(exitcode::OSFILE);
         }
     };
@@ -72,8 +72,8 @@ fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net:
     // gvpn group and additionally add users to it
     match fs::set_permissions(socket_path, fs::Permissions::from_mode(0o666)) {
         Ok(_) => (),
-        Err(err) => {
-            tracing::error!(%err, "error setting socket permissions");
+        Err(e) => {
+            tracing::error!(error = ?e, "error setting socket permissions");
             return Err(exitcode::NOPERM);
         }
     }
@@ -84,12 +84,12 @@ fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net:
             _ = match strm {
                 Ok(s) => match sender.send(s) {
                     Ok(_) => (),
-                    Err(err) => {
-                        tracing::error!(%err, "sending incoming data");
+                    Err(e) => {
+                        tracing::error!(error = ?e, "sending incoming data");
                     }
                 },
-                Err(err) => {
-                    tracing::error!(%err, "waiting for incoming message");
+                Err(e) => {
+                    tracing::error!(error = ?e, "waiting for incoming message");
                 }
             };
         }
@@ -102,43 +102,43 @@ fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net:
 fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, crossbeam_channel::RecvError>) -> () {
     let mut stream: net::UnixStream = match res_stream {
         Ok(strm) => strm,
-        Err(err) => {
-            tracing::error!(%err, "error receiving stream");
+        Err(e) => {
+            tracing::error!(error = ?e, "error receiving stream");
             return;
         }
     };
 
     let mut msg = String::new();
-    if let Err(err) = stream.read_to_string(&mut msg) {
-        tracing::error!(%err, "error reading message");
+    if let Err(e) = stream.read_to_string(&mut msg) {
+        tracing::error!(error = ?e, "error reading message");
         return;
     };
 
     let cmd = match msg.parse::<Command>() {
         Ok(cmd) => cmd,
-        Err(err) => {
-            tracing::error!(%err, %msg, "error parsing command");
+        Err(e) => {
+            tracing::error!(error = ?e, %msg, "error parsing command");
             return;
         }
     };
-    tracing::debug!(%cmd, "parsed command");
+    tracing::debug!(command = %cmd, "parsed command");
 
     let res = match state.handle_cmd(&cmd) {
         Ok(res) => res,
-        Err(err) => {
-            tracing::error!(%err, "error handling command");
+        Err(e) => {
+            tracing::error!(error = ?e, "error handling command");
             return;
         }
     };
 
     if let Some(resp) = res {
         tracing::info!(response = %resp);
-        if let Err(err) = stream.write_all(resp.as_bytes()) {
-            tracing::error!(%err, "error writing response");
+        if let Err(e) = stream.write_all(resp.as_bytes()) {
+            tracing::error!(error = ?e, "error writing response");
             return;
         }
-        if let Err(err) = stream.flush() {
-            tracing::error!(%err, "error flushing stream");
+        if let Err(e) = stream.flush() {
+            tracing::error!(error = ?e, "error flushing stream");
             return;
         }
     }
@@ -148,16 +148,16 @@ fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, c
 fn incoming_event(state: &mut core::Core, res_event: Result<event::Event, crossbeam_channel::RecvError>) -> () {
     let event: event::Event = match res_event {
         Ok(evt) => evt,
-        Err(err) => {
-            tracing::error!(%err, "error receiving event");
+        Err(e) => {
+            tracing::error!(error = ?e, "error receiving event");
             return;
         }
     };
 
     match state.handle_event(event) {
         Ok(_) => (),
-        Err(err) => {
-            tracing::error!(%err, "error handling event");
+        Err(e) => {
+            tracing::error!(error = ?e, "error handling event");
             return;
         }
     }
@@ -203,7 +203,7 @@ fn main() {
     // cleanup
     match fs::remove_file(socket_path) {
         Ok(_) => tracing::info!("stopped gracefully"),
-        Err(err) => tracing::warn!(%err, "failed removing socket"),
+        Err(e) => tracing::warn!(error = %e, "failed removing socket"),
     }
     process::exit(exit)
 }

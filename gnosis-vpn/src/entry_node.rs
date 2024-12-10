@@ -7,6 +7,7 @@ use std::fmt;
 use std::thread;
 use url::Url;
 
+use crate::core::error::Error as CoreError;
 use crate::event::Event;
 use crate::remote_data;
 
@@ -121,9 +122,14 @@ impl EntryNode {
         &self,
         client: &blocking::Client,
         sender: &crossbeam_channel::Sender<Event>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), CoreError> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self.endpoint.join("/api/v3/account/addresses")?;
+        let url = match self.endpoint.join("/api/v3/account/addresses") {
+            Ok(url) => url,
+            Err(e) => {
+                return Err(CoreError::UrlParseError(e));
+            }
+        };
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
@@ -172,9 +178,14 @@ impl EntryNode {
         &self,
         client: &blocking::Client,
         sender: &crossbeam_channel::Sender<Event>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), CoreError> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self.endpoint.join("/api/v3/session/udp")?;
+        let url = match self.endpoint.join("/api/v3/session/udp") {
+            Ok(url) => url,
+            Err(e) => {
+                return Err(CoreError::UrlParseError(e));
+            }
+        };
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
