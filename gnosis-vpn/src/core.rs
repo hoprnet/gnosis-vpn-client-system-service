@@ -176,8 +176,7 @@ impl Core {
                 )),
             },
             remote_data::Event::Retry => self.fetch_open_session(),
-        };
-        Ok(())
+        }
     }
 
     fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> Result<(), CoreError> {
@@ -225,13 +224,11 @@ impl Core {
                     backoffs: old_backoffs, ..
                 } => {
                     let mut backoffs = old_backoffs.clone();
-                    self.repeat_fetch_close_session(err, &mut backoffs);
-                    Ok(())
+                    self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::close_session().to_vec();
-                    self.repeat_fetch_close_session(err, &mut backoffs);
-                    Ok(())
+                    self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 _ => Err(CoreError::UnexpectedInternalState(
                     "remote data result while not fetching".to_string(),
@@ -344,7 +341,7 @@ impl Core {
         hop: &Option<u8>,
         intermediate_id: &Option<PeerId>,
     ) -> Result<Option<String>, CoreError> {
-        self.check_close_session();
+        self.check_close_session()?;
 
         // TODO move this to library and enhance CLI to only allow one option
         // hop has precedence over intermediate_id
@@ -357,17 +354,17 @@ impl Core {
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
-        self.fetch_addresses();
-        self.check_open_session();
+        self.fetch_addresses()?;
+        self.check_open_session()?;
         Ok(None)
     }
 
     fn exit_node(&mut self, peer_id: &PeerId) -> Result<Option<String>, CoreError> {
-        self.check_close_session();
+        self.check_close_session()?;
         self.exit_node = Some(ExitNode {
             peer_id: peer_id.clone(),
         });
-        self.check_open_session();
+        self.check_open_session()?;
         Ok(None)
     }
 

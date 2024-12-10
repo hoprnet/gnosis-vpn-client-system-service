@@ -19,6 +19,8 @@ mod exit_node;
 mod remote_data;
 mod session;
 
+use crate::core::error::Error as CoreError;
+
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
 struct Cli {}
@@ -125,8 +127,20 @@ fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, c
 
     let res = match state.handle_cmd(&cmd) {
         Ok(res) => res,
-        Err(e) => {
-            tracing::error!(error = ?e, "error handling command");
+        Err(CoreError::JsonParseError(e)) => {
+            tracing::error!(error = ?e, "error parsing json");
+            return;
+        }
+        Err(CoreError::UnexpectedInternalState(deviation)) => {
+            tracing::error!(?deviation, "unexpected internal state");
+            return;
+        }
+        Err(CoreError::InvalidHeaderValue(e)) => {
+            tracing::error!(error = ?e, "invalid header value");
+            return;
+        }
+        Err(CoreError::UrlParseError(e)) => {
+            tracing::error!(error = ?e, "error parsing url");
             return;
         }
     };

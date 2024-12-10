@@ -1,4 +1,3 @@
-use crossbeam_channel::SendError;
 use reqwest::header::InvalidHeaderValue;
 use url::ParseError;
 
@@ -8,5 +7,4 @@ pub enum Error {
     UnexpectedInternalState(String),
     InvalidHeaderValue(InvalidHeaderValue),
     UrlParseError(ParseError),
-    ChannelSendError(SendError<()>),
 }
