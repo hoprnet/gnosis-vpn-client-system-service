@@ -32,7 +32,7 @@ pub fn open(
     let url = match en.endpoint.join("/api/v3/session/udp") {
         Ok(url) => url,
         Err(e) => {
-            return Err(CoreError::UrlParseError(e));
+            return Err(CoreError::Url(e));
         }
     };
 
@@ -192,7 +192,7 @@ impl Session {
         let url = match entry_node.endpoint.join("/api/v3/session/udp") {
             Ok(url) => url,
             Err(e) => {
-                return Err(CoreError::UrlParseError(e));
+                return Err(CoreError::Url(e));
             }
         };
 

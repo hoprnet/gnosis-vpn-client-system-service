@@ -45,7 +45,7 @@ pub fn authentication_headers(api_token: &str) -> Result<HeaderMap, CoreError> {
     let mut hv_token = match HeaderValue::from_str(api_token) {
         Ok(hv) => hv,
         Err(e) => {
-            return Err(CoreError::InvalidHeaderValue(e));
+            return Err(CoreError::HeaderSerialization(e));
         }
     };
     hv_token.set_sensitive(true);

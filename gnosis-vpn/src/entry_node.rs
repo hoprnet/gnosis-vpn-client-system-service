@@ -127,7 +127,7 @@ impl EntryNode {
         let url = match self.endpoint.join("/api/v3/account/addresses") {
             Ok(url) => url,
             Err(e) => {
-                return Err(CoreError::UrlParseError(e));
+                return Err(CoreError::Url(e));
             }
         };
         let sender = sender.clone();
@@ -183,7 +183,7 @@ impl EntryNode {
         let url = match self.endpoint.join("/api/v3/session/udp") {
             Ok(url) => url,
             Err(e) => {
-                return Err(CoreError::UrlParseError(e));
+                return Err(CoreError::Url(e));
             }
         };
         let sender = sender.clone();

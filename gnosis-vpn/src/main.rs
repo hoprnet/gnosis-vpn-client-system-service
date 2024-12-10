@@ -83,7 +83,7 @@ fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net:
     let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
     thread::spawn(move || {
         for strm in stream.incoming() {
-            _ = match strm {
+            match strm {
                 Ok(s) => match sender.send(s) {
                     Ok(_) => (),
                     Err(e) => {
@@ -127,7 +127,7 @@ fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, c
 
     let res = match state.handle_cmd(&cmd) {
         Ok(res) => res,
-        Err(CoreError::JsonParseError(e)) => {
+        Err(CoreError::ParseJson(e)) => {
             tracing::error!(error = ?e, "error parsing json");
             return;
         }
@@ -135,11 +135,11 @@ fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, c
             tracing::error!(?deviation, "unexpected internal state");
             return;
         }
-        Err(CoreError::InvalidHeaderValue(e)) => {
+        Err(CoreError::HeaderSerialization(e)) => {
             tracing::error!(error = ?e, "invalid header value");
             return;
         }
-        Err(CoreError::UrlParseError(e)) => {
+        Err(CoreError::Url(e)) => {
             tracing::error!(error = ?e, "error parsing url");
             return;
         }

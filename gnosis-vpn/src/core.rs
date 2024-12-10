@@ -113,7 +113,7 @@ impl Core {
                                 en.addresses = Some(addr);
                                 Ok(())
                             }
-                            Err(err) => Err(CoreError::JsonParseError(err)),
+                            Err(err) => Err(CoreError::ParseJson(err)),
                         }
                     }
                     None => Err(CoreError::UnexpectedInternalState("no entry node".to_string())),
@@ -155,7 +155,7 @@ impl Core {
                         };
                         Ok(())
                     }
-                    Err(err) => Err(CoreError::JsonParseError(err)),
+                    Err(err) => Err(CoreError::ParseJson(err)),
                 }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.open_session {
@@ -189,7 +189,7 @@ impl Core {
                     Err(e) => {
                         tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        Err(CoreError::JsonParseError(e))
+                        Err(CoreError::ParseJson(e))
                     }
                 }
             }
@@ -361,9 +361,7 @@ impl Core {
 
     fn exit_node(&mut self, peer_id: &PeerId) -> Result<Option<String>, CoreError> {
         self.check_close_session()?;
-        self.exit_node = Some(ExitNode {
-            peer_id: peer_id.clone(),
-        });
+        self.exit_node = Some(ExitNode { peer_id: *peer_id });
         self.check_open_session()?;
         Ok(None)
     }

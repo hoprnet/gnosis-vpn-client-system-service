@@ -3,8 +3,8 @@ use url::ParseError;
 
 #[derive(Debug)]
 pub enum Error {
-    JsonParseError(serde_json::Error),
+    ParseJson(serde_json::Error),
     UnexpectedInternalState(String),
-    InvalidHeaderValue(InvalidHeaderValue),
-    UrlParseError(ParseError),
+    HeaderSerialization(InvalidHeaderValue),
+    Url(ParseError),
 }
