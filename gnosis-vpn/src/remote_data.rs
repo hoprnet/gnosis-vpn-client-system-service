@@ -1,6 +1,6 @@
 use gnosis_vpn_lib::log_output;
 use reqwest::header;
-use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
 use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
@@ -37,7 +37,7 @@ pub enum Event {
     Error(CustomError),
 }
 
-pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
+pub fn authentication_headers(api_token: &str) -> Result<HeaderMap, InvalidHeaderValue> {
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let mut hv_token = HeaderValue::from_str(api_token)?;
