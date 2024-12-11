@@ -43,13 +43,12 @@ pub fn schedule_retry_query_addresses(
         crossbeam_channel::select! {
             recv(cancel_receiver) -> _ => {}
             default(delay) => {
-            let res = sender.send(Event::FetchAddresses(remote_data::Event::Retry));
-            match res {
-                Ok(_) => {}
-                Err(e) => {
-                    tracing::warn!("sending retry event failed: {}", e);
+                match sender.send(Event::FetchAddresses(remote_data::Event::Retry)) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!(error = %e, "failed sending retry event");
+                    }
                 }
-            }
             }
         }
     });
@@ -66,11 +65,10 @@ pub fn schedule_retry_list_sessions(
         crossbeam_channel::select! {
             recv(cancel_receiver) -> _ => {}
             default(delay) => {
-            let res = sender.send(Event::FetchListSessions(remote_data::Event::Retry));
-            match res {
+            match sender.send(Event::FetchListSessions(remote_data::Event::Retry)) {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending retry event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending retry event");
                 }
             }
             }
@@ -124,7 +122,10 @@ impl EntryNode {
         sender: &crossbeam_channel::Sender<Event>,
     ) -> Result<(), CoreError> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = match self.endpoint.join("/api/v3/account/addresses").map_err(CoreError::Url)?;
+        let url = self
+            .endpoint
+            .join("/api/v3/account/addresses")
+            .map_err(CoreError::Url)?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
@@ -175,12 +176,7 @@ impl EntryNode {
         sender: &crossbeam_channel::Sender<Event>,
     ) -> Result<(), CoreError> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = match self.endpoint.join("/api/v3/session/udp") {
-            Ok(url) => url,
-            Err(e) => {
-                return Err(CoreError::Url(e));
-            }
-        };
+        let url = self.endpoint.join("/api/v3/session/udp").map_err(CoreError::Url)?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
