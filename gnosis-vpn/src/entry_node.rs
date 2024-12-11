@@ -124,12 +124,7 @@ impl EntryNode {
         sender: &crossbeam_channel::Sender<Event>,
     ) -> Result<(), CoreError> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = match self.endpoint.join("/api/v3/account/addresses") {
-            Ok(url) => url,
-            Err(e) => {
-                return Err(CoreError::Url(e));
-            }
-        };
+        let url = match self.endpoint.join("/api/v3/account/addresses").map_err(CoreError::Url)?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
