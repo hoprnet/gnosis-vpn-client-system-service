@@ -15,6 +15,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 url = { workspace = true }
 
+anyhow = { version = "1.0", features = ["backtrace"] }
 clap = { version = "4.5.18", features = ["derive"] }
 crossbeam-channel = "0.5.13"
 ctrlc = "3.4.5"
