@@ -1,3 +1,4 @@
+use anyhow::Result;
 use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
@@ -7,7 +8,6 @@ use std::fmt;
 use std::thread;
 use url::Url;
 
-use crate::core::error::Error as CoreError;
 use crate::event::Event;
 use crate::remote_data;
 
@@ -116,16 +116,9 @@ impl EntryNode {
         }
     }
 
-    pub fn query_addresses(
-        &self,
-        client: &blocking::Client,
-        sender: &crossbeam_channel::Sender<Event>,
-    ) -> Result<(), CoreError> {
+    pub fn query_addresses(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self
-            .endpoint
-            .join("/api/v3/account/addresses")
-            .map_err(CoreError::Url)?;
+        let url = self.endpoint.join("/api/v3/account/addresses")?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
@@ -170,13 +163,9 @@ impl EntryNode {
         Ok(())
     }
 
-    pub fn list_sessions(
-        &self,
-        client: &blocking::Client,
-        sender: &crossbeam_channel::Sender<Event>,
-    ) -> Result<(), CoreError> {
+    pub fn list_sessions(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self.endpoint.join("/api/v3/session/udp").map_err(CoreError::Url)?;
+        let url = self.endpoint.join("/api/v3/session/udp")?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {

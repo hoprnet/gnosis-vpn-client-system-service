@@ -1,3 +1,4 @@
+use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
 use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
@@ -11,7 +12,6 @@ use url::Url;
 
 use crate::backoff;
 use crate::backoff::FromIteratorToSeries;
-use crate::core::error::Error as CoreError;
 use crate::entry_node;
 use crate::entry_node::{EntryNode, Path};
 use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
@@ -20,8 +20,6 @@ use crate::remote_data;
 use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
-
-pub mod error;
 
 #[derive(Debug)]
 pub struct Core {
@@ -76,7 +74,7 @@ impl Core {
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
-    pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>, CoreError> {
+    pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>> {
         match cmd {
             Command::Status => Ok(self.status()),
             Command::EntryNode {
@@ -91,7 +89,7 @@ impl Core {
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
-    pub fn handle_event(&mut self, event: Event) -> Result<(), CoreError> {
+    pub fn handle_event(&mut self, event: Event) -> Result<()> {
         match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
@@ -101,22 +99,17 @@ impl Core {
         }
     }
 
-    fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<(), CoreError> {
+    fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
                 self.fetch_data.addresses = RemoteData::Success;
                 match &mut self.entry_node {
                     Some(en) => {
-                        let addresses = serde_json::from_value::<entry_node::Addresses>(value);
-                        match addresses {
-                            Ok(addr) => {
-                                en.addresses = Some(addr);
-                                Ok(())
-                            }
-                            Err(err) => Err(CoreError::ParseJson(err)),
-                        }
+                        let addresses = serde_json::from_value::<entry_node::Addresses>(value)?;
+                        en.addresses = Some(addresses);
+                        Ok(())
                     }
-                    None => Err(CoreError::UnexpectedInternalState("no entry node".to_string())),
+                    None => anyhow::bail!("unexpected internal state: no entry node"),
                 }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.addresses {
@@ -132,31 +125,24 @@ impl Core {
                     self.repeat_fetch_addresses(err, &mut backoffs);
                     Ok(())
                 }
-                _ => Err(CoreError::UnexpectedInternalState(
-                    "remote data result while not fetching".to_string(),
-                )),
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
             },
             remote_data::Event::Retry => self.fetch_addresses(),
         }
     }
 
-    fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> Result<(), CoreError> {
+    fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
+                let session = serde_json::from_value::<Session>(value)?;
                 self.fetch_data.open_session = RemoteData::Success;
-                let session = serde_json::from_value::<Session>(value);
-                match session {
-                    Ok(s) => {
-                        self.session = Some(s);
-                        let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
-                        self.status = Status::MonitoringSession {
-                            start_time: SystemTime::now(),
-                            cancel_sender,
-                        };
-                        Ok(())
-                    }
-                    Err(err) => Err(CoreError::ParseJson(err)),
-                }
+                self.session = Some(session);
+                let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                self.status = Status::MonitoringSession {
+                    start_time: SystemTime::now(),
+                    cancel_sender,
+                };
+                Ok(())
             }
             remote_data::Event::Error(err) => match &self.fetch_data.open_session {
                 RemoteData::RetryFetching {
@@ -171,15 +157,13 @@ impl Core {
                     self.repeat_fetch_open_session(err, &mut backoffs);
                     Ok(())
                 }
-                _ => Err(CoreError::UnexpectedInternalState(
-                    "remote data result while not fetching".to_string(),
-                )),
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
             },
             remote_data::Event::Retry => self.fetch_open_session(),
         }
     }
 
-    fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> Result<(), CoreError> {
+    fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
                 self.fetch_data.list_sessions = RemoteData::Success;
@@ -189,7 +173,7 @@ impl Core {
                     Err(e) => {
                         tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        Err(CoreError::ParseJson(e))
+                        anyhow::bail!("failed to parse sessions: {}", e);
                     }
                 }
             }
@@ -204,15 +188,13 @@ impl Core {
                     let mut backoffs = backoff::list_sessions().to_vec();
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
-                _ => Err(CoreError::UnexpectedInternalState(
-                    "remote data result while not fetching".to_string(),
-                )),
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
             },
             remote_data::Event::Retry => self.fetch_list_sessions(),
         }
     }
 
-    fn evt_fetch_close_session(&mut self, evt: remote_data::Event) -> Result<(), CoreError> {
+    fn evt_fetch_close_session(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(_) => {
                 self.fetch_data.close_session = RemoteData::Success;
@@ -230,15 +212,13 @@ impl Core {
                     let mut backoffs = backoff::close_session().to_vec();
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
-                _ => Err(CoreError::UnexpectedInternalState(
-                    "remote data result while not fetching".to_string(),
-                )),
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
             },
             remote_data::Event::Retry => self.fetch_close_session(),
         }
     }
 
-    fn evt_check_session(&mut self) -> Result<(), CoreError> {
+    fn evt_check_session(&mut self) -> Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
             (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
             (Status::MonitoringSession { .. }, _) => {
@@ -282,7 +262,7 @@ impl Core {
         &mut self,
         error: remote_data::CustomError,
         backoffs: &mut Vec<time::Duration>,
-    ) -> Result<(), CoreError> {
+    ) -> Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -296,9 +276,7 @@ impl Core {
             if let Status::MonitoringSession { .. } = self.status {
                 self.check_close_session()
             } else {
-                Err(CoreError::UnexpectedInternalState(
-                    "failed list session call while not monitoring session".to_string(),
-                ))
+                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session")
             }
         }
     }
@@ -307,7 +285,7 @@ impl Core {
         &mut self,
         error: remote_data::CustomError,
         backoffs: &mut Vec<time::Duration>,
-    ) -> Result<(), CoreError> {
+    ) -> Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = session::schedule_retry_close(backoff, &self.sender);
             self.fetch_data.close_session = RemoteData::RetryFetching {
@@ -322,9 +300,7 @@ impl Core {
                 self.status = Status::Idle;
                 Ok(())
             } else {
-                Err(CoreError::UnexpectedInternalState(
-                    "failed close session call while not closing session".to_string(),
-                ))
+                anyhow::bail!("unexpected internal state: failed close session call while not closing session")
             }
         }
     }
@@ -340,7 +316,7 @@ impl Core {
         listen_port: &Option<String>,
         hop: &Option<u8>,
         intermediate_id: &Option<PeerId>,
-    ) -> Result<Option<String>, CoreError> {
+    ) -> Result<Option<String>> {
         self.check_close_session()?;
 
         // TODO move this to library and enhance CLI to only allow one option
@@ -359,14 +335,14 @@ impl Core {
         Ok(None)
     }
 
-    fn exit_node(&mut self, peer_id: &PeerId) -> Result<Option<String>, CoreError> {
+    fn exit_node(&mut self, peer_id: &PeerId) -> Result<Option<String>> {
         self.check_close_session()?;
         self.exit_node = Some(ExitNode { peer_id: *peer_id });
         self.check_open_session()?;
         Ok(None)
     }
 
-    fn check_open_session(&mut self) -> Result<(), CoreError> {
+    fn check_open_session(&mut self) -> Result<()> {
         match (&self.status, &self.entry_node, &self.exit_node) {
             (Status::Idle, Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
@@ -381,7 +357,7 @@ impl Core {
         }
     }
 
-    fn check_close_session(&mut self) -> Result<(), CoreError> {
+    fn check_close_session(&mut self) -> Result<()> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
@@ -401,35 +377,35 @@ impl Core {
         }
     }
 
-    fn fetch_addresses(&mut self) -> Result<(), CoreError> {
+    fn fetch_addresses(&mut self) -> Result<()> {
         match &self.entry_node {
             Some(en) => en.query_addresses(&self.client, &self.sender),
             _ => Ok(()),
         }
     }
 
-    fn fetch_open_session(&mut self) -> Result<(), CoreError> {
+    fn fetch_open_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.exit_node) {
             (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
             _ => Ok(()),
         }
     }
 
-    fn fetch_list_sessions(&mut self) -> Result<(), CoreError> {
+    fn fetch_list_sessions(&mut self) -> Result<()> {
         match &self.entry_node {
             Some(en) => en.list_sessions(&self.client, &self.sender),
             _ => Ok(()),
         }
     }
 
-    fn fetch_close_session(&mut self) -> Result<(), CoreError> {
+    fn fetch_close_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.session) {
             (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
             _ => Ok(()),
         }
     }
 
-    fn verify_session(&mut self, sessions: &[session::Session]) -> Result<(), CoreError> {
+    fn verify_session(&mut self, sessions: &[session::Session]) -> Result<()> {
         match (&self.session, &self.status) {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
@@ -446,12 +422,10 @@ impl Core {
                     self.check_open_session()
                 }
             }
-            (Some(_sess), _) => Err(CoreError::UnexpectedInternalState(
-                "session verification while not monitoring session".to_string(),
-            )),
-            (None, _status) => Err(CoreError::UnexpectedInternalState(
-                "session verification while no session".to_string(),
-            )),
+            (Some(_sess), _) => {
+                anyhow::bail!("unexpected internal state: session verification while not monitoring session")
+            }
+            (None, _status) => anyhow::bail!("unexpected internal state: session verification while no session"),
         }
     }
 

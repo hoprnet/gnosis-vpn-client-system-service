@@ -1,3 +1,4 @@
+use anyhow::Result;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -6,7 +7,6 @@ use std::fmt;
 use std::thread;
 use url::Url;
 
-use crate::core::error::Error as CoreError;
 use crate::entry_node::{EntryNode, Path};
 use crate::event::Event;
 use crate::exit_node::ExitNode;
@@ -27,15 +27,9 @@ pub fn open(
     sender: &crossbeam_channel::Sender<Event>,
     en: &EntryNode,
     xn: &ExitNode,
-) -> Result<(), CoreError> {
+) -> Result<()> {
     let headers = remote_data::authentication_headers(en.api_token.as_str())?;
-    let url = match en.endpoint.join("/api/v3/session/udp") {
-        Ok(url) => url,
-        Err(e) => {
-            return Err(CoreError::Url(e));
-        }
-    };
-
+    let url = en.endpoint.join("/api/v3/session/udp")?;
     let mut json = serde_json::Map::new();
     json.insert("capabilities".to_string(), json!(["Segmentation"]));
     json.insert("destination".to_string(), json!(xn.peer_id.to_base58()));
@@ -187,15 +181,9 @@ impl Session {
         client: &blocking::Client,
         sender: &crossbeam_channel::Sender<Event>,
         entry_node: &EntryNode,
-    ) -> Result<(), CoreError> {
+    ) -> Result<()> {
         let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
-        let url = match entry_node.endpoint.join("/api/v3/session/udp") {
-            Ok(url) => url,
-            Err(e) => {
-                return Err(CoreError::Url(e));
-            }
-        };
-
+        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
         let mut json = serde_json::Map::new();
         json.insert("listeningIp".to_string(), json!(self.ip));
         json.insert("port".to_string(), json!(self.port));

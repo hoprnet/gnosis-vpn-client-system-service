@@ -1,11 +1,10 @@
+use anyhow::Result;
 use gnosis_vpn_lib::log_output;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
-
-use crate::core::error::Error as CoreError;
 
 #[derive(Debug)]
 pub enum RemoteData {
@@ -39,15 +38,10 @@ pub enum Event {
     Error(CustomError),
 }
 
-pub fn authentication_headers(api_token: &str) -> Result<HeaderMap, CoreError> {
+pub fn authentication_headers(api_token: &str) -> Result<HeaderMap> {
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    let mut hv_token = match HeaderValue::from_str(api_token) {
-        Ok(hv) => hv,
-        Err(e) => {
-            return Err(CoreError::HeaderSerialization(e));
-        }
-    };
+    let mut hv_token = HeaderValue::from_str(api_token)?;
     hv_token.set_sensitive(true);
     headers.insert("x-auth-token", hv_token);
     Ok(headers)

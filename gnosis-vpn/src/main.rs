@@ -19,8 +19,6 @@ mod exit_node;
 mod remote_data;
 mod session;
 
-use crate::core::error::Error as CoreError;
-
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
 struct Cli {}
@@ -127,20 +125,10 @@ fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, c
 
     let res = match state.handle_cmd(&cmd) {
         Ok(res) => res,
-        Err(CoreError::ParseJson(e)) => {
-            tracing::error!(error = ?e, "error parsing json");
-            return;
-        }
-        Err(CoreError::UnexpectedInternalState(deviation)) => {
-            tracing::error!(?deviation, "unexpected internal state");
-            return;
-        }
-        Err(CoreError::HeaderSerialization(e)) => {
-            tracing::error!(error = ?e, "invalid header value");
-            return;
-        }
-        Err(CoreError::Url(e)) => {
-            tracing::error!(error = ?e, "error parsing url");
+        Err(e) => {
+            // Log the error and its chain in one line
+            let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+            tracing::error!(?error_chain, "error handling command");
             return;
         }
     };
@@ -171,7 +159,9 @@ fn incoming_event(state: &mut core::Core, res_event: Result<event::Event, crossb
     match state.handle_event(event) {
         Ok(_) => (),
         Err(e) => {
-            tracing::error!(error = ?e, "error handling event");
+            // Log the error and its chain in one line
+            let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+            tracing::error!(?error_chain, "error handling event");
             return;
         }
     }
