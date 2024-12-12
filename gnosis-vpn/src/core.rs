@@ -1,4 +1,6 @@
+use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
+use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -19,7 +21,7 @@ use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
 
-//
+#[derive(Debug)]
 pub struct Core {
     status: Status,
     entry_node: Option<EntryNode>,
@@ -30,6 +32,7 @@ pub struct Core {
     session: Option<Session>,
 }
 
+#[derive(Debug)]
 struct FetchData {
     addresses: RemoteData,
     open_session: RemoteData,
@@ -37,6 +40,7 @@ struct FetchData {
     close_session: RemoteData,
 }
 
+#[derive(Debug)]
 enum Status {
     Idle,
     OpeningSession {
@@ -69,127 +73,97 @@ impl Core {
         }
     }
 
-    #[instrument(level = tracing::Level::INFO, skip(self, cmd), ret(level = tracing::Level::DEBUG))]
-    pub fn handle_cmd(&mut self, cmd: Command) -> anyhow::Result<Option<String>> {
-        tracing::info!(%cmd, "Handling command");
-        tracing::debug!(state_before = %self, "State cmd change");
-
-        let res = match cmd {
-            Command::Status => self.status(),
+    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>> {
+        match cmd {
+            Command::Status => Ok(self.status()),
             Command::EntryNode {
                 endpoint,
                 api_token,
                 listen_host,
                 hop,
                 intermediate_id,
-            } => self.entry_node(endpoint, api_token, listen_host.clone(), hop, intermediate_id),
+            } => self.entry_node(endpoint, api_token, listen_host, hop, intermediate_id),
             Command::ExitNode { peer_id } => self.exit_node(peer_id),
-        };
-
-        tracing::debug!(state_after = %self, "State cmd change");
-
-        res
+        }
     }
 
-    #[instrument(level = tracing::Level::INFO, skip(self, event), ret(level = tracing::Level::DEBUG))]
-    pub fn handle_event(&mut self, event: Event) -> anyhow::Result<()> {
-        tracing::info!(%event, "Handling event");
-        tracing::debug!(state_before = %self, "State evt change");
-
-        let res = match event {
+    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    pub fn handle_event(&mut self, event: Event) -> Result<()> {
+        match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
             Event::FetchListSessions(evt) => self.evt_fetch_list_sessions(evt),
             Event::FetchCloseSession(evt) => self.evt_fetch_close_session(evt),
             Event::CheckSession => self.evt_check_session(),
-        };
-
-        tracing::debug!(state_after = %self, "State evt change");
-        res
+        }
     }
 
-    fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+    fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
                 self.fetch_data.addresses = RemoteData::Success;
-                if let Some(en) = &mut self.entry_node {
-                    let addresses = serde_json::from_value::<entry_node::Addresses>(value);
-                    match addresses {
-                        Ok(addr) => {
-                            en.addresses = Some(addr);
-                        }
-                        Err(e) => {
-                            tracing::error!("failed to parse addresses: {}", e);
-                        }
+                match &mut self.entry_node {
+                    Some(en) => {
+                        let addresses = serde_json::from_value::<entry_node::Addresses>(value)?;
+                        en.addresses = Some(addresses);
+                        Ok(())
                     }
+                    None => anyhow::bail!("unexpected internal state: no entry node"),
                 }
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.addresses {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_addresses(err, &mut backoffs)
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::get_addresses().to_vec();
-                        self.repeat_fetch_addresses(err, &mut backoffs);
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.addresses {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_addresses(err, &mut backoffs);
+                    Ok(())
                 }
-            }
-            remote_data::Event::Retry => self.fetch_addresses()?,
-        };
-        Ok(())
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::get_addresses().to_vec();
+                    self.repeat_fetch_addresses(err, &mut backoffs);
+                    Ok(())
+                }
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+            },
+            remote_data::Event::Retry => self.fetch_addresses(),
+        }
     }
 
-    fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+    fn evt_fetch_open_session(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
+                let session = serde_json::from_value::<Session>(value)?;
                 self.fetch_data.open_session = RemoteData::Success;
-                let session = serde_json::from_value::<Session>(value);
-                match session {
-                    Ok(s) => {
-                        self.session = Some(s);
-                        let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
-                        self.status = Status::MonitoringSession {
-                            start_time: SystemTime::now(),
-                            cancel_sender,
-                        };
-                    }
-                    Err(e) => {
-                        tracing::error!("failed to parse session: {}", e);
-                    }
-                }
+                self.session = Some(session);
+                let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                self.status = Status::MonitoringSession {
+                    start_time: SystemTime::now(),
+                    cancel_sender,
+                };
+                Ok(())
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.open_session {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_open_session(err, &mut backoffs)
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::open_session().to_vec();
-                        self.repeat_fetch_open_session(err, &mut backoffs);
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.open_session {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_open_session(err, &mut backoffs);
+                    Ok(())
                 }
-            }
-            remote_data::Event::Retry => self.fetch_open_session()?,
-        };
-        Ok(())
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::open_session().to_vec();
+                    self.repeat_fetch_open_session(err, &mut backoffs);
+                    Ok(())
+                }
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+            },
+            remote_data::Event::Retry => self.fetch_open_session(),
+        }
     }
 
-    fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+    fn evt_fetch_list_sessions(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
                 self.fetch_data.list_sessions = RemoteData::Success;
@@ -197,68 +171,54 @@ impl Core {
                 match res_sessions {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
-                        tracing::error!("stopped monitoring - failed to parse sessions: {}", e);
+                        tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        Ok(())
+                        anyhow::bail!("failed to parse sessions: {}", e);
                     }
                 }
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.list_sessions {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs)
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::list_sessions().to_vec();
-                        self.repeat_fetch_list_sessions(err, &mut backoffs)
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                        Ok(())
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.list_sessions {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
-            }
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::list_sessions().to_vec();
+                    self.repeat_fetch_list_sessions(err, &mut backoffs)
+                }
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+            },
             remote_data::Event::Retry => self.fetch_list_sessions(),
         }
     }
 
-    fn evt_fetch_close_session(&mut self, evt: remote_data::Event) -> anyhow::Result<()> {
+    fn evt_fetch_close_session(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(_) => {
                 self.fetch_data.close_session = RemoteData::Success;
                 self.status = Status::Idle;
                 self.check_open_session()
             }
-            remote_data::Event::Error(err) => {
-                match &self.fetch_data.close_session {
-                    RemoteData::RetryFetching {
-                        backoffs: old_backoffs, ..
-                    } => {
-                        let mut backoffs = old_backoffs.clone();
-                        self.repeat_fetch_close_session(err, &mut backoffs);
-                        Ok(())
-                    }
-                    RemoteData::Fetching { .. } => {
-                        let mut backoffs = backoff::close_session().to_vec();
-                        self.repeat_fetch_close_session(err, &mut backoffs);
-                        Ok(())
-                    }
-                    _ => {
-                        // should not happen
-                        tracing::error!("unexpected event state");
-                        Ok(())
-                    }
+            remote_data::Event::Error(err) => match &self.fetch_data.close_session {
+                RemoteData::RetryFetching {
+                    backoffs: old_backoffs, ..
+                } => {
+                    let mut backoffs = old_backoffs.clone();
+                    self.repeat_fetch_close_session(err, &mut backoffs)
                 }
-            }
+                RemoteData::Fetching { .. } => {
+                    let mut backoffs = backoff::close_session().to_vec();
+                    self.repeat_fetch_close_session(err, &mut backoffs)
+                }
+                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+            },
             remote_data::Event::Retry => self.fetch_close_session(),
         }
     }
 
-    fn evt_check_session(&mut self) -> anyhow::Result<()> {
+    fn evt_check_session(&mut self) -> Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
             (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
             (Status::MonitoringSession { .. }, _) => {
@@ -302,7 +262,7 @@ impl Core {
         &mut self,
         error: remote_data::CustomError,
         backoffs: &mut Vec<time::Duration>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = entry_node::schedule_retry_list_sessions(backoff, &self.sender);
             self.fetch_data.list_sessions = RemoteData::RetryFetching {
@@ -316,13 +276,16 @@ impl Core {
             if let Status::MonitoringSession { .. } = self.status {
                 self.check_close_session()
             } else {
-                tracing::warn!("failed list session call while not monitoring session");
-                Ok(())
+                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session")
             }
         }
     }
 
-    fn repeat_fetch_close_session(&mut self, error: remote_data::CustomError, backoffs: &mut Vec<time::Duration>) {
+    fn repeat_fetch_close_session(
+        &mut self,
+        error: remote_data::CustomError,
+        backoffs: &mut Vec<time::Duration>,
+    ) -> Result<()> {
         if let Some(backoff) = backoffs.pop() {
             let cancel_sender = session::schedule_retry_close(backoff, &self.sender);
             self.fetch_data.close_session = RemoteData::RetryFetching {
@@ -330,38 +293,40 @@ impl Core {
                 cancel_sender,
                 backoffs: backoffs.clone(),
             };
+            Ok(())
         } else {
             self.fetch_data.close_session = RemoteData::Failure { error };
             if let Status::ClosingSession { .. } = self.status {
                 self.status = Status::Idle;
+                Ok(())
             } else {
-                tracing::warn!("failed close session call while not closing session");
+                anyhow::bail!("unexpected internal state: failed close session call while not closing session")
             }
         }
     }
 
-    fn status(&self) -> anyhow::Result<Option<String>> {
-        Ok(Some(self.to_string()))
+    fn status(&self) -> Option<String> {
+        Some(self.to_string())
     }
 
     fn entry_node(
         &mut self,
-        endpoint: Url,
-        api_token: String,
-        listen_port: Option<String>,
-        hop: Option<u8>,
-        intermediate_id: Option<PeerId>,
-    ) -> anyhow::Result<Option<String>> {
+        endpoint: &Url,
+        api_token: &str,
+        listen_port: &Option<String>,
+        hop: &Option<u8>,
+        intermediate_id: &Option<PeerId>,
+    ) -> Result<Option<String>> {
         self.check_close_session()?;
 
         // TODO move this to library and enhance CLI to only allow one option
         // hop has precedence over intermediate_id
         let path = match (hop, intermediate_id) {
-            (Some(h), _) => Path::Hop(h),
-            (_, Some(id)) => Path::IntermediateId(id),
+            (Some(h), _) => Path::Hop(*h),
+            (_, Some(id)) => Path::IntermediateId(*id),
             _ => Path::Hop(1),
         };
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port, path));
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port.as_deref(), path));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
@@ -370,14 +335,14 @@ impl Core {
         Ok(None)
     }
 
-    fn exit_node(&mut self, peer_id: PeerId) -> anyhow::Result<Option<String>> {
+    fn exit_node(&mut self, peer_id: &PeerId) -> Result<Option<String>> {
         self.check_close_session()?;
-        self.exit_node = Some(ExitNode { peer_id });
+        self.exit_node = Some(ExitNode { peer_id: *peer_id });
         self.check_open_session()?;
         Ok(None)
     }
 
-    fn check_open_session(&mut self) -> anyhow::Result<()> {
+    fn check_open_session(&mut self) -> Result<()> {
         match (&self.status, &self.entry_node, &self.exit_node) {
             (Status::Idle, Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
@@ -392,7 +357,7 @@ impl Core {
         }
     }
 
-    fn check_close_session(&mut self) -> anyhow::Result<()> {
+    fn check_close_session(&mut self) -> Result<()> {
         self.cancel_fetch_addresses();
         self.cancel_fetch_open_session();
         self.cancel_fetch_list_sessions();
@@ -412,43 +377,39 @@ impl Core {
         }
     }
 
-    fn fetch_addresses(&mut self) -> anyhow::Result<()> {
+    fn fetch_addresses(&mut self) -> Result<()> {
         match &self.entry_node {
             Some(en) => en.query_addresses(&self.client, &self.sender),
             _ => Ok(()),
         }
     }
 
-    fn fetch_open_session(&mut self) -> anyhow::Result<()> {
+    fn fetch_open_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.exit_node) {
             (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
             _ => Ok(()),
         }
     }
 
-    fn fetch_list_sessions(&mut self) -> anyhow::Result<()> {
+    fn fetch_list_sessions(&mut self) -> Result<()> {
         match &self.entry_node {
             Some(en) => en.list_sessions(&self.client, &self.sender),
             _ => Ok(()),
         }
     }
 
-    fn fetch_close_session(&mut self) -> anyhow::Result<()> {
+    fn fetch_close_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.session) {
             (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
             _ => Ok(()),
         }
     }
 
-    fn verify_session(&mut self, sessions: &[session::Session]) -> anyhow::Result<()> {
+    fn verify_session(&mut self, sessions: &[session::Session]) -> Result<()> {
         match (&self.session, &self.status) {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
-                    tracing::info!(
-                        "session {}: verified open for {}s",
-                        sess,
-                        start_time.elapsed().unwrap().as_secs()
-                    );
+                    tracing::info!(session = ?sess, since = log_output::elapsed(start_time), "verified session open");
                     let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
                     self.status = Status::MonitoringSession {
                         start_time: *start_time,
@@ -456,19 +417,15 @@ impl Core {
                     };
                     Ok(())
                 } else {
-                    tracing::info!("session no longer open");
+                    tracing::warn!(session = ?sess, "session no longer open");
                     self.status = Status::Idle;
                     self.check_open_session()
                 }
             }
-            (Some(sess), _) => {
-                tracing::warn!("skip verifying session {} - no longer monitoring", sess);
-                Ok(())
+            (Some(_sess), _) => {
+                anyhow::bail!("unexpected internal state: session verification while not monitoring session")
             }
-            (None, status) => {
-                tracing::warn!("skip verifiying session - no session to verify in status {}", status);
-                Ok(())
-            }
+            (None, _status) => anyhow::bail!("unexpected internal state: session verification while no session"),
         }
     }
 
@@ -478,7 +435,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel query addresses");
                 }
             }
         }
@@ -490,7 +447,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel open session");
                 }
             }
         }
@@ -502,7 +459,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel list sessions");
                 }
             }
         }
@@ -514,7 +471,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel close session");
                 }
             }
         }
@@ -526,7 +483,7 @@ impl Core {
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending cancel event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending cancel monitoring session");
                 }
             }
         }
@@ -537,7 +494,7 @@ impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let peer = self.peer_id.to_base58();
         let print = HashMap::from([("peer_id", peer.as_str())]);
-        let val = serde_json::to_string(&print).unwrap();
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }
@@ -546,21 +503,15 @@ impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Status::Idle => "idle",
-            Status::OpeningSession { start_time } => &format!(
-                "opening session for {}",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
-            Status::MonitoringSession { start_time, .. } => &format!(
-                "monitoring session for {}s",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
-            Status::ClosingSession { start_time } => &format!(
-                "closing session for {}s",
-                start_time.elapsed().unwrap_or(time::Duration::from_secs(0)).as_secs()
-            )
-            .to_string(),
+            Status::OpeningSession { start_time } => {
+                &format!("opening session since {}", log_output::elapsed(start_time)).to_string()
+            }
+            Status::MonitoringSession { start_time, .. } => {
+                &format!("monitoring session since {}", log_output::elapsed(start_time)).to_string()
+            }
+            Status::ClosingSession { start_time } => {
+                &format!("closing session since {}", log_output::elapsed(start_time)).to_string()
+            }
         };
         write!(f, "{}", val)
     }
@@ -568,22 +519,14 @@ impl fmt::Display for Status {
 
 impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let en_str: String = self
-            .entry_node
-            .as_ref()
-            .map(|en| en.to_string())
-            .unwrap_or("".to_string());
-        let xn_str: String = self
-            .exit_node
-            .as_ref()
-            .map(|xn| xn.to_string())
-            .unwrap_or("".to_string());
-        let print = HashMap::from([
-            ("status", self.status.to_string()),
-            ("entry_node", en_str),
-            ("exit_node", xn_str),
-        ]);
-        let val = serde_json::to_string(&print).unwrap();
+        let mut print = HashMap::from([("status", self.status.to_string())]);
+        if let Some(en) = &self.entry_node {
+            print.insert("entry_node", en.to_string());
+        }
+        if let Some(xn) = &self.exit_node {
+            print.insert("exit_node", xn.to_string());
+        }
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }

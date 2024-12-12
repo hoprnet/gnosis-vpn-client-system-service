@@ -1,13 +1,15 @@
-use anyhow::{anyhow, Context};
 use clap::Parser;
+use ctrlc::Error as CtrlcError;
 use gnosis_vpn_lib::command::Command;
 use gnosis_vpn_lib::socket;
 use std::fs;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net;
-use std::path::PathBuf;
+use std::path::Path;
+use std::process;
 use std::thread;
+use tracing::Level;
 
 mod backoff;
 mod core;
@@ -21,97 +23,175 @@ mod session;
 #[derive(Parser)]
 struct Cli {}
 
-fn ctrl_channel() -> anyhow::Result<crossbeam_channel::Receiver<()>> {
+#[tracing::instrument(level = Level::DEBUG)]
+fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode> {
     let (sender, receiver) = crossbeam_channel::bounded(100);
-    ctrlc::set_handler(move || {
+    match ctrlc::set_handler(move || {
         let _ = sender.send(());
-    })?;
-
-    Ok(receiver)
-}
-
-fn incoming_stream(stream: &mut net::UnixStream) -> anyhow::Result<Command> {
-    let mut incoming = String::new();
-    stream.read_to_string(&mut incoming)?;
-    incoming
-        .parse::<Command>()
-        .with_context(|| format!("error parsing incoming stream: {}", incoming))
-}
-
-fn respond_stream(stream: &mut net::UnixStream, res: Option<String>) -> anyhow::Result<()> {
-    if let Some(resp) = res {
-        tracing::info!("responding: {}", resp);
-        stream.write_all(resp.as_bytes())?;
-        stream.flush()?;
+    }) {
+        Ok(_) => Ok(receiver),
+        Err(CtrlcError::NoSuchSignal(signal_type)) => {
+            tracing::error!(?signal_type, "no such signal");
+            Err(exitcode::OSERR)
+        }
+        Err(CtrlcError::MultipleHandlers) => {
+            tracing::error!("multiple handlers");
+            Err(exitcode::UNAVAILABLE)
+        }
+        Err(CtrlcError::System(e)) => {
+            tracing::error!(error = ?e, "system error");
+            Err(exitcode::IOERR)
+        }
     }
-    Ok(())
 }
 
-fn daemon(socket_path: PathBuf) -> anyhow::Result<()> {
-    let ctrl_c_events = ctrl_channel()?;
+#[tracing::instrument(level = Level::DEBUG)]
+fn socket_channel(socket_path: &Path) -> Result<crossbeam_channel::Receiver<net::UnixStream>, exitcode::ExitCode> {
+    match socket_path.try_exists() {
+        Ok(true) => {
+            tracing::error!("socket path already exists");
+            return Err(exitcode::TEMPFAIL);
+        }
+        Ok(false) => (),
+        Err(e) => {
+            tracing::error!(error = ?e, "error checking socket path");
+            return Err(exitcode::IOERR);
+        }
+    };
 
-    let res_exists = socket_path.try_exists();
-
-    // set up unix stream listener
-    let listener = match res_exists {
-        Ok(true) => Err(anyhow!(format!("already running"))),
-        Ok(false) => net::UnixListener::bind(socket_path.as_path()).context("failed to bind socket"),
-        Err(x) => Err(anyhow!(x)),
-    }?;
+    let stream = match net::UnixListener::bind(socket_path) {
+        Ok(listener) => listener,
+        Err(e) => {
+            tracing::error!(error = ?e, "error binding socket");
+            return Err(exitcode::OSFILE);
+        }
+    };
 
     // update permissions to allow unprivileged access
     // TODO this would better be handled by allowing group access and let the installer create a
     // gvpn group and additionally add users to it
-    fs::set_permissions(socket_path.as_path(), fs::Permissions::from_mode(0o666))?;
+    match fs::set_permissions(socket_path, fs::Permissions::from_mode(0o666)) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::error!(error = ?e, "error setting socket permissions");
+            return Err(exitcode::NOPERM);
+        }
+    }
 
-    let (sender_socket, receiver_socket) = crossbeam_channel::unbounded::<net::UnixStream>();
+    let (sender, receiver) = crossbeam_channel::unbounded::<net::UnixStream>();
     thread::spawn(move || {
-        for stream in listener.incoming() {
-            _ = match stream {
-                Ok(stream) => sender_socket.send(stream).context("failed to send stream to channel"),
-                Err(x) => {
-                    tracing::error!("error waiting for incoming message: {:?}", x);
-                    Err(anyhow!(x))
+        for strm in stream.incoming() {
+            match strm {
+                Ok(s) => match sender.send(s) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        tracing::error!(error = ?e, "sending incoming data");
+                    }
+                },
+                Err(e) => {
+                    tracing::error!(error = ?e, "waiting for incoming message");
                 }
             };
         }
     });
 
-    let (sender_core_loop, receiver_core_loop) = crossbeam_channel::unbounded::<event::Event>();
-    let mut state = core::Core::init(sender_core_loop);
-    tracing::info!("started successfully in listening mode");
-    loop {
-        crossbeam_channel::select! {
-            recv(ctrl_c_events) -> _ => {
-                tracing::info!("shutting down");
-                break;
-            }
-            recv(receiver_socket) -> stream => {
-                let res = match stream  {
-                    Ok(mut s) =>
-                        incoming_stream(&mut s)
-                            .and_then(|cmd| state.handle_cmd(cmd))
-                            .and_then(|res| respond_stream(&mut s, res)),
-                    Err(x) => Err(anyhow!(x))
-                };
-                if let Err(x) = res {
-                    tracing::error!("error handling incoming stream: {:?}", x);
-                }
-            },
-            recv(receiver_core_loop) -> event => {
-                let res = match event {
-                    Ok(evt) => state.handle_event(evt),
-                    Err(x) => Err(anyhow!(x))
-                };
-                if let Err(x) = res {
-                    tracing::error!("error handling event: {:?}", x);
-                }
-            }
+    Ok(receiver)
+}
+
+#[tracing::instrument(skip(res_stream), level = Level::DEBUG) ]
+fn incoming_stream(state: &mut core::Core, res_stream: Result<net::UnixStream, crossbeam_channel::RecvError>) -> () {
+    let mut stream: net::UnixStream = match res_stream {
+        Ok(strm) => strm,
+        Err(e) => {
+            tracing::error!(error = ?e, "error receiving stream");
+            return;
+        }
+    };
+
+    let mut msg = String::new();
+    if let Err(e) = stream.read_to_string(&mut msg) {
+        tracing::error!(error = ?e, "error reading message");
+        return;
+    };
+
+    let cmd = match msg.parse::<Command>() {
+        Ok(cmd) => cmd,
+        Err(e) => {
+            tracing::error!(error = ?e, %msg, "error parsing command");
+            return;
+        }
+    };
+    tracing::debug!(command = %cmd, "parsed command");
+
+    let res = match state.handle_cmd(&cmd) {
+        Ok(res) => res,
+        Err(e) => {
+            // Log the error and its chain in one line
+            let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+            tracing::error!(?error_chain, "error handling command");
+            return;
+        }
+    };
+
+    if let Some(resp) = res {
+        tracing::info!(response = %resp);
+        if let Err(e) = stream.write_all(resp.as_bytes()) {
+            tracing::error!(error = ?e, "error writing response");
+            return;
+        }
+        if let Err(e) = stream.flush() {
+            tracing::error!(error = ?e, "error flushing stream");
+            return;
         }
     }
+}
 
-    fs::remove_file(socket_path)?;
-    Ok(())
+#[tracing::instrument(skip(res_event), level = Level::DEBUG) ]
+fn incoming_event(state: &mut core::Core, res_event: Result<event::Event, crossbeam_channel::RecvError>) -> () {
+    let event: event::Event = match res_event {
+        Ok(evt) => evt,
+        Err(e) => {
+            tracing::error!(error = ?e, "error receiving event");
+            return;
+        }
+    };
+
+    match state.handle_event(event) {
+        Ok(_) => (),
+        Err(e) => {
+            // Log the error and its chain in one line
+            let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+            tracing::error!(?error_chain, "error handling event");
+            return;
+        }
+    }
+}
+
+fn daemon(socket_path: &Path) -> exitcode::ExitCode {
+    let ctrlc_receiver = match ctrl_channel() {
+        Ok(receiver) => receiver,
+        Err(exit) => return exit,
+    };
+
+    let socket_receiver = match socket_channel(socket_path) {
+        Ok(receiver) => receiver,
+        Err(exit) => return exit,
+    };
+
+    let (sender, core_receiver) = crossbeam_channel::unbounded::<event::Event>();
+    let mut state = core::Core::init(sender);
+
+    tracing::info!("started in listening mode");
+    loop {
+        crossbeam_channel::select! {
+            recv(ctrlc_receiver) -> _ => {
+                tracing::info!("shutting down");
+                return exitcode::OK;
+            }
+            recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
+            recv(core_receiver) -> event => incoming_event(&mut state, event),
+        }
+    }
 }
 
 fn main() {
@@ -120,13 +200,14 @@ fn main() {
 
     let _args = Cli::parse();
     let socket_path = socket::socket_path();
-    let res = daemon(socket_path);
-    match res {
+
+    // run continously until ctrl-c
+    let exit = daemon(&socket_path);
+
+    // cleanup
+    match fs::remove_file(socket_path) {
         Ok(_) => tracing::info!("stopped gracefully"),
-        Err(e) => {
-            // Log the error and its chain in one line
-            let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
-            tracing::error!(?error_chain, "Exiting with error");
-        }
+        Err(e) => tracing::warn!(error = %e, "failed removing socket"),
     }
+    process::exit(exit)
 }

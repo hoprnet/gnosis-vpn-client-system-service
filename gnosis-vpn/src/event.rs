@@ -2,6 +2,7 @@ use crate::remote_data;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+#[derive(Debug)]
 pub enum Event {
     FetchAddresses(remote_data::Event),
     FetchOpenSession(remote_data::Event),

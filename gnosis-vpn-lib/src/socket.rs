@@ -23,22 +23,22 @@ pub fn socket_path() -> PathBuf {
 pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
     let socket_path = socket_path();
 
-    tracing::debug!(socket_path = ?socket_path, "using socket path");
+    tracing::debug!(?socket_path, "using socket path");
     check_path(&socket_path)?;
-    tracing::debug!(socket_path = ?socket_path, "socket path verified");
+    tracing::debug!(?socket_path, "socket path verified");
 
     let mut stream = connect_stream(&socket_path)?;
     tracing::debug!(?stream, "stream connected");
 
     let json_cmd = serialize_command(cmd)?;
-    tracing::trace!(?json_cmd, "command serialized");
+    tracing::trace!(%json_cmd, "command serialized");
 
     push_command(&mut stream, &json_cmd)?;
-    tracing::debug!(?json_cmd, "command pushed");
+    tracing::debug!(%json_cmd, "command pushed");
 
     if let Command::Status = cmd {
         let response = pull_response(&mut stream)?;
-        tracing::debug!(?response, "response pulled");
+        tracing::debug!(%response, "response pulled");
         Ok(ReturnValue::WithResponse(response))
     } else {
         Ok(ReturnValue::NoResponse)

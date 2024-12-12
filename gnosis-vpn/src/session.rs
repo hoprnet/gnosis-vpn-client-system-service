@@ -1,3 +1,4 @@
+use anyhow::Result;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -11,7 +12,7 @@ use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     // listen host
     ip: String,
@@ -26,10 +27,9 @@ pub fn open(
     sender: &crossbeam_channel::Sender<Event>,
     en: &EntryNode,
     xn: &ExitNode,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let headers = remote_data::authentication_headers(en.api_token.as_str())?;
     let url = en.endpoint.join("/api/v3/session/udp")?;
-
     let mut json = serde_json::Map::new();
     json.insert("capabilities".to_string(), json!(["Segmentation"]));
     json.insert("destination".to_string(), json!(xn.peer_id.to_base58()));
@@ -181,10 +181,9 @@ impl Session {
         client: &blocking::Client,
         sender: &crossbeam_channel::Sender<Event>,
         entry_node: &EntryNode,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
         let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-
         let mut json = serde_json::Map::new();
         json.insert("listeningIp".to_string(), json!(self.ip));
         json.insert("port".to_string(), json!(self.port));
@@ -261,7 +260,7 @@ impl fmt::Display for Session {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Session: {}:{} {} {}",
+            "Session[{}:{} {} {}]",
             self.ip, self.port, self.protocol, self.target
         )
     }

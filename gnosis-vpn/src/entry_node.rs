@@ -1,3 +1,5 @@
+use anyhow::Result;
+use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
@@ -41,13 +43,12 @@ pub fn schedule_retry_query_addresses(
         crossbeam_channel::select! {
             recv(cancel_receiver) -> _ => {}
             default(delay) => {
-            let res = sender.send(Event::FetchAddresses(remote_data::Event::Retry));
-            match res {
-                Ok(_) => {}
-                Err(e) => {
-                    tracing::warn!("sending retry event failed: {}", e);
+                match sender.send(Event::FetchAddresses(remote_data::Event::Retry)) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!(error = %e, "failed sending retry event");
+                    }
                 }
-            }
             }
         }
     });
@@ -64,11 +65,10 @@ pub fn schedule_retry_list_sessions(
         crossbeam_channel::select! {
             recv(cancel_receiver) -> _ => {}
             default(delay) => {
-            let res = sender.send(Event::FetchListSessions(remote_data::Event::Retry));
-            match res {
+            match sender.send(Event::FetchListSessions(remote_data::Event::Retry)) {
                 Ok(_) => {}
                 Err(e) => {
-                    tracing::warn!("sending retry event failed: {}", e);
+                    tracing::warn!(error = %e, "failed sending retry event");
                 }
             }
             }
@@ -87,11 +87,11 @@ impl fmt::Display for EntryNode {
         if let Some(listen_host) = &self.listen_host {
             print.insert("listen_host", listen_host.to_string());
         }
+        // TODO avoid nesting json
         if let Some(addresses) = &self.addresses {
-            let val = serde_json::to_string(&addresses).unwrap();
-            print.insert("addresses", val);
+            print.insert("addresses", log_output::serialize(&addresses));
         }
-        let val = serde_json::to_string(&print).unwrap();
+        let val = log_output::serialize(&print);
         write!(f, "{}", val)
     }
 }
@@ -106,21 +106,17 @@ impl fmt::Display for Path {
 }
 
 impl EntryNode {
-    pub fn new(endpoint: Url, api_token: String, listen_host: Option<String>, path: Path) -> EntryNode {
+    pub fn new(endpoint: &Url, api_token: &str, listen_host: Option<&str>, path: Path) -> EntryNode {
         EntryNode {
-            endpoint,
-            api_token,
+            endpoint: endpoint.clone(),
+            api_token: api_token.to_string(),
             addresses: None,
-            listen_host,
+            listen_host: listen_host.map(|s| s.to_string()),
             path,
         }
     }
 
-    pub fn query_addresses(
-        &self,
-        client: &blocking::Client,
-        sender: &crossbeam_channel::Sender<Event>,
-    ) -> anyhow::Result<()> {
+    pub fn query_addresses(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
         let url = self.endpoint.join("/api/v3/account/addresses")?;
         let sender = sender.clone();
@@ -167,11 +163,7 @@ impl EntryNode {
         Ok(())
     }
 
-    pub fn list_sessions(
-        &self,
-        client: &blocking::Client,
-        sender: &crossbeam_channel::Sender<Event>,
-    ) -> anyhow::Result<()> {
+    pub fn list_sessions(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
         let url = self.endpoint.join("/api/v3/session/udp")?;
         let sender = sender.clone();

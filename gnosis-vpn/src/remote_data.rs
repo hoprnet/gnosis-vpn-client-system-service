@@ -1,9 +1,12 @@
+use anyhow::Result;
+use gnosis_vpn_lib::log_output;
 use reqwest::header;
 use reqwest::header::{HeaderMap, HeaderValue};
 use std::time;
 use std::time::SystemTime;
 use std::vec::Vec;
 
+#[derive(Debug)]
 pub enum RemoteData {
     NotAsked,
     Fetching {
@@ -28,13 +31,14 @@ pub struct CustomError {
     pub value: Option<serde_json::Value>,
 }
 
+#[derive(Debug)]
 pub enum Event {
     Response(serde_json::Value),
     Retry,
     Error(CustomError),
 }
 
-pub fn authentication_headers(api_token: &str) -> anyhow::Result<HeaderMap> {
+pub fn authentication_headers(api_token: &str) -> Result<HeaderMap> {
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
     let mut hv_token = HeaderValue::from_str(api_token)?;
@@ -58,7 +62,7 @@ impl std::fmt::Display for RemoteData {
         match self {
             RemoteData::NotAsked => write!(f, "NotAsked"),
             RemoteData::Fetching { started_at } => {
-                write!(f, "Fetching for {:?}", started_at.elapsed().unwrap())
+                write!(f, "Fetching since {}", log_output::elapsed(started_at))
             }
             RemoteData::RetryFetching {
                 error,
