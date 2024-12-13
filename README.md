@@ -63,12 +63,21 @@ total 4752
 
 The service aims to handle wireguard session setup.
 
-new service env vars:
-- `_DEBUG_GVPN_SESSION_TARGET_TYPE` (`Sealed|Plain`, default: `Plain`)
-- `_DEBUG_GVPN_SESSION_TARGET_ENDPOINT` (default: `wireguard.staging.hoprnet.link:51820`)
-- `_DEBUG_GVPN_SESSION_CAPABILITIES` (default: `["Segmentation"]`)
+- need config file in `/etc/gnosisvpn.yaml`
 
-- `GVPN_WG_PRIVKEY_FILE` (optional)
+```yaml
+_DEBUG_:
+    Session:
+        Target:
+            Type: Plain | Sealed (default: Plain)
+            Endpoint: <URL> (default: wireguard.staging.hoprnet.link:51820)
+        Capabilities: (default: Segmentation)
+            - Segmentation
+            - Retransmission
+
+Wireguard:
+    PrivateKeyFile: <Path> (default: <empty>)
+```
 
 Wireguard handling for linux:
 
@@ -107,3 +116,7 @@ These scenarios are considered:
 
 4b. no wg tools
 - monitor session as usual
+
+The service will have to store local data and generated secrets to make this work better.
+Essentially local data will be put under the home folder of the service user - once installer setup does prepare this.
+For now we could put this data in `/opt/.gnosisvpn`.
