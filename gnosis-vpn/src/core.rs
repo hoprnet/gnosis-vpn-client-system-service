@@ -14,7 +14,7 @@ use crate::backoff;
 use crate::backoff::FromIteratorToSeries;
 use crate::entry_node;
 use crate::entry_node::{EntryNode, Path};
-use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
+use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
 use crate::remote_data::RemoteData;
