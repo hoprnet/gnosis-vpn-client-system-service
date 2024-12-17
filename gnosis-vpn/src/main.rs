@@ -18,6 +18,8 @@ mod event;
 mod exit_node;
 mod remote_data;
 mod session;
+mod task;
+mod wireguard;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]

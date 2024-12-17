@@ -20,6 +20,8 @@ use crate::remote_data;
 use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
+use crate::task::Task;
+use crate::wireguard;
 
 #[derive(Debug)]
 pub struct Core {
@@ -30,6 +32,7 @@ pub struct Core {
     fetch_data: FetchData,
     sender: crossbeam_channel::Sender<Event>,
     session: Option<Session>,
+    tasks: Vec<Box<dyn Task>>,
 }
 
 #[derive(Debug)]
@@ -70,6 +73,8 @@ impl Core {
             },
             sender,
             session: None,
+            // create initial tasks
+            tasks: wireguard::tasks(),
         }
     }
 
