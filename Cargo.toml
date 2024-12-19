@@ -16,5 +16,16 @@ serde_with = { version = "3.11.0", features = ["base64"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.18"
 url = { version = "2.5.4", features = ["serde"] }
+anyhow = { version = "1.0", features = ["backtrace"] }
+clap = { version = "4.5.18", features = ["derive"] }
+crossbeam-channel = "0.5.13"
+ctrlc = "3.4.5"
+exponential-backoff = "2.0.0"
+notify = { version = "6.1.1", features = ["serde"] }
+thiserror = "1.0.69"
+humantime = "2.1.0"
+reqwest = { version = "0.12.9", features = ["json", "blocking"] }
+# use exclusively because it supports command chaining
+bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
 
 gnosis-vpn-lib = { path = "gnosis-vpn-lib" }

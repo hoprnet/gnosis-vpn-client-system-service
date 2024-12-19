@@ -9,6 +9,4 @@ libp2p-identity = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 url = { workspace = true }
-
-# use exclusively because it supports command chaining
-bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
+bpaf = { workspace = true }

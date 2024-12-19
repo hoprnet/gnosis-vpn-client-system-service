@@ -84,26 +84,32 @@ Wireguard handling for linux:
 These scenarios are considered:
 
 1.
+
 - after startup determine that `wg` and `wg-quick` are available
 - report error otherwise and skip wireguard handling - gnosisvpn-ctl status request shows disabled wireguard handling
 
 2a. wg tools available
+
 - check if gnovpn wireguard configuration is available in `/etc/wireguard/`
 - search reserved namespace: `wg0-gnosisvpn` in `/etc/wireguard/` for wg config file
 
 2b. no wg tools
+
 - wait for session parameters via gnosisvpn-ctl and skip 3
 
 3a. wg conf found
+
 - wait for session parameters via gnosisvpn-ctl
 - ensure that endpoint in config is set correctly
 - adjust and restart device (if necessary)
 
 3b. wg conf not found - private wg key given
+
 - wait for session parameters via gnosisvpn-ctl
 - generate wg config file and start device
 
 3c. wg config not found - no private wg key given
+
 - generate new private key
 - report public key on gnosisvpn-ctl status request with instruction to send public key to wg admin
 - wait for session parameters via gnosisvpn-ctl
@@ -111,10 +117,12 @@ These scenarios are considered:
 - if wg has connection problems: report public key on gnosisvpn-ctl status request with instruction to send public key to wg admin
 
 4a. wg tools available
+
 - monitor session as usual
 - monitor wg output to report potential connection problems
 
 4b. no wg tools
+
 - monitor session as usual
 
 The service will have to store local data and generated secrets to make this work better.
