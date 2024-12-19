@@ -10,7 +10,7 @@ pub enum ReturnValue {
 }
 
 #[cfg(target_family = "unix")]
-pub fn socket_path() -> PathBuf {
+pub fn path() -> PathBuf {
     PathBuf::from("/var/run/gnosis-vpn.sock")
 }
 
@@ -21,7 +21,7 @@ pub fn socket_path() -> PathBuf {
 
 #[tracing::instrument(level = tracing::Level::DEBUG)]
 pub fn process_cmd(cmd: &Command) -> Result<ReturnValue, Error> {
-    let socket_path = socket_path();
+    let socket_path = path();
 
     tracing::debug!(?socket_path, "using socket path");
     check_path(&socket_path)?;

@@ -1,14 +1,21 @@
-use serde_derive::{Deserialize, Serialize};
-use std::vec::Vec;
+use serde::{Deserialize, Serialize};
 use std::default::Default;
-use url::{Host, Url};
+use std::path::PathBuf;
+use std::vec::Vec;
+use url::Host;
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Config {
     version: u8,
-    entrynode: EntryNodeConfig,
+    entrynode: Option<EntryNodeConfig>,
     session: SessionConfig,
-    wireguard: WireguardConfig,
+    wireguard: Option<WireguardConfig>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct EntryNodeConfig {
+    endpoint: (Host, u16),
+    api_token: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -17,26 +24,48 @@ struct SessionConfig {
     capabilites: Vec<CapabilitiesConfig>,
 }
 
-
 #[derive(Serialize, Deserialize)]
-struct EntryNodeConfig {
-    endpoint: Url,
-    api_token: String,
+struct WireguardConfig {
+    private_key: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct SessionTargetConfig {
-    type: SessionTargetType,
-    endpoint: Host,
+    type_: SessionTargetType,
+    endpoint: (Host, u16),
 }
 
+#[derive(Serialize, Deserialize)]
 enum CapabilitiesConfig {
     Segmentation,
     Retransmission,
 }
 
+#[derive(Default, Serialize, Deserialize)]
+enum SessionTargetType {
+    #[default]
+    Plain,
+    Sealed,
+}
 
-#[cfg(target_family = "linux")]
-pub fn config_path() -> PathBuf {
+#[cfg(target_os = "linux")]
+pub fn path() -> PathBuf {
     PathBuf::from("/etc/gnosisvpn/config.yaml")
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            version: 1,
+            entrynode: None,
+            session: SessionConfig {
+                target: SessionTargetConfig {
+                    type_: SessionTargetType::Plain,
+                    endpoint: (Host::Domain("wireguard.staging.hoprnet.link".to_string()), 51820),
+                },
+                capabilites: vec![CapabilitiesConfig::Segmentation],
+            },
+            wireguard: None,
+        }
+    }
 }
