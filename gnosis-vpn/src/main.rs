@@ -1,7 +1,9 @@
 use clap::Parser;
 use ctrlc::Error as CtrlcError;
 use gnosis_vpn_lib::command::Command;
+use gnosis_vpn_lib::config;
 use gnosis_vpn_lib::socket;
+use notify::{RecursiveMode, Watcher};
 use std::fs;
 use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
@@ -9,6 +11,7 @@ use std::os::unix::net;
 use std::path::Path;
 use std::process;
 use std::thread;
+use std::time::{Duration, Instant};
 use tracing::Level;
 
 mod backoff;
@@ -45,6 +48,54 @@ fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode>
             Err(exitcode::IOERR)
         }
     }
+}
+
+#[tracing::instrument(level = Level::DEBUG)]
+fn config_channel() -> Result<
+    (
+        notify::RecommendedWatcher,
+        crossbeam_channel::Receiver<notify::Result<notify::Event>>,
+    ),
+    exitcode::ExitCode,
+> {
+    let (sender, receiver) = crossbeam_channel::unbounded::<notify::Result<notify::Event>>();
+
+    let path = config::path();
+    let parent = match path.parent() {
+        Some(dir) => dir,
+        None => {
+            tracing::error!("config path has no parent");
+            return Err(exitcode::UNAVAILABLE);
+        }
+    };
+
+    if !parent.exists() {
+        match fs::create_dir(parent) {
+            Ok(_) => (),
+            Err(e) => {
+                tracing::error!(error = ?e, "error creating config directory");
+                return Err(exitcode::IOERR);
+            }
+        }
+    }
+
+    let mut watcher = match notify::recommended_watcher(sender) {
+        Ok(watcher) => watcher,
+        Err(e) => {
+            tracing::error!(error = ?e, "error creating config watcher");
+            return Err(exitcode::IOERR);
+        }
+    };
+
+    match watcher.watch(parent, RecursiveMode::NonRecursive) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::error!(error = ?e, "error watching config directory");
+            return Err(exitcode::IOERR);
+        }
+    };
+
+    Ok((watcher, receiver))
 }
 
 #[tracing::instrument(level = Level::DEBUG)]
@@ -169,8 +220,97 @@ fn incoming_event(state: &mut core::Core, res_event: Result<event::Event, crossb
     }
 }
 
+// handling fs config events with a grace period to avoid duplicate reads without delay
+const CONFIG_GRACE_PERIOD: Duration = Duration::from_millis(333);
+
+#[tracing::instrument(skip(res_event), level = Level::DEBUG) ]
+fn incoming_config_fs_event(
+    res_event: Result<notify::Result<notify::Event>, crossbeam_channel::RecvError>,
+) -> Option<crossbeam_channel::Receiver<Instant>> {
+    let event: notify::Result<notify::Event> = match res_event {
+        Ok(evt) => evt,
+        Err(e) => {
+            tracing::error!(error = ?e, "error receiving config event");
+            return None;
+        }
+    };
+
+    match event {
+        Ok(notify::Event { kind, paths, attrs: _ })
+            if kind == notify::event::EventKind::Create(notify::event::CreateKind::File)
+                && paths == vec![config::path()] =>
+        {
+            tracing::debug!("config file created");
+            Some(crossbeam_channel::after(CONFIG_GRACE_PERIOD))
+        }
+        Ok(notify::Event { kind, paths, attrs: _ })
+            if kind
+                == notify::event::EventKind::Modify(notify::event::ModifyKind::Data(
+                    notify::event::DataChange::Any,
+                ))
+                && paths == vec![config::path()] =>
+        {
+            tracing::debug!("config file modified");
+            Some(crossbeam_channel::after(CONFIG_GRACE_PERIOD))
+        }
+        Ok(notify::Event { kind, paths, attrs: _ })
+            if kind == notify::event::EventKind::Remove(notify::event::RemoveKind::File)
+                && paths == vec![config::path()] =>
+        {
+            tracing::debug!("config file removed");
+            Some(crossbeam_channel::after(CONFIG_GRACE_PERIOD))
+        }
+        Ok(_) => None,
+        Err(e) => {
+            tracing::error!(error = ?e, "error watching config folder");
+            None
+        }
+    }
+}
+
+fn read_config(state: &mut core::Core) {
+    match fs::read_to_string(config::path()) {
+        Ok(content) => {
+            tracing::info!("config read");
+            match state.handle_config(content) {
+                Ok(_) => (),
+                Err(e) => {
+                    // Log the error and its' chain in one line
+                    let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+                    tracing::error!(?error_chain, "error handling config");
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!(error = ?e, "error reading config");
+        }
+    }
+    match config::read() {
+        Ok(config) => {
+            tracing::info!("config read");
+            match state.handle_config(config) {
+                Ok(_) => (),
+                Err(e) => {
+                    // Log the error and its' chain in one line
+                    let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
+                    tracing::error!(?error_chain, "error handling config");
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!(error = ?e, "error reading config");
+        }
+    }
+}
+
 fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let ctrlc_receiver = match ctrl_channel() {
+        Ok(receiver) => receiver,
+        Err(exit) => return exit,
+    };
+
+    // keep config watcher in scope so it does not get dropped
+    let (_config_watcher, config_receiver) = match config_channel() {
         Ok(receiver) => receiver,
         Err(exit) => return exit,
     };
@@ -183,16 +323,23 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let (sender, core_receiver) = crossbeam_channel::unbounded::<event::Event>();
     let mut state = core::Core::init(sender);
 
+    let mut read_config_receiver: crossbeam_channel::Receiver<Instant> = crossbeam_channel::never();
+
     tracing::info!("started in listening mode");
     loop {
         crossbeam_channel::select! {
-            recv(ctrlc_receiver) -> _ => {
-                tracing::info!("shutting down");
-                return exitcode::OK;
-            }
-            recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
-            recv(core_receiver) -> event => incoming_event(&mut state, event),
-        }
+                    recv(ctrlc_receiver) -> _ => {
+                        tracing::info!("shutting down");
+                        return exitcode::OK;
+                    }
+                    recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
+                    recv(core_receiver) -> event => incoming_event(&mut state, event),
+        // THIS neads to move into core as we want to see the errors of potential config file reads
+                    recv(config_receiver) -> event => {
+                        incoming_config_fs_event(event).map(|r| read_config_receiver = r);
+                    },
+                    recv(read_config_receiver) -> _ => read_config(&mut state),
+                }
     }
 }
 
@@ -201,7 +348,7 @@ fn main() {
     tracing_subscriber::fmt::init();
 
     let _args = Cli::parse();
-    let socket_path = socket::socket_path();
+    let socket_path = socket::path();
 
     // run continously until ctrl-c
     let exit = daemon(&socket_path);
