@@ -53,7 +53,7 @@ pub enum SessionTargetType {
 
 #[cfg(target_os = "linux")]
 pub fn path() -> PathBuf {
-    PathBuf::from("/etc/gnosisvpn/config.yaml")
+    PathBuf::from("/etc/gnosisvpn/config.toml")
 }
 
 #[derive(Error, Debug)]

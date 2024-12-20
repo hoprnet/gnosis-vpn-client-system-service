@@ -7,7 +7,6 @@ use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
-use std::io;
 use std::time;
 use std::time::SystemTime;
 use tracing::instrument;
@@ -71,24 +70,31 @@ enum Status {
 
 #[derive(Debug)]
 enum Issue {
-    ConfigDeseialization(toml::de::Error),
-    ConfigIO(io::Error),
+    Config(config::Error),
+}
+
+fn read_config() -> (Config, Option<Issue>) {
+    match config::read() {
+        Ok(cfg) => (cfg, None),
+        Err(config::Error::NoFile) => (Config::default(), None),
+        Err(config::Error::Deserialization(e)) => {
+            tracing::warn!(warn = ?e, "failed to deserialize config");
+            (
+                Config::default(),
+                Some(Issue::Config(config::Error::Deserialization(e))),
+            )
+        }
+        Err(config::Error::IO(err)) => {
+            tracing::error!(?err, "failed to read config file");
+            (Config::default(), Some(Issue::Config(config::Error::IO(err))))
+        }
+    }
 }
 
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
-        let (config, issues) = match config::read() {
-            Ok(cfg) => (cfg, Vec::new()),
-            Err(config::Error::NoFile) => (Config::default(), Vec::new()),
-            Err(config::Error::Deserialization(e)) => {
-                tracing::warn!(warn = ?e, "failed to deserialize config");
-                (Config::default(), vec![Issue::ConfigDeseialization(e)])
-            }
-            Err(config::Error::IO(err)) => {
-                tracing::error!(?err, "failed to read config file");
-                (Config::default(), vec![Issue::ConfigIO(err)])
-            }
-        };
+        let (config, issue) = read_config();
+        let issues = issue.map(|i| vec![i]).unwrap_or(Vec::new());
         Core {
             config,
             issues,
@@ -134,6 +140,23 @@ impl Core {
             Event::FetchCloseSession(evt) => self.evt_fetch_close_session(evt),
             Event::CheckSession => self.evt_check_session(),
         }
+    }
+
+    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    pub fn update_config(&mut self) {
+        let (config, issue) = read_config();
+        // TODO handle update correctly
+        self.config = config;
+        if let Some(issue) = issue {
+            self.replace_issue(issue)
+        }
+    }
+
+    fn replace_issue(&mut self, issue: Issue) {
+        self.issues.retain(|i| match (i, &issue) {
+            (Issue::Config(_), Issue::Config(_)) => false,
+        });
+        self.issues.push(issue);
     }
 
     fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
@@ -578,8 +601,7 @@ impl fmt::Display for Core {
 impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
-            Issue::ConfigDeseialization(e) => format!("unable to deserialize config: {}", e),
-            Issue::ConfigIO(e) => format!("unable to read config file: {}", e),
+            Issue::Config(e) => format!("config file issue: {}", e),
         };
         write!(f, "{}", val)
     }
