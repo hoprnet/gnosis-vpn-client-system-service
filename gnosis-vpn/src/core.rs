@@ -1,10 +1,13 @@
 use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
+use gnosis_vpn_lib::config;
+use gnosis_vpn_lib::config::Config;
 use gnosis_vpn_lib::log_output;
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
+use std::io;
 use std::time;
 use std::time::SystemTime;
 use tracing::instrument;
@@ -25,12 +28,20 @@ use crate::wireguard;
 
 #[derive(Debug)]
 pub struct Core {
+    // http client
+    client: blocking::Client,
+    // configuration data
+    config: Config,
+    // event transmitter
+    sender: crossbeam_channel::Sender<Event>,
+    // potential non critial user visible errors
+    issues: Vec<Issue>,
+    // ongoing user visible tasks
+    // activities: Vec<String>,
     status: Status,
     entry_node: Option<EntryNode>,
     exit_node: Option<ExitNode>,
-    client: blocking::Client,
     fetch_data: FetchData,
-    sender: crossbeam_channel::Sender<Event>,
     session: Option<Session>,
     tasks: Vec<Box<dyn Task>>,
 }
@@ -58,9 +69,29 @@ enum Status {
     },
 }
 
+#[derive(Debug)]
+enum Issue {
+    ConfigDeseialization(toml::de::Error),
+    ConfigIO(io::Error),
+}
+
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
+        let (config, issues) = match config::read() {
+            Ok(cfg) => (cfg, Vec::new()),
+            Err(config::Error::NoFile) => (Config::default(), Vec::new()),
+            Err(config::Error::Deserialization(e)) => {
+                tracing::warn!(warn = ?e, "failed to deserialize config");
+                (Config::default(), vec![Issue::ConfigDeseialization(e)])
+            }
+            Err(config::Error::IO(err)) => {
+                tracing::error!(?err, "failed to read config file");
+                (Config::default(), vec![Issue::ConfigIO(err)])
+            }
+        };
         Core {
+            config,
+            issues,
             status: Status::Idle,
             entry_node: None,
             exit_node: None,
@@ -71,6 +102,7 @@ impl Core {
                 list_sessions: RemoteData::NotAsked,
                 close_session: RemoteData::NotAsked,
             },
+            // issues: Vec::new(),
             sender,
             session: None,
             // create initial tasks
@@ -524,14 +556,31 @@ impl fmt::Display for Status {
 
 impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut print = HashMap::from([("status", self.status.to_string())]);
-        if let Some(en) = &self.entry_node {
-            print.insert("entry_node", en.to_string());
+        let mut print = HashMap::new();
+        if self.config == Config::default() {
+            print.insert("config", "<default>".to_string());
         }
-        if let Some(xn) = &self.exit_node {
-            print.insert("exit_node", xn.to_string());
+        if self.issues.len() > 0 {
+            print.insert(
+                "issues",
+                self.issues
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+                    .join("\n"),
+            );
         }
         let val = log_output::serialize(&print);
+        write!(f, "{}", val)
+    }
+}
+
+impl fmt::Display for Issue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let val = match self {
+            Issue::ConfigDeseialization(e) => format!("unable to deserialize config: {}", e),
+            Issue::ConfigIO(e) => format!("unable to read config file: {}", e),
+        };
         write!(f, "{}", val)
     }
 }

@@ -268,41 +268,6 @@ fn incoming_config_fs_event(
     }
 }
 
-fn read_config(state: &mut core::Core) {
-    match fs::read_to_string(config::path()) {
-        Ok(content) => {
-            tracing::info!("config read");
-            match state.handle_config(content) {
-                Ok(_) => (),
-                Err(e) => {
-                    // Log the error and its' chain in one line
-                    let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
-                    tracing::error!(?error_chain, "error handling config");
-                }
-            }
-        }
-        Err(e) => {
-            tracing::error!(error = ?e, "error reading config");
-        }
-    }
-    match config::read() {
-        Ok(config) => {
-            tracing::info!("config read");
-            match state.handle_config(config) {
-                Ok(_) => (),
-                Err(e) => {
-                    // Log the error and its' chain in one line
-                    let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
-                    tracing::error!(?error_chain, "error handling config");
-                }
-            }
-        }
-        Err(e) => {
-            tracing::error!(error = ?e, "error reading config");
-        }
-    }
-}
-
 fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let ctrlc_receiver = match ctrl_channel() {
         Ok(receiver) => receiver,
@@ -328,18 +293,13 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     tracing::info!("started in listening mode");
     loop {
         crossbeam_channel::select! {
-                    recv(ctrlc_receiver) -> _ => {
-                        tracing::info!("shutting down");
-                        return exitcode::OK;
-                    }
-                    recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
-                    recv(core_receiver) -> event => incoming_event(&mut state, event),
-        // THIS neads to move into core as we want to see the errors of potential config file reads
-                    recv(config_receiver) -> event => {
-                        incoming_config_fs_event(event).map(|r| read_config_receiver = r);
-                    },
-                    recv(read_config_receiver) -> _ => read_config(&mut state),
-                }
+            recv(ctrlc_receiver) -> _ => {
+                tracing::info!("shutting down");
+                return exitcode::OK;
+            }
+            recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
+            recv(core_receiver) -> event => incoming_event(&mut state, event),
+        }
     }
 }
 
