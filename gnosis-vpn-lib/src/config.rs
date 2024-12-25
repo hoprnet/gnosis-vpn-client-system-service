@@ -7,6 +7,8 @@ use std::vec::Vec;
 use thiserror::Error;
 use url::Host;
 
+const SUPPORTED_CONFIG_VERSIONS: [u8; 1] = [1];
+
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     version: u8,
@@ -64,6 +66,8 @@ pub enum Error {
     IO(#[from] std::io::Error),
     #[error("Deserialization error: {0}")]
     Deserialization(#[from] toml::de::Error),
+    #[error("Unsupported config version")]
+    VersionMismatch(u8),
 }
 
 pub fn read() -> Result<Config, Error> {
@@ -74,8 +78,12 @@ pub fn read() -> Result<Config, Error> {
             Error::IO(e)
         }
     })?;
-    let config = toml::from_str(&content).map_err(|e| Error::Deserialization(e))?;
-    Ok(config)
+    let config: Config = toml::from_str(&content).map_err(|e| Error::Deserialization(e))?;
+    if SUPPORTED_CONFIG_VERSIONS.contains(&config.version) {
+        Ok(config)
+    } else {
+        Err(Error::VersionMismatch(config.version))
+    }
 }
 
 impl Default for Config {

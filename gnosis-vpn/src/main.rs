@@ -293,18 +293,17 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     tracing::info!("started in listening mode");
     loop {
         crossbeam_channel::select! {
-                    recv(ctrlc_receiver) -> _ => {
-                        tracing::info!("shutting down");
-                        return exitcode::OK;
-                    }
-                    recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
-                    recv(core_receiver) -> event => incoming_event(&mut state, event),
-        // THIS neads to move into core as we want to see the errors of potential config file reads
-                    recv(config_receiver) -> event => {
-                        incoming_config_fs_event(event).map(|r| read_config_receiver = r);
-                    },
-                    recv(read_config_receiver) -> _ => state.update_config(),
-                }
+            recv(ctrlc_receiver) -> _ => {
+                tracing::info!("shutting down");
+                return exitcode::OK;
+            }
+            recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
+            recv(core_receiver) -> event => incoming_event(&mut state, event),
+            recv(config_receiver) -> event => {
+                incoming_config_fs_event(event).map(|r| read_config_receiver = r);
+            },
+            recv(read_config_receiver) -> _ => state.update_config(),
+        }
     }
 }
 

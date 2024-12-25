@@ -88,6 +88,13 @@ fn read_config() -> (Config, Option<Issue>) {
             tracing::error!(?err, "failed to read config file");
             (Config::default(), Some(Issue::Config(config::Error::IO(err))))
         }
+        Err(config::Error::VersionMismatch(v)) => {
+            tracing::error!(version = ?v, "config file version unsupported");
+            (
+                Config::default(),
+                Some(Issue::Config(config::Error::VersionMismatch(v))),
+            )
+        }
     }
 }
 
@@ -108,7 +115,6 @@ impl Core {
                 list_sessions: RemoteData::NotAsked,
                 close_session: RemoteData::NotAsked,
             },
-            // issues: Vec::new(),
             sender,
             session: None,
             // create initial tasks
