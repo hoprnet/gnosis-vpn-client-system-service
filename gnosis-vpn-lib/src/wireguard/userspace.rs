@@ -7,7 +7,10 @@ use crate::wireguard::WireGuard;
 pub struct UserSpace {}
 
 pub fn available() -> Result<bool, Error> {
-    Err(Error::new(ErrorKind::Other, "Not yet implemented"))
+    Err(Error::new(
+        ErrorKind::Other,
+        "userspace wireguard handling not yet implemented",
+    ))
 }
 
 impl UserSpace {

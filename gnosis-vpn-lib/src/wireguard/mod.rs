@@ -10,31 +10,30 @@ pub enum Error {
     NotYetImplemented,
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
-    #[error("Deserialization error: {0}")]
-    Deserialization(#[from] toml::de::Error),
-    #[error("Unsupported config version")]
-    VersionMismatch(u8),
 }
 
-pub fn best_flavor() -> Result<Option<Box<dyn WireGuard>>, Error> {
-    if kernel::available()? {
-        Ok(Some(Box::new(kernel::Kernel::new())))
-    } else if userspace::available()? {
-        Ok(Some(Box::new(userspace::UserSpace::new())))
-    } else if tooling::available()? {
-        Ok(Some(Box::new(tooling::Tooling::new())))
-    } else {
-        Ok(None)
+pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
+    let mut errors: Vec<Error> = Vec::new();
+
+    match kernel::available() {
+        Ok(true) => return (Some(Box::new(kernel::Kernel::new())), errors),
+        Ok(false) => (),
+        Err(e) => errors.push(Error::IO(e)),
     }
-    if kernel::available() {
-        Some(Box::new(kernel::Kernel::new()))
-    } else if userspace::available() {
-        Some(Box::new(userspace::UserSpace::new()))
-    } else if tooling::available() {
-        Some(Box::new(tooling::Tooling::new()))
-    } else {
-        None
+
+    match userspace::available() {
+        Ok(true) => return (Some(Box::new(userspace::UserSpace::new())), errors),
+        Ok(false) => (),
+        Err(e) => errors.push(Error::IO(e)),
     }
+
+    match tooling::available() {
+        Ok(true) => return (Some(Box::new(tooling::Tooling::new())), errors),
+        Ok(false) => (),
+        Err(e) => errors.push(Error::IO(e)),
+    }
+
+    (None, errors)
 }
 
 pub trait WireGuard {}

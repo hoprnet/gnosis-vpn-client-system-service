@@ -8,7 +8,10 @@ use crate::wireguard::WireGuard;
 pub struct Kernel {}
 
 pub fn available() -> Result<bool, Error> {
-    Err(Error::new(ErrorKind::Other, "Not yet implemented"))
+    Err(Error::new(
+        ErrorKind::Other,
+        "netlink kernel module not yet implemented",
+    ))
 }
 
 impl Kernel {
