@@ -1,8 +1,7 @@
 use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
-use gnosis_vpn_lib::config;
 use gnosis_vpn_lib::config::Config;
-use gnosis_vpn_lib::log_output;
+use gnosis_vpn_lib::{config, log_output, wireguard};
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -22,8 +21,6 @@ use crate::remote_data;
 use crate::remote_data::RemoteData;
 use crate::session;
 use crate::session::Session;
-use crate::task::Task;
-use crate::wireguard;
 
 #[derive(Debug)]
 pub struct Core {
@@ -45,7 +42,6 @@ pub struct Core {
     exit_node: Option<ExitNode>,
     fetch_data: FetchData,
     session: Option<Session>,
-    tasks: Vec<Box<dyn Task>>,
 }
 
 #[derive(Debug)]
@@ -74,7 +70,7 @@ enum Status {
 #[derive(Debug)]
 enum Issue {
     Config(config::Error),
-    Wireguard(wireguard::Error),
+    WireGuard(wireguard::Error),
 }
 
 fn read_config() -> (Config, Option<Issue>) {
@@ -104,9 +100,12 @@ fn read_config() -> (Config, Option<Issue>) {
 
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
-        let (config, issue) = read_config();
-        let issues = issue.map(|i| vec![i]).unwrap_or(Vec::new());
-        let wg = wireguard::available();
+        let (config, conf_issue) = read_config();
+        let mut issues = conf_issue.map(|i| vec![i]).unwrap_or(Vec::new());
+        let (wg, wg_errors) = wireguard::best_flavor();
+        let mut wg_issues = wg_errors.iter().map(|i| Issue::WireGuard(i.clone())).collect();
+        issues.append(&mut wg_issues);
+
         Core {
             config,
             issues,
@@ -120,10 +119,9 @@ impl Core {
                 list_sessions: RemoteData::NotAsked,
                 close_session: RemoteData::NotAsked,
             },
+            wg,
             sender,
             session: None,
-            // create initial tasks
-            tasks: wireguard::tasks(),
         }
     }
 
@@ -159,15 +157,13 @@ impl Core {
         // TODO handle update correctly
         self.config = config;
         if let Some(issue) = issue {
-            self.replace_issue(issue)
+            // remove existing config issue
+            self.issues.retain(|i| match (i, &issue) {
+                (Issue::Config(_), Issue::Config(_)) => false,
+                _ => true,
+            });
+            self.issues.push(issue);
         }
-    }
-
-    fn replace_issue(&mut self, issue: Issue) {
-        self.issues.retain(|i| match (i, &issue) {
-            (Issue::Config(_), Issue::Config(_)) => false,
-        });
-        self.issues.push(issue);
     }
 
     fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
@@ -613,6 +609,7 @@ impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Issue::Config(e) => format!("config file issue: {}", e),
+            Issue::WireGuard(e) => format!("wireguard issue: {}", e),
         };
         write!(f, "{}", val)
     }
