@@ -1,31 +1,25 @@
-use anyhow::anyhow;
 use std::process::Command;
 
-use crate::task::Task;
+use crate::wireguard::Wireguard;
 
 #[derive(Debug)]
-pub struct Tooling {
-    available: bool,
-    error: Option<anyhow::Error>,
-}
+pub struct Tooling {}
 
 impl Tooling {
     pub fn new() -> Self {
-        Tooling {
-            available: false,
-            error: None,
-        }
+        Tooling {}
     }
 }
 
-impl Task for Tooling {
-    fn init(&mut self) {
+impl Wireguard for Tooling {
+    fn available(&self) -> bool {
         let res = Command::new("which").arg("wg-quick").status();
         match res {
-            Ok(code) => self.available = code.success(),
-            Err(e) => self.error = Some(anyhow!(e)),
+            Ok(code) => code.success(),
+            Err(e) => {
+                tracing::warn!(warn = ?e, "failed checking for wg-quick");
+                false
+            }
         }
     }
-
-    fn run(&self) {}
 }

@@ -1,17 +1,19 @@
-use std::vec;
-
-use crate::task::Task;
-
 mod kernel;
 mod tooling;
 mod userspace;
 
-pub trait Wireguard {}
+pub fn best_flavor() -> Option<Box<dyn Wireguard>> {
+    if kernel::available() {
+        Some(Box::new(kernel::Kernel::new()))
+    } else if userspace::available() {
+        Some(Box::new(userspace::UserSpace::new()))
+    } else if tooling::available() {
+        Some(Box::new(tooling::Tooling::new()))
+    } else {
+        None
+    }
+}
 
-pub fn tasks() -> Vec<Box<dyn Task>> {
-    vec![
-        Box::new(kernel::Kernel::new()),
-        Box::new(tooling::Tooling::new()),
-        Box::new(userspace::UserSpace::new()),
-    ]
+pub trait Wireguard {
+    fn available(&self) -> bool;
 }

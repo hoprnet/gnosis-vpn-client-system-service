@@ -1,23 +1,18 @@
-use crate::task::Task;
+use crate::wireguard::Wireguard;
 
 // This will be the implementation using netlink kernel access.
 #[derive(Debug)]
-pub struct Kernel {
-    available: bool,
-    error: Option<anyhow::Error>,
-}
+pub struct Kernel {}
 
 impl Kernel {
     pub fn new() -> Self {
-        Kernel {
-            available: false,
-            error: None,
-        }
+        Kernel {}
     }
 }
 
-impl Task for Kernel {
-    fn init(&mut self) {}
-
-    fn run(&self) {}
+impl Wireguard for Kernel {
+    fn available(&self) -> bool {
+        // TODO
+        false
+    }
 }

@@ -35,6 +35,7 @@ pub struct Core {
     sender: crossbeam_channel::Sender<Event>,
     // potential non critial user visible errors
     issues: Vec<Issue>,
+
     // ongoing user visible tasks
     // activities: Vec<String>,
     status: Status,

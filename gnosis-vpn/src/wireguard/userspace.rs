@@ -1,22 +1,17 @@
-use crate::task::Task;
+use crate::wireguard::Wireguard;
 
 #[derive(Debug)]
-pub struct UserSpace {
-    available: bool,
-    error: Option<anyhow::Error>,
-}
+pub struct UserSpace {}
 
 impl UserSpace {
     pub fn new() -> Self {
-        UserSpace {
-            available: false,
-            error: None,
-        }
+        UserSpace {}
     }
 }
 
-impl Task for UserSpace {
-    fn init(&mut self) {}
-
-    fn run(&self) {}
+impl Wireguard for UserSpace {
+    fn available(&self) -> bool {
+        // TODO
+        false
+    }
 }
