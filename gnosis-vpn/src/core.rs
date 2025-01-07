@@ -35,6 +35,8 @@ pub struct Core {
     sender: crossbeam_channel::Sender<Event>,
     // potential non critial user visible errors
     issues: Vec<Issue>,
+    // wg interface,
+    wg: Option<Box<dyn wireguard::WireGuard>>,
 
     // ongoing user visible tasks
     // activities: Vec<String>,
@@ -72,6 +74,7 @@ enum Status {
 #[derive(Debug)]
 enum Issue {
     Config(config::Error),
+    Wireguard(wireguard::Error),
 }
 
 fn read_config() -> (Config, Option<Issue>) {
@@ -103,6 +106,7 @@ impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
         let (config, issue) = read_config();
         let issues = issue.map(|i| vec![i]).unwrap_or(Vec::new());
+        let wg = wireguard::available();
         Core {
             config,
             issues,
