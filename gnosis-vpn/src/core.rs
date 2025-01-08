@@ -74,6 +74,7 @@ enum Status {
 enum Issue {
     Config(config::Error),
     State(state::Error),
+    WireGuardInit(wireguard::Error),
     WireGuard(wireguard::Error),
 }
 
@@ -123,7 +124,7 @@ impl Core {
         let (config, conf_issue) = read_config();
         let mut issues = conf_issue.map(|i| vec![i]).unwrap_or(Vec::new());
         let (wg, wg_errors) = wireguard::best_flavor();
-        let mut wg_issues = wg_errors.iter().map(|i| Issue::WireGuard(i.clone())).collect();
+        let mut wg_issues = wg_errors.iter().map(|i| Issue::WireGuardInit(i.clone())).collect();
         issues.append(&mut wg_issues);
         let (state, state_issue) = read_state();
         if let Some(issue) = state_issue {
@@ -148,8 +149,6 @@ impl Core {
             sender,
             session: None,
         }
-
-        self.check_wg_init();
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
@@ -184,20 +183,39 @@ impl Core {
         // TODO handle update correctly
         self.config = config;
         if let Some(issue) = issue {
-            // remove existing config issue
-            self.issues.retain(|i| match (i, &issue) {
-                (Issue::Config(_), Issue::Config(_)) => false,
-                _ => true,
-            });
-            self.issues.push(issue);
+            self.replace_issue(issue);
         }
     }
 
-    fn check_wg_init(&mut self) {
-        if let Some(wg) = &self.wg {
-            if let None = &self.state.wg_private_key {
-                wg.generate_key();
-            }
+    fn replace_issue(&mut self, issue: Issue) {
+        // remove existing config issue
+        self.issues.retain(|i| match (i, &issue) {
+            (Issue::Config(_), Issue::Config(_)) => false,
+            (Issue::WireGuard(_), Issue::WireGuard(_)) => false,
+            (Issue::State(_), Issue::State(_)) => false,
+            _ => true,
+        });
+        self.issues.push(issue);
+    }
+
+    pub fn setup(&mut self) {
+        if let (Some(wg), None) = (&self.wg, &self.state.wg_private_key) {
+            let priv_key = match wg.generate_key() {
+                Ok(key) => key,
+                Err(err) => {
+                    tracing::error!(?err, "failed to generate wireguard private key");
+                    self.replace_issue(Issue::WireGuard(err));
+                    return;
+                }
+            };
+            match self.state.set_wg_private_key(priv_key) {
+                Ok(_) => (),
+                Err(err) => {
+                    tracing::error!(?err, "failed to write wireguard private key to state");
+                    self.replace_issue(Issue::State(err));
+                    return;
+                }
+            };
         }
     }
 
@@ -644,8 +662,9 @@ impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let val = match self {
             Issue::Config(e) => format!("config file issue: {}", e),
-            Issue::WireGuard(e) => format!("wireguard issue: {}", e),
+            Issue::WireGuardInit(e) => format!("wireguard initialization issue: {}", e),
             Issue::State(e) => format!("storage issue: {}", e),
+            Issue::WireGuard(e) => format!("wireguard issue: {}", e),
         };
         write!(f, "{}", val)
     }
