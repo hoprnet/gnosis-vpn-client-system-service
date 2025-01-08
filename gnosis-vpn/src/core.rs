@@ -1,7 +1,8 @@
 use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
 use gnosis_vpn_lib::config::Config;
-use gnosis_vpn_lib::{config, log_output, wireguard};
+use gnosis_vpn_lib::state::State;
+use gnosis_vpn_lib::{config, log_output, state, wireguard};
 use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
@@ -32,6 +33,8 @@ pub struct Core {
     sender: crossbeam_channel::Sender<Event>,
     // potential non critial user visible errors
     issues: Vec<Issue>,
+    // internal persistent application state
+    state: state::State,
     // wg interface,
     wg: Option<Box<dyn wireguard::WireGuard>>,
 
@@ -70,6 +73,7 @@ enum Status {
 #[derive(Debug)]
 enum Issue {
     Config(config::Error),
+    State(state::Error),
     WireGuard(wireguard::Error),
 }
 
@@ -98,6 +102,22 @@ fn read_config() -> (Config, Option<Issue>) {
     }
 }
 
+fn read_state() -> (State, Option<Issue>) {
+    match state::read() {
+        Ok(state) => (state, None),
+        Err(state::Error::NoFile) => (State::default(), None),
+        Err(state::Error::NoStateFolder) => (State::default(), Some(Issue::State(state::Error::NoStateFolder))),
+        Err(state::Error::BinCodeError(e)) => {
+            tracing::warn!(warn = ?e, "failed to deserialize state");
+            (State::default(), Some(Issue::State(state::Error::BinCodeError(e))))
+        }
+        Err(state::Error::IO(err)) => {
+            tracing::error!(?err, "failed to read state file");
+            (State::default(), Some(Issue::State(state::Error::IO(err))))
+        }
+    }
+}
+
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
         let (config, conf_issue) = read_config();
@@ -105,6 +125,10 @@ impl Core {
         let (wg, wg_errors) = wireguard::best_flavor();
         let mut wg_issues = wg_errors.iter().map(|i| Issue::WireGuard(i.clone())).collect();
         issues.append(&mut wg_issues);
+        let (state, state_issue) = read_state();
+        if let Some(issue) = state_issue {
+            issues.push(issue);
+        }
 
         Core {
             config,
@@ -119,6 +143,7 @@ impl Core {
                 list_sessions: RemoteData::NotAsked,
                 close_session: RemoteData::NotAsked,
             },
+            state,
             wg,
             sender,
             session: None,
@@ -610,6 +635,7 @@ impl fmt::Display for Issue {
         let val = match self {
             Issue::Config(e) => format!("config file issue: {}", e),
             Issue::WireGuard(e) => format!("wireguard issue: {}", e),
+            Issue::State(e) => format!("storage issue: {}", e),
         };
         write!(f, "{}", val)
     }
