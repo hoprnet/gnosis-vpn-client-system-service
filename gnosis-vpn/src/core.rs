@@ -148,6 +148,8 @@ impl Core {
             sender,
             session: None,
         }
+
+        self.check_wg_init();
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
@@ -188,6 +190,14 @@ impl Core {
                 _ => true,
             });
             self.issues.push(issue);
+        }
+    }
+
+    fn check_wg_init(&mut self) {
+        if let Some(wg) = &self.wg {
+            if let None = &self.state.wg_private_key {
+                wg.generate_key();
+            }
         }
     }
 

@@ -1,17 +1,11 @@
-use std::io::Error;
-use std::io::ErrorKind;
-
-use crate::wireguard::WireGuard;
+use crate::wireguard::{Error, WireGuard};
 
 // This will be the implementation using netlink kernel access.
 #[derive(Debug)]
 pub struct Kernel {}
 
 pub fn available() -> Result<bool, Error> {
-    Err(Error::new(
-        ErrorKind::Other,
-        "netlink kernel module not yet implemented",
-    ))
+    Err(Error::NotYetImplemented("netlink kernel module".to_string()))
 }
 
 impl Kernel {
@@ -20,4 +14,8 @@ impl Kernel {
     }
 }
 
-impl WireGuard for Kernel {}
+impl WireGuard for Kernel {
+    fn generate_key(&self) -> Result<String, Error> {
+        Err(Error::NotYetImplemented("netlink kernel module".to_string()))
+    }
+}

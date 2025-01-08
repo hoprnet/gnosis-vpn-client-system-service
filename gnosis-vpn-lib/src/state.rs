@@ -7,7 +7,7 @@ use thiserror::Error;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct State {
-    wg_private_key: Option<String>,
+    pub wg_private_key: Option<String>,
 }
 
 #[derive(Error, Debug)]

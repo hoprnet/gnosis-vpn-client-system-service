@@ -8,10 +8,12 @@ mod userspace;
 #[derive(Error, Debug, Clone)]
 pub enum Error {
     #[error("Implementation pending")]
-    NotYetImplemented,
+    NotYetImplemented(String),
     // cannot use IO error because it does not allow Clone or Copy
     #[error("IO error: {0}")]
     IO(String),
+    #[error("Encoding error: {0}")]
+    FromUtf8Error(#[from] std::string::FromUtf8Error),
 }
 
 pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
@@ -38,4 +40,6 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
     (None, errors)
 }
 
-pub trait WireGuard: Debug {}
+pub trait WireGuard: Debug {
+    fn generate_key(&self) -> Result<String, Error>;
+}
