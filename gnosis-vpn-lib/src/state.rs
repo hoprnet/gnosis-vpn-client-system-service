@@ -12,15 +12,15 @@ pub struct State {
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("State folder error")]
+    #[error("state folder error")]
     NoStateFolder,
-    #[error("State file not found")]
+    #[error("state file not found")]
     NoFile,
-    #[error("Error determining parent folder")]
+    #[error("error determining parent folder")]
     NoParentFolder,
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
-    #[error("Error serializing/deserializing state: {0}")]
+    #[error("error serializing/deserializing state: {0}")]
     BinCodeError(#[from] bincode::Error),
 }
 

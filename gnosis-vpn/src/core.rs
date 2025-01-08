@@ -633,7 +633,7 @@ impl fmt::Display for Core {
                     .iter()
                     .map(|i| i.to_string())
                     .collect::<Vec<String>>()
-                    .join("\n"),
+                    .join(" | "),
             );
         }
         let val = log_output::serialize(&print);
