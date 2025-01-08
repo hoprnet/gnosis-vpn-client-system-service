@@ -27,6 +27,7 @@ pub struct EntryNodeConfig {
 pub struct SessionConfig {
     target: SessionTargetConfig,
     capabilites: Vec<CapabilitiesConfig>,
+    destination: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -111,6 +112,7 @@ impl Default for SessionConfig {
         SessionConfig {
             target: SessionTargetConfig::default(),
             capabilites: vec![CapabilitiesConfig::Segmentation],
+            destination: None,
         }
     }
 }
