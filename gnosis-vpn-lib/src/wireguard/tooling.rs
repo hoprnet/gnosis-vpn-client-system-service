@@ -1,5 +1,5 @@
 use std::io::Error;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::wireguard::WireGuard;
 
@@ -7,7 +7,12 @@ use crate::wireguard::WireGuard;
 pub struct Tooling {}
 
 pub fn available() -> Result<bool, Error> {
-    let code = Command::new("which").arg("wg-quick").status()?;
+    let code = Command::new("which")
+        .arg("wg-quick")
+        // suppress log output
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
     Ok(code.success())
 }
 
