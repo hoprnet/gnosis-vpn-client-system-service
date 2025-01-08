@@ -16,6 +16,8 @@ pub enum Error {
     NoStateFolder,
     #[error("State file not found")]
     NoFile,
+    #[error("Error determining parent folder")]
+    NoParentFolder,
     #[error("IO error: {0}")]
     IO(#[from] std::io::Error),
     #[error("Error serializing/deserializing state: {0}")]
@@ -57,6 +59,8 @@ impl State {
             None => return Err(Error::NoStateFolder),
         };
         let content = bincode::serialize(&self).map_err(|e| Error::BinCodeError(e))?;
+        let parent = path.parent().ok_or(Error::NoParentFolder)?;
+        fs::create_dir_all(parent).map_err(|e| Error::IO(e))?;
         fs::write(path, content).map_err(|e| Error::IO(e))
     }
 }

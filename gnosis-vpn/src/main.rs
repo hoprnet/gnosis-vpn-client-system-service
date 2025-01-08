@@ -289,7 +289,6 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let mut read_config_receiver: crossbeam_channel::Receiver<Instant> = crossbeam_channel::never();
 
     tracing::info!("started in listening mode");
-    state.setup();
     loop {
         crossbeam_channel::select! {
             recv(ctrlc_receiver) -> _ => {

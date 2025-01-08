@@ -82,23 +82,9 @@ fn read_config() -> (Config, Option<Issue>) {
     match config::read() {
         Ok(cfg) => (cfg, None),
         Err(config::Error::NoFile) => (Config::default(), None),
-        Err(config::Error::Deserialization(e)) => {
-            tracing::warn!(warn = ?e, "failed to deserialize config");
-            (
-                Config::default(),
-                Some(Issue::Config(config::Error::Deserialization(e))),
-            )
-        }
-        Err(config::Error::IO(err)) => {
-            tracing::error!(?err, "failed to read config file");
-            (Config::default(), Some(Issue::Config(config::Error::IO(err))))
-        }
-        Err(config::Error::VersionMismatch(v)) => {
-            tracing::error!(version = ?v, "config file version unsupported");
-            (
-                Config::default(),
-                Some(Issue::Config(config::Error::VersionMismatch(v))),
-            )
+        Err(err) => {
+            tracing::warn!(warn = ?err, "failed to read config file");
+            (Config::default(), Some(Issue::Config(err)))
         }
     }
 }
@@ -107,14 +93,9 @@ fn read_state() -> (State, Option<Issue>) {
     match state::read() {
         Ok(state) => (state, None),
         Err(state::Error::NoFile) => (State::default(), None),
-        Err(state::Error::NoStateFolder) => (State::default(), Some(Issue::State(state::Error::NoStateFolder))),
-        Err(state::Error::BinCodeError(e)) => {
-            tracing::warn!(warn = ?e, "failed to deserialize state");
-            (State::default(), Some(Issue::State(state::Error::BinCodeError(e))))
-        }
-        Err(state::Error::IO(err)) => {
-            tracing::error!(?err, "failed to read state file");
-            (State::default(), Some(Issue::State(state::Error::IO(err))))
+        Err(err) => {
+            tracing::warn!(warn = ?err, "failed to read state file");
+            (State::default(), Some(Issue::State(err)))
         }
     }
 }
@@ -131,7 +112,7 @@ impl Core {
             issues.push(issue);
         }
 
-        Core {
+        let mut core = Core {
             config,
             issues,
             status: Status::Idle,
@@ -148,6 +129,29 @@ impl Core {
             wg,
             sender,
             session: None,
+        };
+        core.setup();
+        core
+    }
+
+    fn setup(&mut self) {
+        if let (Some(wg), None) = (&self.wg, &self.state.wg_private_key) {
+            let priv_key = match wg.generate_key() {
+                Ok(key) => key,
+                Err(err) => {
+                    tracing::error!(?err, "failed to generate wireguard private key");
+                    self.replace_issue(Issue::WireGuard(err));
+                    return;
+                }
+            };
+            match self.state.set_wg_private_key(priv_key) {
+                Ok(_) => (),
+                Err(err) => {
+                    tracing::error!(?err, "failed to write wireguard private key to state");
+                    self.replace_issue(Issue::State(err));
+                    return;
+                }
+            };
         }
     }
 
@@ -196,27 +200,6 @@ impl Core {
             _ => true,
         });
         self.issues.push(issue);
-    }
-
-    pub fn setup(&mut self) {
-        if let (Some(wg), None) = (&self.wg, &self.state.wg_private_key) {
-            let priv_key = match wg.generate_key() {
-                Ok(key) => key,
-                Err(err) => {
-                    tracing::error!(?err, "failed to generate wireguard private key");
-                    self.replace_issue(Issue::WireGuard(err));
-                    return;
-                }
-            };
-            match self.state.set_wg_private_key(priv_key) {
-                Ok(_) => (),
-                Err(err) => {
-                    tracing::error!(?err, "failed to write wireguard private key to state");
-                    self.replace_issue(Issue::State(err));
-                    return;
-                }
-            };
-        }
     }
 
     fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
