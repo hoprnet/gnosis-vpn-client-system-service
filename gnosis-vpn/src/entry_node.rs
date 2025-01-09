@@ -1,5 +1,4 @@
 use anyhow::Result;
-use gnosis_vpn_lib::config::EntryNodeConfig;
 use gnosis_vpn_lib::log_output;
 use gnosis_vpn_lib::peer_id::PeerId;
 use reqwest::blocking;
@@ -14,8 +13,12 @@ use crate::remote_data;
 
 #[derive(Debug)]
 pub struct EntryNode {
-    input: Option<EntryNodeConfig>,
-    addresses: Option<Addresses>,
+    // TODO store multiple entry nodes and exit nodes and separate user_input
+    pub endpoint: Url,
+    pub api_token: String,
+    pub listen_host: Option<String>,
+    pub path: Path,
+    pub addresses: Option<Addresses>,
 }
 
 #[derive(Debug)]

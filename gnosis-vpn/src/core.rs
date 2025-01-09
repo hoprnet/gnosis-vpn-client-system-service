@@ -133,7 +133,11 @@ impl Core {
     }
 
     fn setup(&mut self) {
-        if let (Some(wg), None) = (&self.wg, &self.state.wg_private_key) {
+        if let (Some(wg), None, None) = (
+            &self.wg,
+            &self.state.wg_private_key,
+            &self.config.wire_guard.map(|wg| wg.private_key),
+        ) {
             let priv_key = match wg.generate_key() {
                 Ok(key) => key,
                 Err(err) => {
