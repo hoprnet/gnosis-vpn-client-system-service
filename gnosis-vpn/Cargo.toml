@@ -15,6 +15,7 @@ exponential-backoff = { workspace = true }
 gnosis-vpn-lib = { workspace = true }
 libp2p-identity = { workspace = true }
 notify = { workspace = true }
+rand = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
