@@ -136,7 +136,7 @@ impl Core {
     fn setup(&mut self) {
         self.setup_wg_priv_key();
         if let Err(err) = self.setup_from_config() {
-            tracing::error!(?err, "failed initial setup from config");
+            tracing::error!(?err, "failed setup from config");
         }
     }
 
@@ -237,11 +237,11 @@ impl Core {
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
     pub fn update_config(&mut self) {
         let (config, issue) = read_config();
-        // TODO handle update correctly
         self.config = config;
         if let Some(issue) = issue {
             self.replace_issue(issue);
         }
+        self.setup();
     }
 
     fn replace_issue(&mut self, issue: Issue) {
