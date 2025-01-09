@@ -4,6 +4,7 @@ use gnosis_vpn_lib::config::Config;
 use gnosis_vpn_lib::peer_id::PeerId;
 use gnosis_vpn_lib::state::State;
 use gnosis_vpn_lib::{config, log_output, state, wireguard};
+use rand::Rng;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
@@ -37,6 +38,8 @@ pub struct Core {
     state: state::State,
     // wg interface,
     wg: Option<Box<dyn wireguard::WireGuard>>,
+    // random generator
+    rng: rand::rngs::ThreadRng,
 
     status: Status,
     entry_node: Option<EntryNode>,
@@ -131,6 +134,7 @@ impl Core {
             },
             state,
             wg,
+            rng: rand::thread_rng(),
             sender,
             session: None,
         };
@@ -287,7 +291,9 @@ impl Core {
                 let session = serde_json::from_value::<Session>(value)?;
                 self.fetch_data.open_session = RemoteData::Success;
                 self.session = Some(session);
-                let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                let next_check = self.rng.gen_range(5..13);
+                let cancel_sender =
+                    session::schedule_check_session(time::Duration::from_secs(next_check), &self.sender);
                 self.status = Status::MonitoringSession {
                     start_time: SystemTime::now(),
                     cancel_sender,
