@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::vec::Vec;
 use thiserror::Error;
-use url::{Host, Url};
+use url::Url;
 
 use crate::peer_id::PeerId;
 
@@ -42,7 +42,7 @@ pub struct WireGuardConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionTargetConfig {
     pub type_: SessionTargetType,
-    pub host: Host,
+    pub host: String,
     pub port: u16,
 }
 

@@ -25,7 +25,7 @@ impl Serialize for PeerId {
     where
         S: Serializer,
     {
-        self.id.to_bytes().serialize(serializer)
+        self.id.to_base58().serialize(serializer)
     }
 }
 
@@ -34,8 +34,8 @@ impl<'de> Deserialize<'de> for PeerId {
     where
         D: Deserializer<'de>,
     {
-        let bytes = <[u8; 32]>::deserialize(deserializer)?;
-        let id = libp2p_PeerId::from_bytes(&bytes).map_err(serde::de::Error::custom)?;
+        let str = String::deserialize(deserializer)?;
+        let id = libp2p_PeerId::from_str(&str).map_err(serde::de::Error::custom)?;
         Ok(PeerId { id })
     }
 }

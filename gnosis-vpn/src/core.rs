@@ -172,6 +172,7 @@ impl Core {
     }
 
     fn setup_from_config(&mut self) -> Result<()> {
+        self.check_close_session()?;
         if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
             let en_endpoint = entry_node.endpoint.clone();
             let en_api_token = entry_node.api_token.clone();
@@ -184,8 +185,6 @@ impl Core {
             let xn_peer_id = session.destination;
 
             // convert config to old application struture
-            self.check_close_session()?;
-
             self.entry_node = Some(EntryNode::new(
                 &en_endpoint,
                 &en_api_token,
