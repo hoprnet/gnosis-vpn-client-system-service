@@ -11,54 +11,54 @@ use crate::peer_id::PeerId;
 
 const SUPPORTED_CONFIG_VERSIONS: [u8; 1] = [1];
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
-    version: u8,
-    entrynode: Option<EntryNodeConfig>,
-    session: Option<SessionConfig>,
-    wireguard: Option<WireguardConfig>,
+    pub version: u8,
+    pub entry_node: Option<EntryNodeConfig>,
+    pub session: Option<SessionConfig>,
+    pub wire_guard: Option<WireGuardConfig>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EntryNodeConfig {
-    endpoint: (Host, u16),
-    api_token: String,
+    pub endpoint: (Host, u16),
+    pub api_token: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
-    capabilites: Vec<CapabilitiesConfig>,
-    destination: PeerId,
-    listen_host: Option<String>,
-    path: Option<SessionPathConfig>,
-    target: SessionTargetConfig,
+    pub capabilites: Vec<CapabilitiesConfig>,
+    pub destination: PeerId,
+    pub listen_host: Option<String>,
+    pub path: Option<SessionPathConfig>,
+    pub target: SessionTargetConfig,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct WireguardConfig {
-    private_key: String,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WireGuardConfig {
+    pub private_key: String,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionTargetConfig {
-    type_: SessionTargetType,
-    endpoint: (Host, u16),
+    pub type_: SessionTargetType,
+    pub endpoint: (Host, u16),
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum CapabilitiesConfig {
     Segmentation,
     Retransmission,
 }
 
-#[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub enum SessionTargetType {
     #[default]
     Plain,
     Sealed,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SessionPathConfig {
     Hop(u8),
     IntermediateId(PeerId),
@@ -101,9 +101,9 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             version: 1,
-            entrynode: None,
+            entry_node: None,
             session: None,
-            wireguard: None,
+            wire_guard: None,
         }
     }
 }
