@@ -107,3 +107,9 @@ impl Default for Config {
         }
     }
 }
+
+impl Default for SessionPathConfig {
+    fn default() -> Self {
+        SessionPathConfig::Hop(1)
+    }
+}

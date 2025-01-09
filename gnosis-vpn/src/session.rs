@@ -32,7 +32,7 @@ pub fn open(
     let url = en.endpoint.join("/api/v3/session/udp")?;
     let mut json = serde_json::Map::new();
     json.insert("capabilities".to_string(), json!(["Segmentation"]));
-    json.insert("destination".to_string(), json!(xn.peer_id.to_base58()));
+    json.insert("destination".to_string(), json!(xn.peer_id.to_string()));
     json.insert(
         "target".to_string(),
         json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
@@ -42,7 +42,7 @@ pub fn open(
             json.insert("path".to_string(), json!({"Hops": hop}));
         }
         Path::IntermediateId(id) => {
-            json.insert("path".to_string(), json!({ "IntermediatePath": [id.to_base58()]}));
+            json.insert("path".to_string(), json!({ "IntermediatePath": [id.to_string()]}));
         }
     }
     if let Some(lh) = &en.listen_host {

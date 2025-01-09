@@ -133,13 +133,20 @@ impl Core {
     }
 
     fn setup(&mut self) {
+        self.setup_wg_priv_key();
+        self.setup_from_config();
+    }
+
+    fn setup_wg_priv_key(&mut self) {
+        // if wg is available check private key
+        // gengerate a new one if none
         if let (Some(wg), None, None) = (
             &self.wg,
             &self.state.wg_private_key,
-            &self.config.wire_guard.map(|wg| wg.private_key),
+            &self.config.wire_guard.as_ref().map(|wg| wg.private_key.as_str()),
         ) {
             let priv_key = match wg.generate_key() {
-                Ok(key) => key,
+                Ok(priv_key) => priv_key,
                 Err(err) => {
                     tracing::error!(?err, "failed to generate wireguard private key");
                     self.replace_issue(Issue::WireGuard(err));
@@ -151,10 +158,31 @@ impl Core {
                 Err(err) => {
                     tracing::error!(?err, "failed to write wireguard private key to state");
                     self.replace_issue(Issue::State(err));
-                    return;
                 }
             };
         }
+    }
+
+    fn setup_from_config(&mut self) -> Result<()> {
+        if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
+            let path = session.path.clone().unwrap_or_default();
+            let en_path = match path {
+                config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
+                config::SessionPathConfig::IntermediateId(id) => Path::IntermediateId(id),
+            };
+            let (endpoint_host, endpoint_port) = entry_node.endpoint.clone();
+            let en_endpoint = Url::parse(format!("http://{}:{}", endpoint_host, endpoint_port).as_str())?;
+            self.entry_node = Some(EntryNode::new(
+                &en_endpoint,
+                &entry_node.api_token,
+                session.listen_host.as_deref(),
+                en_path,
+            ));
+            self.exit_node = Some(ExitNode {
+                peer_id: session.destination,
+            });
+        }
+        Ok(())
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
@@ -597,7 +625,7 @@ impl Core {
 
 impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let peer = self.peer_id.to_base58();
+        let peer = self.peer_id.to_string();
         let print = HashMap::from([("peer_id", peer.as_str())]);
         let val = log_output::serialize(&print);
         write!(f, "{}", val)
