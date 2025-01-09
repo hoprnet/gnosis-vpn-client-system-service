@@ -1,5 +1,5 @@
 use bpaf::Bpaf;
-use libp2p_identity::PeerId;
+use gnosis_vpn_lib::peer_id::PeerId;
 use url::Url;
 
 #[derive(Debug, Clone, Bpaf)]

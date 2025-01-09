@@ -1,13 +1,11 @@
-use libp2p_identity::PeerId;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr};
 use std::fmt;
 use std::str::FromStr;
 use url::Url;
 
 use crate::log_output;
+use crate::peer_id::PeerId;
 
-#[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Command {
     Status,
@@ -16,11 +14,9 @@ pub enum Command {
         api_token: String,
         listen_host: Option<String>,
         hop: Option<u8>,
-        #[serde_as(as = "Option<DisplayFromStr>")]
         intermediate_id: Option<PeerId>,
     },
     ExitNode {
-        #[serde_as(as = "DisplayFromStr")]
         peer_id: PeerId,
     },
 }

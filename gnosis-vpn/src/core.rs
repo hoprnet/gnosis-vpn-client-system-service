@@ -1,9 +1,9 @@
 use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
 use gnosis_vpn_lib::config::Config;
+use gnosis_vpn_lib::peer_id::PeerId;
 use gnosis_vpn_lib::state::State;
 use gnosis_vpn_lib::{config, log_output, state, wireguard};
-use libp2p_identity::PeerId;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
@@ -38,8 +38,6 @@ pub struct Core {
     // wg interface,
     wg: Option<Box<dyn wireguard::WireGuard>>,
 
-    // ongoing user visible tasks
-    // activities: Vec<String>,
     status: Status,
     entry_node: Option<EntryNode>,
     exit_node: Option<ExitNode>,
@@ -416,7 +414,7 @@ impl Core {
         &mut self,
         endpoint: &Url,
         api_token: &str,
-        listen_port: &Option<String>,
+        listen_host: &Option<String>,
         hop: &Option<u8>,
         intermediate_id: &Option<PeerId>,
     ) -> Result<Option<String>> {
@@ -429,7 +427,7 @@ impl Core {
             (_, Some(id)) => Path::IntermediateId(*id),
             _ => Path::Hop(1),
         };
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port.as_deref(), path));
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_host.as_deref(), path));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };

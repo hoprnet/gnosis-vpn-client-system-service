@@ -7,13 +7,15 @@ use std::vec::Vec;
 use thiserror::Error;
 use url::Host;
 
+use crate::peer_id::PeerId;
+
 const SUPPORTED_CONFIG_VERSIONS: [u8; 1] = [1];
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     version: u8,
     entrynode: Option<EntryNodeConfig>,
-    session: SessionConfig,
+    session: Option<SessionConfig>,
     wireguard: Option<WireguardConfig>,
 }
 
@@ -25,9 +27,11 @@ pub struct EntryNodeConfig {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
-    target: SessionTargetConfig,
     capabilites: Vec<CapabilitiesConfig>,
-    destination: Option<String>,
+    destination: PeerId,
+    listen_host: Option<String>,
+    path: Option<SessionPathConfig>,
+    target: SessionTargetConfig,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -52,6 +56,12 @@ pub enum SessionTargetType {
     #[default]
     Plain,
     Sealed,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub enum SessionPathConfig {
+    Hop(u8),
+    IntermediateId(PeerId),
 }
 
 #[cfg(target_os = "linux")]
@@ -92,27 +102,8 @@ impl Default for Config {
         Config {
             version: 1,
             entrynode: None,
-            session: SessionConfig::default(),
+            session: None,
             wireguard: None,
-        }
-    }
-}
-
-impl Default for SessionTargetConfig {
-    fn default() -> Self {
-        SessionTargetConfig {
-            type_: SessionTargetType::default(),
-            endpoint: (Host::Domain("wireguard.staging.hoprnet.link".to_string()), 51820),
-        }
-    }
-}
-
-impl Default for SessionConfig {
-    fn default() -> Self {
-        SessionConfig {
-            target: SessionTargetConfig::default(),
-            capabilites: vec![CapabilitiesConfig::Segmentation],
-            destination: None,
         }
     }
 }
