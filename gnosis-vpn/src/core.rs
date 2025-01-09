@@ -135,7 +135,9 @@ impl Core {
 
     fn setup(&mut self) {
         self.setup_wg_priv_key();
-        self.setup_from_config();
+        if let Err(err) = self.setup_from_config() {
+            tracing::error!(?err, "failed initial setup from config");
+        }
     }
 
     fn setup_wg_priv_key(&mut self) {
@@ -164,7 +166,7 @@ impl Core {
         }
     }
 
-    fn setup_from_config(&mut self) {
+    fn setup_from_config(&mut self) -> Result<()> {
         if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
             let (endpoint_host, endpoint_port) = entry_node.endpoint.clone();
             let url_str = format!("http://{}:{}", endpoint_host, endpoint_port);
@@ -173,24 +175,37 @@ impl Core {
                 Err(e) => {
                     let issue = Issue::InvalidEntryNodeEndpoint(e);
                     self.replace_issue(issue);
-                    return;
+                    return Ok(());
                 }
             };
+
+            let en_api_token = entry_node.api_token.clone();
             let path = session.path.clone().unwrap_or_default();
+            let en_listen_host = session.listen_host.clone();
+            let xn_peer_id = session.destination;
+
+            // convert config to old application struture
+            self.check_close_session()?;
+
             let en_path = match path {
                 config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
                 config::SessionPathConfig::IntermediateId(id) => Path::IntermediateId(id),
             };
             self.entry_node = Some(EntryNode::new(
                 &en_endpoint,
-                &entry_node.api_token,
-                session.listen_host.as_deref(),
+                &en_api_token,
+                en_listen_host.as_deref(),
                 en_path,
             ));
-            self.exit_node = Some(ExitNode {
-                peer_id: session.destination,
-            });
+            self.exit_node = Some(ExitNode { peer_id: xn_peer_id });
+
+            self.fetch_data.addresses = RemoteData::Fetching {
+                started_at: SystemTime::now(),
+            };
+            self.fetch_addresses()?;
+            self.check_open_session()?;
         }
+        Ok(())
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
