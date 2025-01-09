@@ -78,8 +78,14 @@ enum Issue {
 
 fn read_config() -> (Config, Option<Issue>) {
     match config::read() {
-        Ok(cfg) => (cfg, None),
-        Err(config::Error::NoFile) => (Config::default(), None),
+        Ok(cfg) => {
+            tracing::info!("read config without issues");
+            (cfg, None)
+        }
+        Err(config::Error::NoFile) => {
+            tracing::info!("no config - using default");
+            (Config::default(), None)
+        }
         Err(err) => {
             tracing::warn!(warn = ?err, "failed to read config file");
             (Config::default(), Some(Issue::Config(err)))

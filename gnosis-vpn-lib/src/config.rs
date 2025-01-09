@@ -27,7 +27,7 @@ pub struct EntryNodeConfig {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
-    pub capabilites: Vec<CapabilitiesConfig>,
+    pub capabilites: Option<Vec<CapabilitiesConfig>>,
     pub destination: PeerId,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
