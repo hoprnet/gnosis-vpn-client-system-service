@@ -5,7 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::vec::Vec;
 use thiserror::Error;
-use url::Host;
+use url::{Host, Url};
 
 use crate::peer_id::PeerId;
 
@@ -21,7 +21,7 @@ pub struct Config {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EntryNodeConfig {
-    pub endpoint: (Host, u16),
+    pub endpoint: Url,
     pub api_token: String,
 }
 
@@ -42,7 +42,8 @@ pub struct WireGuardConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionTargetConfig {
     pub type_: SessionTargetType,
-    pub endpoint: (Host, u16),
+    pub host: Host,
+    pub port: u16,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
