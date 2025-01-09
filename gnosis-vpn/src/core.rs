@@ -74,6 +74,7 @@ enum Issue {
     State(state::Error),
     WireGuardInit(wireguard::Error),
     WireGuard(wireguard::Error),
+    InvalidEntryNodeEndpoint(url::ParseError),
 }
 
 fn read_config() -> (Config, Option<Issue>) {
@@ -163,15 +164,23 @@ impl Core {
         }
     }
 
-    fn setup_from_config(&mut self) -> Result<()> {
+    fn setup_from_config(&mut self) {
         if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
+            let (endpoint_host, endpoint_port) = entry_node.endpoint.clone();
+            let url_str = format!("http://{}:{}", endpoint_host, endpoint_port);
+            let en_endpoint = match Url::parse(url_str.as_str()) {
+                Ok(url) => url,
+                Err(e) => {
+                    let issue = Issue::InvalidEntryNodeEndpoint(e);
+                    self.replace_issue(issue);
+                    return;
+                }
+            };
             let path = session.path.clone().unwrap_or_default();
             let en_path = match path {
                 config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
                 config::SessionPathConfig::IntermediateId(id) => Path::IntermediateId(id),
             };
-            let (endpoint_host, endpoint_port) = entry_node.endpoint.clone();
-            let en_endpoint = Url::parse(format!("http://{}:{}", endpoint_host, endpoint_port).as_str())?;
             self.entry_node = Some(EntryNode::new(
                 &en_endpoint,
                 &entry_node.api_token,
@@ -182,7 +191,6 @@ impl Core {
                 peer_id: session.destination,
             });
         }
-        Ok(())
     }
 
     #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
@@ -678,6 +686,7 @@ impl fmt::Display for Issue {
             Issue::WireGuardInit(e) => format!("wireguard initialization issue: {}", e),
             Issue::State(e) => format!("storage issue: {}", e),
             Issue::WireGuard(e) => format!("wireguard issue: {}", e),
+            Issue::InvalidEntryNodeEndpoint(e) => format!("invalid entry node endpoint: {}", e),
         };
         write!(f, "{}", val)
     }
