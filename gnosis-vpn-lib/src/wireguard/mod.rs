@@ -14,6 +14,8 @@ pub enum Error {
     IO(String),
     #[error("encoding error: {0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
+    #[error("toml error: {0}")]
+    Toml(#[from] toml::ser::Error),
 }
 
 pub struct SessionInfo {
@@ -29,7 +31,6 @@ struct InterfaceInfo {
 struct PeerInfo {
     public_key: String,
     endpoint: String,
-    allowed_ips: String,
 }
 
 pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {

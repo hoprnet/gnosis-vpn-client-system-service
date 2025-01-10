@@ -1,7 +1,9 @@
+use serde::Serialize;
+use std::fs;
 use std::process::{Command, Stdio};
 
-use crate::wireguard::{Error, SessionInfo, WireGuard};
 use crate::dirs;
+use crate::wireguard::{Error, SessionInfo, WireGuard};
 
 #[derive(Debug)]
 pub struct Tooling {}
@@ -23,6 +25,28 @@ impl Tooling {
     }
 }
 
+const TMP_FILE: &str = "wg0-quick-gnosisvpn.conf";
+
+#[derive(Serialize)]
+pub struct Config {
+    Interface: InterfaceConfig,
+    Peer: PeerConfig,
+}
+
+#[derive(Serialize)]
+struct InterfaceConfig {
+    PrivateKey: String,
+    Address: String,
+}
+
+#[derive(Serialize)]
+struct PeerConfig {
+    PublicKey: String,
+    Endpoint: String,
+    AllowedIPs: String,
+    PersistentKeepalive: u16,
+}
+
 impl WireGuard for Tooling {
     fn generate_key(&self) -> Result<String, Error> {
         let output = Command::new("wg")
@@ -32,10 +56,48 @@ impl WireGuard for Tooling {
         String::from_utf8(output.stdout).map_err(|e| Error::FromUtf8Error(e))
     }
 
-    fn connect_session(&self, _session: SessionInfo) -> Result<(), Error> {
-        let dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
+    fn connect_session(&self, session: SessionInfo) -> Result<(), Error> {
+        let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
+        let cache_dir = p_dirs.cache_dir();
+        let conf_file = cache_dir.join(TMP_FILE);
+        let config = Config::from(session);
+        let ser = toml::to_string(&config).map_err(|e| Error::Toml(e))?;
+        tracing::info!("ser: {:?}", ser);
+        let content = ser.as_bytes();
+        fs::write(&conf_file, content).map_err(|e| Error::IO(e.to_string()))?;
 
-        jjkkkk
-        Err(Error::NotYetImplemented("connect_session".to_string()))
+        let output = Command::new("wg-quick")
+            .arg("up")
+            .arg(conf_file)
+            .output()
+            .map_err(|e| Error::IO(e.to_string()))?;
+
+        tracing::info!("wg-quick up output: {:?}", output);
+        Ok(())
+    }
+}
+
+impl From<SessionInfo> for Config {
+    fn from(session: SessionInfo) -> Self {
+        let allowed_ips = session
+            .interface
+            .address
+            .split('.')
+            .take(3)
+            .collect::<Vec<&str>>()
+            .join(".")
+            + ".0/24";
+        Config {
+            Interface: InterfaceConfig {
+                PrivateKey: session.interface.private_key,
+                Address: session.interface.address,
+            },
+            Peer: PeerConfig {
+                PublicKey: session.peer.public_key,
+                Endpoint: session.peer.endpoint,
+                AllowedIPs: allowed_ips,
+                PersistentKeepalive: 30,
+            },
+        }
     }
 }
