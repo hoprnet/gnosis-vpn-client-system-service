@@ -298,7 +298,10 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
             recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
             recv(core_receiver) -> event => incoming_event(&mut state, event),
             recv(config_receiver) -> event => {
-                incoming_config_fs_event(event).map(|r| read_config_receiver = r);
+                let resp = incoming_config_fs_event(event);
+                if let Some(r) = resp {
+                    read_config_receiver = r
+                }
             },
             recv(read_config_receiver) -> _ => state.update_config(),
         }

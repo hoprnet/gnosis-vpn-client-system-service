@@ -156,7 +156,7 @@ impl Core {
         if let Some(key) = &self.state.wg_private_key {
             return Some(key.clone());
         }
-        return None;
+        None
     }
 
     fn setup_wg_priv_key(&mut self) {
@@ -250,11 +250,13 @@ impl Core {
 
     fn replace_issue(&mut self, issue: Issue) {
         // remove existing config issue
-        self.issues.retain(|i| match (i, &issue) {
-            (Issue::Config(_), Issue::Config(_)) => false,
-            (Issue::WireGuard(_), Issue::WireGuard(_)) => false,
-            (Issue::State(_), Issue::State(_)) => false,
-            _ => true,
+        self.issues.retain(|i| {
+            !matches!(
+                (i, &issue),
+                (Issue::Config(_), Issue::Config(_))
+                    | (Issue::WireGuard(_), Issue::WireGuard(_))
+                    | (Issue::State(_), Issue::State(_))
+            )
         });
         self.issues.push(issue);
     }
@@ -712,7 +714,7 @@ impl fmt::Display for Core {
         if self.config == Config::default() {
             print.insert("config", "<default>".to_string());
         }
-        if self.issues.len() > 0 {
+        if !self.issues.is_empty() {
             print.insert(
                 "issues",
                 self.issues

@@ -92,7 +92,7 @@ pub fn read() -> Result<Config, Error> {
             Error::IO(e)
         }
     })?;
-    let config: Config = toml::from_str(&content).map_err(|e| Error::Deserialization(e))?;
+    let config: Config = toml::from_str(&content).map_err(Error::Deserialization)?;
     if SUPPORTED_CONFIG_VERSIONS.contains(&config.version) {
         Ok(config)
     } else {

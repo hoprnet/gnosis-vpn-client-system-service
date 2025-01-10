@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::dirs;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 pub struct State {
     pub wg_private_key: Option<String>,
 }
@@ -44,7 +44,7 @@ pub fn read() -> Result<State, Error> {
             Error::IO(e)
         }
     })?;
-    let state: State = bincode::deserialize(&content[..]).map_err(|e| Error::BinCodeError(e))?;
+    let state: State = bincode::deserialize(&content[..]).map_err(Error::BinCodeError)?;
     Ok(state)
 }
 
@@ -59,15 +59,9 @@ impl State {
             Some(p) => p,
             None => return Err(Error::NoStateFolder),
         };
-        let content = bincode::serialize(&self).map_err(|e| Error::BinCodeError(e))?;
+        let content = bincode::serialize(&self).map_err(Error::BinCodeError)?;
         let parent = path.parent().ok_or(Error::NoParentFolder)?;
-        fs::create_dir_all(parent).map_err(|e| Error::IO(e))?;
-        fs::write(path, content).map_err(|e| Error::IO(e))
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State { wg_private_key: None }
+        fs::create_dir_all(parent).map_err(Error::IO)?;
+        fs::write(path, content).map_err(Error::IO)
     }
 }

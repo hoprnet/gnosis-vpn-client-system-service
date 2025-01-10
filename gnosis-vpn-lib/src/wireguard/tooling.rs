@@ -34,7 +34,7 @@ impl WireGuard for Tooling {
             .map_err(|e| Error::IO(e.to_string()))?;
         String::from_utf8(output.stdout)
             .map(|s| s.trim().to_string())
-            .map_err(|e| Error::FromUtf8Error(e))
+            .map_err(Error::FromUtf8Error)
     }
 
     fn connect_session(&self, session: &SessionInfo) -> Result<(), Error> {
