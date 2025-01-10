@@ -1,9 +1,10 @@
-use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
+
+use crate::dirs;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct State {
@@ -25,7 +26,7 @@ pub enum Error {
 }
 
 fn path() -> Option<PathBuf> {
-    let project_dirs = ProjectDirs::from("org", "hoprnet", "gnosisvpn")?;
+    let project_dirs = dirs::project()?;
     let data_dir = project_dirs.data_local_dir();
     let state_file = data_dir.join("state.bin");
     Some(state_file)

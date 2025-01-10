@@ -16,6 +16,22 @@ pub enum Error {
     FromUtf8Error(#[from] std::string::FromUtf8Error),
 }
 
+pub struct SessionInfo {
+    interface: InterfaceInfo,
+    peer: PeerInfo,
+}
+
+struct InterfaceInfo {
+    private_key: String,
+    address: String,
+}
+
+struct PeerInfo {
+    public_key: String,
+    endpoint: String,
+    allowed_ips: String,
+}
+
 pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
     let mut errors: Vec<Error> = Vec::new();
 
@@ -42,4 +58,5 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
 
 pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
+    fn connect_session(&self, session: SessionInfo) -> Result<(), Error>;
 }

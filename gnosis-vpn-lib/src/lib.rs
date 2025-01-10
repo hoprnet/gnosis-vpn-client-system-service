@@ -6,3 +6,5 @@ pub mod peer_id;
 pub mod socket;
 pub mod state;
 pub mod wireguard;
+
+mod dirs;

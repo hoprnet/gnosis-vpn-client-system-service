@@ -37,6 +37,7 @@ pub struct SessionConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WireGuardConfig {
     pub private_key: String,
+    pub address: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -65,7 +66,7 @@ pub enum SessionPathConfig {
     IntermediateId(PeerId),
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(unix)]
 pub fn path() -> PathBuf {
     PathBuf::from("/etc/gnosisvpn/config.toml")
 }
