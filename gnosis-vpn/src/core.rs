@@ -309,18 +309,17 @@ impl Core {
                 };
 
                 // connect wireguard session if possible
-                if let (Some(wg), Some(privkey), Some(wg_conf), Some(sess_conf), Some(en_conf)) = (
+                if let (Some(wg), Some(privkey), Some(wg_conf), Some(en_conf)) = (
                     &self.wg,
                     &self.wg_priv_key(),
                     &self.config.wireguard,
-                    &self.config.session,
                     &self.config.entry_node,
                 ) {
                     if let Some(en_host) = en_conf.endpoint.host() {
                         let info = wireguard::SessionInfo::new(
                             privkey,
                             wg_conf.address.as_str(),
-                            sess_conf.destination.to_string().as_str(),
+                            wg_conf.server_public_key.as_str(),
                             format!("{}:{}", en_host, session_port).as_str(),
                         );
 

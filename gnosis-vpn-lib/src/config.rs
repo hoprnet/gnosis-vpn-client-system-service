@@ -28,7 +28,6 @@ pub struct EntryNodeConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
     pub capabilites: Option<Vec<CapabilitiesConfig>>,
-    pub entry_port: Option<u16>,
     pub destination: PeerId,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
@@ -38,7 +37,9 @@ pub struct SessionConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WireGuardConfig {
     pub private_key: Option<String>,
+    pub preshared_key: Option<String>,
     pub address: String,
+    pub server_public_key: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
