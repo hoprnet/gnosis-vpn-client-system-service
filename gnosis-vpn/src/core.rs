@@ -149,14 +149,20 @@ impl Core {
         }
     }
 
+    fn wg_priv_key(&self) -> Option<&str> {
+        if let Some(key) = &self.config.wire_guard.as_ref().map(|wg| wg.private_key.as_str()) {
+            return Some(key);
+        }
+        if let Some(key) = &self.state.wg_private_key {
+            return Some(key);
+        }
+        return None;
+    }
+
     fn setup_wg_priv_key(&mut self) {
         // if wg is available check private key
         // gengerate a new one if none
-        if let (Some(wg), None, None) = (
-            &self.wg,
-            &self.state.wg_private_key,
-            &self.config.wire_guard.as_ref().map(|wg| wg.private_key.as_str()),
-        ) {
+        if let (Some(wg), None) = (&self.wg, &self.wg_priv_key()) {
             let priv_key = match wg.generate_key() {
                 Ok(priv_key) => priv_key,
                 Err(err) => {
@@ -298,6 +304,22 @@ impl Core {
                     start_time: SystemTime::now(),
                     cancel_sender,
                 };
+
+                // connect wireguard session if possible
+                if let (Some(wg), Some(privkey)) = (&self.wg, &self.wg_priv_key()) {
+                let info = wireguard::SessionInfo::new(
+                    &session.interface.private_key,
+                    &session.interface.address,
+                    &session.peer.public_key,
+                    &session.peer.endpoint,
+                );
+                match self.wg.connect_session(session) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        tracing::error!(?err, "failed to connect wireguard session");
+                        self.replace_issue(Issue::WireGuard(err));
+                    }
+                }
                 Ok(())
             }
             remote_data::Event::Error(err) => match &self.fetch_data.open_session {

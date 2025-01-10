@@ -61,3 +61,18 @@ pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
     fn connect_session(&self, session: SessionInfo) -> Result<(), Error>;
 }
+
+impl SessionInfo {
+    pub fn new(if_private_key: &str, if_address: &str, peer_public_key: &str, peer_endpoint: &str) -> Self {
+        Self {
+            interface: InterfaceInfo {
+                private_key: if_private_key.to_string(),
+                address: if_address.to_string(),
+            },
+            peer: PeerInfo {
+                public_key: peer_public_key.to_string(),
+                endpoint: peer_endpoint.to_string(),
+            },
+        }
+    }
+}
