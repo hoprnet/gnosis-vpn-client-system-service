@@ -56,7 +56,7 @@ impl WireGuard for Tooling {
         String::from_utf8(output.stdout).map_err(|e| Error::FromUtf8Error(e))
     }
 
-    fn connect_session(&self, session: SessionInfo) -> Result<(), Error> {
+    fn connect_session(&self, session: &SessionInfo) -> Result<(), Error> {
         let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
         let cache_dir = p_dirs.cache_dir();
         let conf_file = cache_dir.join(TMP_FILE);
@@ -77,8 +77,8 @@ impl WireGuard for Tooling {
     }
 }
 
-impl From<SessionInfo> for Config {
-    fn from(session: SessionInfo) -> Self {
+impl From<&SessionInfo> for Config {
+    fn from(session: &SessionInfo) -> Self {
         let allowed_ips = session
             .interface
             .address
@@ -89,12 +89,12 @@ impl From<SessionInfo> for Config {
             + ".0/24";
         Config {
             Interface: InterfaceConfig {
-                PrivateKey: session.interface.private_key,
-                Address: session.interface.address,
+                PrivateKey: session.interface.private_key.clone(),
+                Address: session.interface.address.clone(),
             },
             Peer: PeerConfig {
-                PublicKey: session.peer.public_key,
-                Endpoint: session.peer.endpoint,
+                PublicKey: session.peer.public_key.clone(),
+                Endpoint: session.peer.endpoint.clone(),
                 AllowedIPs: allowed_ips,
                 PersistentKeepalive: 30,
             },

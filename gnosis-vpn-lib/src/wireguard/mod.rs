@@ -59,7 +59,7 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
 
 pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
-    fn connect_session(&self, session: SessionInfo) -> Result<(), Error>;
+    fn connect_session(&self, session: &SessionInfo) -> Result<(), Error>;
 }
 
 impl SessionInfo {

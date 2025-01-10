@@ -306,18 +306,28 @@ impl Core {
                 };
 
                 // connect wireguard session if possible
-                if let (Some(wg), Some(privkey)) = (&self.wg, &self.wg_priv_key()) {
-                let info = wireguard::SessionInfo::new(
-                    &session.interface.private_key,
-                    &session.interface.address,
-                    &session.peer.public_key,
-                    &session.peer.endpoint,
-                );
-                match self.wg.connect_session(session) {
-                    Ok(_) => (),
-                    Err(err) => {
-                        tracing::error!(?err, "failed to connect wireguard session");
-                        self.replace_issue(Issue::WireGuard(err));
+                if let (Some(wg), Some(privkey), Some(wg_conf), Some(sess_conf), Some(en_conf)) = (
+                    &self.wg,
+                    &self.wg_priv_key(),
+                    &self.config.wireguard,
+                    &self.config.session,
+                    &self.config.entry_node,
+                ) {
+                    if let Some(en_host) = en_conf.endpoint.host() {
+                        let info = wireguard::SessionInfo::new(
+                            &privkey,
+                            wg_conf.address.as_str(),
+                            sess_conf.destination.to_string().as_str(),
+                            format!("{}:{}", en_host, session.port).as_str(),
+                        );
+
+                        match self.wg.connect_session(&info) {
+                            Ok(_) => (),
+                            Err(err) => {
+                                tracing::error!(?err, "failed to connect wireguard session");
+                                self.replace_issue(Issue::WireGuard(err));
+                            }
+                        }
                     }
                 }
                 Ok(())

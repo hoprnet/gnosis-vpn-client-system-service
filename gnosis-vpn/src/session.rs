@@ -15,10 +15,10 @@ use crate::remote_data;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     // listen host
-    ip: String,
-    port: u16,
-    protocol: String,
-    target: Url,
+    pub ip: String,
+    pub port: u16,
+    pub protocol: String,
+    pub target: Url,
 }
 
 #[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]

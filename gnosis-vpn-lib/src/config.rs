@@ -16,7 +16,7 @@ pub struct Config {
     pub version: u8,
     pub entry_node: Option<EntryNodeConfig>,
     pub session: Option<SessionConfig>,
-    pub wire_guard: Option<WireGuardConfig>,
+    pub wireguard: Option<WireGuardConfig>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -28,6 +28,7 @@ pub struct EntryNodeConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
     pub capabilites: Option<Vec<CapabilitiesConfig>>,
+    pub entry_port: u16,
     pub destination: PeerId,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
@@ -105,7 +106,7 @@ impl Default for Config {
             version: 1,
             entry_node: None,
             session: None,
-            wire_guard: None,
+            wireguard: None,
         }
     }
 }
