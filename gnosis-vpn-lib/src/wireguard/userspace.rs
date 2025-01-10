@@ -17,7 +17,8 @@ impl WireGuard for UserSpace {
     fn generate_key(&self) -> Result<String, Error> {
         Err(Error::NotYetImplemented("userspace".to_string()))
     }
-    fn connect_session(&self, _session: SessionInfo) -> Result<(), Error> {
+
+    fn connect_session(&self, _session: &SessionInfo) -> Result<(), Error> {
         Err(Error::NotYetImplemented("connect_session".to_string()))
     }
 }

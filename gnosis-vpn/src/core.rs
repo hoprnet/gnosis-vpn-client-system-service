@@ -149,12 +149,12 @@ impl Core {
         }
     }
 
-    fn wg_priv_key(&self) -> Option<&str> {
-        if let Some(key) = &self.config.wire_guard.as_ref().map(|wg| wg.private_key.as_str()) {
-            return Some(key);
+    fn wg_priv_key(&self) -> Option<String> {
+        if let Some(key) = &self.config.wireguard.as_ref().and_then(|wg| wg.private_key.clone()) {
+            return Some(key.clone());
         }
         if let Some(key) = &self.state.wg_private_key {
-            return Some(key);
+            return Some(key.clone());
         }
         return None;
     }
@@ -295,8 +295,9 @@ impl Core {
         match evt {
             remote_data::Event::Response(value) => {
                 let session = serde_json::from_value::<Session>(value)?;
-                self.fetch_data.open_session = RemoteData::Success;
+                let session_port = session.port;
                 self.session = Some(session);
+                self.fetch_data.open_session = RemoteData::Success;
                 let next_check = self.rng.gen_range(5..13);
                 let cancel_sender =
                     session::schedule_check_session(time::Duration::from_secs(next_check), &self.sender);
@@ -315,13 +316,13 @@ impl Core {
                 ) {
                     if let Some(en_host) = en_conf.endpoint.host() {
                         let info = wireguard::SessionInfo::new(
-                            &privkey,
+                            privkey,
                             wg_conf.address.as_str(),
                             sess_conf.destination.to_string().as_str(),
-                            format!("{}:{}", en_host, session.port).as_str(),
+                            format!("{}:{}", en_host, session_port).as_str(),
                         );
 
-                        match self.wg.connect_session(&info) {
+                        match wg.connect_session(&info) {
                             Ok(_) => (),
                             Err(err) => {
                                 tracing::error!(?err, "failed to connect wireguard session");

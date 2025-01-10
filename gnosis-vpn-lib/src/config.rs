@@ -37,7 +37,7 @@ pub struct SessionConfig {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WireGuardConfig {
-    pub private_key: String,
+    pub private_key: Option<String>,
     pub address: String,
 }
 
