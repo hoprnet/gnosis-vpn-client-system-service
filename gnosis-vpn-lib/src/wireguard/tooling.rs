@@ -59,6 +59,8 @@ impl WireGuard for Tooling {
     fn connect_session(&self, session: &SessionInfo) -> Result<(), Error> {
         let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
         let cache_dir = p_dirs.cache_dir();
+        fs::create_dir_all(cache_dir).map_err(|e| Error::IO(e.to_string()))?;
+
         let conf_file = cache_dir.join(TMP_FILE);
         let config = Config::from(session);
         let ser = toml::to_string(&config).map_err(|e| Error::Toml(e))?;
