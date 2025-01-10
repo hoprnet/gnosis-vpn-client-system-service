@@ -212,8 +212,9 @@ impl Core {
         Ok(())
     }
 
-    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>> {
+        tracing::info!("handling command");
         match cmd {
             Command::Status => Ok(self.status()),
             Command::EntryNode {
@@ -227,8 +228,9 @@ impl Core {
         }
     }
 
-    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
+        tracing::info!("handling event");
         match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
@@ -238,8 +240,9 @@ impl Core {
         }
     }
 
-    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn update_config(&mut self) {
+        tracing::info!("update config");
         let (config, issue) = read_config();
         self.config = config;
         if let Some(issue) = issue {
