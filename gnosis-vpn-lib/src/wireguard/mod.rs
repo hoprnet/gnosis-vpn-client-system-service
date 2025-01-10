@@ -16,9 +16,11 @@ pub enum Error {
     FromUtf8Error(#[from] std::string::FromUtf8Error),
     #[error("toml error: {0}")]
     Toml(#[from] toml::ser::Error),
+    #[error("monitoring error: {0}")]
+    Monitoring(String),
 }
 
-pub struct SessionInfo {
+pub struct ConnectSession {
     interface: InterfaceInfo,
     peer: PeerInfo,
 }
@@ -31,6 +33,11 @@ struct InterfaceInfo {
 struct PeerInfo {
     public_key: String,
     endpoint: String,
+}
+
+pub struct VerifySession {
+    peer_public_key: String,
+    private_key: String,
 }
 
 pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
@@ -59,10 +66,12 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
 
 pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
-    fn connect_session(&self, session: &SessionInfo) -> Result<(), Error>;
+    fn connect_session(&self, session: &ConnectSession) -> Result<(), Error>;
+    fn close_session(&self) -> Result<(), Error>;
+    fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
 }
 
-impl SessionInfo {
+impl ConnectSession {
     pub fn new(if_private_key: &str, if_address: &str, peer_public_key: &str, peer_endpoint: &str) -> Self {
         Self {
             interface: InterfaceInfo {
@@ -73,6 +82,14 @@ impl SessionInfo {
                 public_key: peer_public_key.to_string(),
                 endpoint: peer_endpoint.to_string(),
             },
+        }
+    }
+}
+
+impl VerifySession {
+    pub fn new(peer_public_key: &str) -> Self {
+        Self {
+            peer_public_key: peer_public_key.to_string(),
         }
     }
 }
