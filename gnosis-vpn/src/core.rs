@@ -319,7 +319,7 @@ impl Core {
                     &self.config.entry_node,
                 ) {
                     if let Some(en_host) = en_conf.endpoint.host() {
-                        let info = wireguard::SessionInfo::new(
+                        let info = wireguard::ConnectSession::new(
                             privkey,
                             wg_conf.address.as_str(),
                             wg_conf.server_public_key.as_str(),

@@ -67,8 +67,8 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
 pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
     fn connect_session(&self, session: &ConnectSession) -> Result<(), Error>;
-    fn close_session(&self) -> Result<(), Error>;
-    fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
+    // fn close_session(&self) -> Result<(), Error>;
+    // fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
 }
 
 impl ConnectSession {
@@ -87,9 +87,10 @@ impl ConnectSession {
 }
 
 impl VerifySession {
-    pub fn new(peer_public_key: &str) -> Self {
+    pub fn new(peer_public_key: &str, private_key: &str) -> Self {
         Self {
             peer_public_key: peer_public_key.to_string(),
+            private_key: private_key.to_string(),
         }
     }
 }

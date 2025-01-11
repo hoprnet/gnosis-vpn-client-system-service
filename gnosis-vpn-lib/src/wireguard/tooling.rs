@@ -58,6 +58,7 @@ impl WireGuard for Tooling {
         Ok(())
     }
 
+    /*
     fn close_session(&self) -> Result<(), Error> {
         let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
         let cache_dir = p_dirs.cache_dir();
@@ -72,7 +73,9 @@ impl WireGuard for Tooling {
         tracing::info!("wg-quick down output: {:?}", output);
         Ok(())
     }
+    */
 
+    /*
     fn verify_session(&self, session: &VerifySession) -> Result<(), Error> {
         let output = Command::new("wg")
             .arg("show")
@@ -108,9 +111,10 @@ impl WireGuard for Tooling {
         }
         Ok(())
     }
-
+    */
 }
 
+/*
 fn public_key(priv_key: &str) -> Result<String, Error> {
     let output = Command::new("wg")
         .arg("pubkey")
@@ -149,6 +153,7 @@ fn public_key(priv_key: &str) -> Result<String, Error> {
         eprintln!("Command failed with stderr: {}", String::from_utf8_lossy(&output.stderr));
     }
 }
+*/
 
 impl ConnectSession {
     fn to_file_string(&self) -> String {

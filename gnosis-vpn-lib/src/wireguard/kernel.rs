@@ -1,4 +1,4 @@
-use crate::wireguard::{Error, SessionInfo, WireGuard};
+use crate::wireguard::{ConnectSession, Error, WireGuard};
 
 // This will be the implementation using netlink kernel access.
 #[derive(Debug)]
@@ -19,7 +19,7 @@ impl WireGuard for Kernel {
         Err(Error::NotYetImplemented("netlink kernel module".to_string()))
     }
 
-    fn connect_session(&self, _session: &SessionInfo) -> Result<(), Error> {
+    fn connect_session(&self, _session: &ConnectSession) -> Result<(), Error> {
         Err(Error::NotYetImplemented("connect_session".to_string()))
     }
 }

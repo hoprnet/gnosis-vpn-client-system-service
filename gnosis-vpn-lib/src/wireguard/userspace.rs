@@ -1,4 +1,4 @@
-use crate::wireguard::{Error, SessionInfo, WireGuard};
+use crate::wireguard::{ConnectSession, Error, WireGuard};
 
 #[derive(Debug)]
 pub struct UserSpace {}
@@ -18,7 +18,7 @@ impl WireGuard for UserSpace {
         Err(Error::NotYetImplemented("userspace".to_string()))
     }
 
-    fn connect_session(&self, _session: &SessionInfo) -> Result<(), Error> {
+    fn connect_session(&self, _session: &ConnectSession) -> Result<(), Error> {
         Err(Error::NotYetImplemented("connect_session".to_string()))
     }
 }
