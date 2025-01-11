@@ -535,19 +535,28 @@ impl Core {
         Ok(None)
     }
 
+    #[instrument(level = tracing::Level::INFO, skip(self))]
     fn check_open_session(&mut self) -> Result<()> {
-        match (&self.status, &self.entry_node, &self.exit_node, &self.session) {
-            (Status::Idle, Some(_), Some(_), Some(_)) => {
-                self.status = Status::OpeningSession {
-                    start_time: SystemTime::now(),
-                };
-                self.fetch_data.open_session = RemoteData::Fetching {
-                    started_at: SystemTime::now(),
-                };
-                self.fetch_open_session()
-            }
-            _ => Ok(()),
+        if !matches!(&self.status, Status::Idle) {
+            tracing::info!(status = ?self.status, "need Idle status to open session");
+            return Ok(());
         }
+
+        if self.entry_node.is_none() {
+            tracing::info!("need entry node parameters to open session");
+            return Ok(());
+        }
+        if self.config.session.is_none() {
+            tracing::info!("need session parameters to open session");
+            return Ok(());
+        }
+        self.status = Status::OpeningSession {
+            start_time: SystemTime::now(),
+        };
+        self.fetch_data.open_session = RemoteData::Fetching {
+            started_at: SystemTime::now(),
+        };
+        self.fetch_open_session()
     }
 
     fn check_close_session(&mut self) -> Result<()> {
