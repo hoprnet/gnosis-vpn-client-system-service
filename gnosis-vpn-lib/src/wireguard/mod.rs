@@ -35,10 +35,12 @@ struct PeerInfo {
     endpoint: String,
 }
 
+/*
 pub struct VerifySession {
     peer_public_key: String,
     private_key: String,
 }
+*/
 
 pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
     let mut errors: Vec<Error> = Vec::new();
@@ -86,6 +88,7 @@ impl ConnectSession {
     }
 }
 
+/*
 impl VerifySession {
     pub fn new(peer_public_key: &str, private_key: &str) -> Self {
         Self {
@@ -94,3 +97,4 @@ impl VerifySession {
         }
     }
 }
+*/

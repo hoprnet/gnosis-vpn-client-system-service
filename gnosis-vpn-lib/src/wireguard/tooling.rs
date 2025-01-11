@@ -2,7 +2,7 @@ use std::fs;
 use std::process::{Command, Stdio};
 
 use crate::dirs;
-use crate::wireguard::{ConnectSession, Error, VerifySession, WireGuard};
+use crate::wireguard::{ConnectSession, Error, /*VerifySession,*/ WireGuard};
 
 #[derive(Debug)]
 pub struct Tooling {}
@@ -24,7 +24,7 @@ impl Tooling {
     }
 }
 
-const NETWORK: &str = "wg0_gnosisvpn";
+// const NETWORK: &str = "wg0_gnosisvpn";
 const TMP_FILE: &str = "wg0_gnosisvpn.conf";
 
 impl WireGuard for Tooling {

@@ -536,8 +536,8 @@ impl Core {
     }
 
     fn check_open_session(&mut self) -> Result<()> {
-        match (&self.status, &self.entry_node, &self.exit_node) {
-            (Status::Idle, Some(_), Some(_)) => {
+        match (&self.status, &self.entry_node, &self.exit_node, &self.session) {
+            (Status::Idle, Some(_), Some(_), Some(_)) => {
                 self.status = Status::OpeningSession {
                     start_time: SystemTime::now(),
                 };
@@ -578,10 +578,19 @@ impl Core {
     }
 
     fn fetch_open_session(&mut self) -> Result<()> {
-        match (&self.entry_node, &self.exit_node) {
-            (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
-            _ => Ok(()),
+        if let (Some(en), Some(session)) = (&self.entry_node, &self.config.session) {
+            let open_session = session::OpenSession {
+                endpoint: en.endpoint.clone(),
+                api_token: en.api_token.clone(),
+                destination: session.destination.to_string(),
+                listen_host: session.listen_host.clone(),
+                path: session.path.clone(),
+                target: session.target.clone(),
+                capabilities: session.capabilities.clone(),
+            };
+            session::open(&self.client, &self.sender, &open_session)?;
         }
+        Ok(())
     }
 
     fn fetch_list_sessions(&mut self) -> Result<()> {

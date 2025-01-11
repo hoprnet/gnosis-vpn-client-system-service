@@ -27,7 +27,7 @@ pub struct EntryNodeConfig {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionConfig {
-    pub capabilites: Option<Vec<CapabilitiesConfig>>,
+    pub capabilities: Option<Vec<SessionCapabilitiesConfig>>,
     pub destination: PeerId,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
@@ -49,13 +49,14 @@ pub struct SessionTargetConfig {
     pub port: u16,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum CapabilitiesConfig {
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub enum SessionCapabilitiesConfig {
+    #[default]
     Segmentation,
     Retransmission,
 }
 
-#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum SessionTargetType {
     #[default]
     Plain,
