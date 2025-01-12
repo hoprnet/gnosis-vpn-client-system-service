@@ -213,7 +213,6 @@ fn incoming_event(state: &mut core::Core, res_event: Result<event::Event, crossb
             // Log the error and its chain in one line
             let error_chain: Vec<String> = e.chain().map(|cause| cause.to_string()).collect();
             tracing::error!(?error_chain, "error handling event");
-            return;
         }
     }
 }

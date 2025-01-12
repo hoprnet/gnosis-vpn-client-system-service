@@ -214,7 +214,6 @@ impl Core {
 
     #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>> {
-        tracing::info!("handling command");
         match cmd {
             Command::Status => Ok(self.status()),
             Command::EntryNode {
@@ -230,7 +229,6 @@ impl Core {
 
     #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
-        tracing::info!("handling event");
         match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
             Event::FetchOpenSession(evt) => self.evt_fetch_open_session(evt),
@@ -272,6 +270,7 @@ impl Core {
                     Some(en) => {
                         let addresses = serde_json::from_value::<entry_node::Addresses>(value)?;
                         en.addresses = Some(addresses);
+                        tracing::info!("fetched addresses");
                         Ok(())
                     }
                     None => anyhow::bail!("unexpected internal state: no entry node"),
@@ -283,11 +282,13 @@ impl Core {
                 } => {
                     let mut backoffs = old_backoffs.clone();
                     self.repeat_fetch_addresses(err, &mut backoffs);
+                    tracing::warn!("retrying fetch addresses");
                     Ok(())
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::get_addresses().to_vec();
                     self.repeat_fetch_addresses(err, &mut backoffs);
+                    tracing::info!("retrying fetch addresses");
                     Ok(())
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -312,28 +313,31 @@ impl Core {
                 };
 
                 // connect wireguard session if possible
-                if let (Some(wg), Some(privkey), Some(wg_conf), Some(en_conf)) = (
+                if let (Some(wg), Some(privkey), Some(wg_conf), Some(en_host)) = (
                     &self.wg,
                     &self.wg_priv_key(),
                     &self.config.wireguard,
-                    &self.config.entry_node,
+                    &self.config.entry_node.as_ref().and_then(|en| en.endpoint.host()),
                 ) {
-                    if let Some(en_host) = en_conf.endpoint.host() {
-                        let info = wireguard::ConnectSession::new(
-                            privkey,
-                            wg_conf.address.as_str(),
-                            wg_conf.server_public_key.as_str(),
-                            format!("{}:{}", en_host, session_port).as_str(),
-                        );
+                    let info = wireguard::ConnectSession::new(
+                        privkey,
+                        wg_conf.address.as_str(),
+                        wg_conf.server_public_key.as_str(),
+                        format!("{}:{}", en_host, session_port).as_str(),
+                    );
 
-                        match wg.connect_session(&info) {
-                            Ok(_) => (),
-                            Err(err) => {
-                                tracing::error!(?err, "failed to connect wireguard session");
-                                self.replace_issue(Issue::WireGuard(err));
-                            }
+                    match wg.connect_session(&info) {
+                        Ok(_) => {
+                            tracing::info!("opened session and wireguard connection");
+                            ()
+                        }
+                        Err(err) => {
+                            tracing::warn!(?err, "openend session but failed to connect wireguard session");
+                            self.replace_issue(Issue::WireGuard(err));
                         }
                     }
+                } else {
+                    tracing::info!("opened session without handling wireguard");
                 }
                 Ok(())
             }
@@ -343,11 +347,13 @@ impl Core {
                 } => {
                     let mut backoffs = old_backoffs.clone();
                     self.repeat_fetch_open_session(err, &mut backoffs);
+                    tracing::warn!("retrying open session");
                     Ok(())
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::open_session().to_vec();
                     self.repeat_fetch_open_session(err, &mut backoffs);
+                    tracing::info!("retrying open session");
                     Ok(())
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -364,9 +370,8 @@ impl Core {
                 match res_sessions {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
-                        tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        anyhow::bail!("failed to parse sessions: {}", e);
+                        anyhow::bail!("stopped monitoring - failed to parse sessions: {}", e);
                     }
                 }
             }
@@ -375,10 +380,12 @@ impl Core {
                     backoffs: old_backoffs, ..
                 } => {
                     let mut backoffs = old_backoffs.clone();
+                    tracing::warn!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::list_sessions().to_vec();
+                    tracing::info!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -392,6 +399,7 @@ impl Core {
             remote_data::Event::Response(_) => {
                 self.fetch_data.close_session = RemoteData::Success;
                 self.status = Status::Idle;
+                tracing::info!("closed session");
                 self.check_open_session()
             }
             remote_data::Event::Error(err) => match &self.fetch_data.close_session {
@@ -399,10 +407,12 @@ impl Core {
                     backoffs: old_backoffs, ..
                 } => {
                     let mut backoffs = old_backoffs.clone();
+                    tracing::warn!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::close_session().to_vec();
+                    tracing::info!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -413,14 +423,20 @@ impl Core {
 
     fn evt_check_session(&mut self) -> Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
-            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
+            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => {
+                tracing::info!("skipping session check because already ongoing");
+                Ok(())
+            }
             (Status::MonitoringSession { .. }, _) => {
                 self.fetch_data.list_sessions = RemoteData::Fetching {
                     started_at: SystemTime::now(),
                 };
                 self.fetch_list_sessions()
             }
-            _ => Ok(()),
+            _ => {
+                tracing::warn!("skipping session check because not monitoring session");
+                Ok(())
+            }
         }
     }
 
@@ -499,6 +515,7 @@ impl Core {
     }
 
     fn status(&self) -> Option<String> {
+        tracing::info!("respond with status");
         Some(self.to_string())
     }
 
@@ -525,6 +542,7 @@ impl Core {
         };
         self.fetch_addresses()?;
         self.check_open_session()?;
+        tracing::info!("set entry node");
         Ok(None)
     }
 
@@ -532,6 +550,7 @@ impl Core {
         self.check_close_session()?;
         self.exit_node = Some(ExitNode { peer_id: *peer_id });
         self.check_open_session()?;
+        tracing::info!("set exit node");
         Ok(None)
     }
 
@@ -581,8 +600,14 @@ impl Core {
 
     fn fetch_addresses(&mut self) -> Result<()> {
         match &self.entry_node {
-            Some(en) => en.query_addresses(&self.client, &self.sender),
-            _ => Ok(()),
+            Some(en) => {
+                tracing::info!("querying addresses");
+                en.query_addresses(&self.client, &self.sender)
+            }
+            _ => {
+                tracing::warn!("no entry node to fetch addresses");
+                Ok(())
+            }
         }
     }
 
@@ -597,22 +622,37 @@ impl Core {
                 target: session.target.clone(),
                 capabilities: session.capabilities.clone(),
             };
+            tracing::info!("opening session");
             session::open(&self.client, &self.sender, &open_session)?;
+        } else {
+            tracing::warn!("no entry node or session to open");
         }
         Ok(())
     }
 
     fn fetch_list_sessions(&mut self) -> Result<()> {
         match &self.entry_node {
-            Some(en) => en.list_sessions(&self.client, &self.sender),
-            _ => Ok(()),
+            Some(en) => {
+                tracing::info!("querying list sessions");
+                en.list_sessions(&self.client, &self.sender)
+            }
+            _ => {
+                tracing::warn!("no entry node to query list sessions");
+                Ok(())
+            }
         }
     }
 
     fn fetch_close_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.session) {
-            (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
-            _ => Ok(()),
+            (Some(en), Some(sess)) => {
+                tracing::info!("closing session");
+                sess.close(&self.client, &self.sender, en)
+            }
+            _ => {
+                tracing::warn!("no entry node or session to close");
+                Ok(())
+            }
         }
     }
 
