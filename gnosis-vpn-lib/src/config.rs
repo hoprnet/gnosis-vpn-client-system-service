@@ -12,6 +12,7 @@ use crate::peer_id::PeerId;
 const SUPPORTED_CONFIG_VERSIONS: [u8; 1] = [1];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub version: u8,
     pub entry_node: Option<EntryNodeConfig>,
@@ -20,12 +21,14 @@ pub struct Config {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EntryNodeConfig {
     pub endpoint: Url,
     pub api_token: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionConfig {
     pub capabilities: Option<Vec<SessionCapabilitiesConfig>>,
     pub destination: PeerId,
@@ -35,6 +38,7 @@ pub struct SessionConfig {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WireGuardConfig {
     pub private_key: Option<String>,
     pub preshared_key: Option<String>,
@@ -43,6 +47,7 @@ pub struct WireGuardConfig {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionTargetConfig {
     pub type_: Option<SessionTargetType>,
     pub host: String,
@@ -50,6 +55,7 @@ pub struct SessionTargetConfig {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum SessionCapabilitiesConfig {
     #[default]
     Segmentation,
@@ -57,6 +63,7 @@ pub enum SessionCapabilitiesConfig {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum SessionTargetType {
     #[default]
     Plain,
@@ -64,6 +71,7 @@ pub enum SessionTargetType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum SessionPathConfig {
     Hop(u8),
     IntermediateId(PeerId),
