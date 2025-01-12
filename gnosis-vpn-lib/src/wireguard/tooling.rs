@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Write;
 use std::process::{Command, Stdio};
 
 use crate::dirs;
@@ -112,48 +113,35 @@ impl WireGuard for Tooling {
         Ok(())
     }
     */
-}
 
-/*
-fn public_key(priv_key: &str) -> Result<String, Error> {
-    let output = Command::new("wg")
-        .arg("pubkey")
-        .arg(priv_key)
-        .output()
-        .map_err(|e| Error::IO(e.to_string()))?;
-    String::from_utf8(output.stdout)
-        .map(|s| s.trim().to_string())
-        .map_err(Error::FromUtf8Error)
+    fn public_key(&self, priv_key: &str) -> Result<String, Error> {
+        let mut command = Command::new("wg")
+            .arg("pubkey")
+            .stdin(Stdio::piped()) // Enable piping to stdin
+            .stdout(Stdio::piped()) // Capture stdout
+            .spawn()
+            .map_err(|e| Error::IO(e.to_string()))?;
 
-         // The command to run
-    let mut command = Command::new("wg")
-        .arg("pubkey")
-        .stdin(Stdio::piped())  // Enable piping to stdin
-        .stdout(Stdio::piped()) // Capture stdout
-        .spawn()
-        .expect("Failed to spawn process");
+        if let Some(stdin) = command.stdin.as_mut() {
+            stdin
+                .write_all(priv_key.as_bytes())
+                .map_err(|e| Error::IO(e.to_string()))?;
+        }
 
-    // Provide input to stdin
-    if let Some(stdin) = command.stdin.as_mut() {
-        stdin
-            .write_all(b"sIarCqMz3wL+XJ/+zh1KwGa9HXOw+SNB7ukIYBj6m1E=")
-            .expect("Failed to write to stdin");
-    }
+        let output = command.wait_with_output().map_err(|e| Error::IO(e.to_string()))?;
 
-    // Wait for the command to complete and capture output
-    let output = command
-        .wait_with_output()
-        .expect("Failed to read stdout");
-
-    // Print the command output
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("Output:\n{}", stdout);
-    } else {
-        eprintln!("Command failed with stderr: {}", String::from_utf8_lossy(&output.stderr));
+        // Print the command output
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            Ok(stdout.trim().to_string())
+        } else {
+            Err(Error::WgError(format!(
+                "Command failed with stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )))
+        }
     }
 }
-*/
 
 impl ConnectSession {
     fn to_file_string(&self) -> String {

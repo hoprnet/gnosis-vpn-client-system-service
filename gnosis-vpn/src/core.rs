@@ -171,8 +171,17 @@ impl Core {
                     return;
                 }
             };
-            match self.state.set_wg_private_key(priv_key) {
-                Ok(_) => (),
+            match self.state.set_wg_private_key(priv_key.clone()) {
+                Ok(_) => match wg.public_key(priv_key.as_str()) {
+                    Ok(pub_key) => {
+                        tracing::info!("****** Generated wireguard private key ******");
+                        tracing::info!(public_key = %pub_key, "****** Use this pub_key for onboarding ******");
+                    }
+                    Err(err) => {
+                        tracing::error!(?err, "failed to generate wireguard public key");
+                        self.replace_issue(Issue::WireGuard(err));
+                    }
+                },
                 Err(err) => {
                     tracing::error!(?err, "failed to write wireguard private key to state");
                     self.replace_issue(Issue::State(err));

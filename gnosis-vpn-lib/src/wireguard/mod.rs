@@ -18,6 +18,8 @@ pub enum Error {
     Toml(#[from] toml::ser::Error),
     #[error("monitoring error: {0}")]
     Monitoring(String),
+    #[error("wireguard error: {0}")]
+    WgError(String),
 }
 
 pub struct ConnectSession {
@@ -69,6 +71,7 @@ pub fn best_flavor() -> (Option<Box<dyn WireGuard>>, Vec<Error>) {
 pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
     fn connect_session(&self, session: &ConnectSession) -> Result<(), Error>;
+    fn public_key(&self, priv_key: &str) -> Result<String, Error>;
     // fn close_session(&self) -> Result<(), Error>;
     // fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
 }
