@@ -190,7 +190,7 @@ impl Core {
             let path = session.path.clone().unwrap_or_default();
             let en_path = match path {
                 config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
-                config::SessionPathConfig::IntermediateId(id) => Path::IntermediateId(id),
+                config::SessionPathConfig::Intermediates(ids) => Path::Intermediates(ids.clone()),
             };
             let xn_peer_id = session.destination;
 
@@ -329,7 +329,6 @@ impl Core {
                     match wg.connect_session(&info) {
                         Ok(_) => {
                             tracing::info!("opened session and wireguard connection");
-                            ()
                         }
                         Err(err) => {
                             tracing::warn!(?err, "openend session but failed to connect wireguard session");
@@ -533,7 +532,7 @@ impl Core {
         // hop has precedence over intermediate_id
         let path = match (hop, intermediate_id) {
             (Some(h), _) => Path::Hop(*h),
-            (_, Some(id)) => Path::IntermediateId(*id),
+            (_, Some(id)) => Path::Intermediates(vec![*id]),
             _ => Path::Hop(1),
         };
         self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_host.as_deref(), path));

@@ -74,7 +74,7 @@ pub enum SessionTargetType {
 #[serde(rename_all = "camelCase")]
 pub enum SessionPathConfig {
     Hop(u8),
-    IntermediateId(PeerId),
+    Intermediates(Vec<PeerId>),
 }
 
 #[cfg(unix)]

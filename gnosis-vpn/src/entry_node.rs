@@ -24,7 +24,7 @@ pub struct EntryNode {
 #[derive(Debug)]
 pub enum Path {
     Hop(u8),
-    IntermediateId(PeerId),
+    Intermediates(Vec<PeerId>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,7 +100,7 @@ impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Path::Hop(hop) => write!(f, "hop: {}", hop),
-            Path::IntermediateId(peer_id) => write!(f, "intermediate_id: {}", peer_id),
+            Path::Intermediates(ids) => write!(f, "intermediates: {:?}", ids),
         }
     }
 }

@@ -66,12 +66,12 @@ pub fn open(
         }
     };
     json.insert("target".to_string(), target_json);
-    let path_json = match open_session.path {
+    let path_json = match open_session.path.clone() {
         Some(SessionPathConfig::Hop(hop)) => {
             json!({"Hops": hop})
         }
-        Some(SessionPathConfig::IntermediateId(id)) => {
-            json!({ "IntermediatePath": [id.to_string()]})
+        Some(SessionPathConfig::Intermediates(ids)) => {
+            json!({ "IntermediatePath": ids.clone() })
         }
         None => {
             json!({"Hops": 1})
