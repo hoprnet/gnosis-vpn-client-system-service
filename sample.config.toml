@@ -12,16 +12,16 @@ version = 1
 
 # [entryNode]
 # # URL pointing to API access of entry node
-# endpoint = "http://localhost:3002"
+# endpoint = "<entry node API endpoint>"
 # # API access token
-# api_token = "crvTHV8LcSZ2MoGE3CBr9ltbQsdxGk2l8OGDtyZpDKQ99yAc"
+# api_token = "<entry node API token>"
 
 ###
 ## session section - connection configuration parameters
 
 # [session]
-# # exit node peer id - the node where the session should terminate
-# destination = "1AdLTPhZVFueWdzyaMJxKmguwTJNPJdcV8CgrCupEEXYqB"
+# # the node where the session should terminate
+# destination = "<exit node peer id>"
 # # [OPTIONAL] session features - defaults to `[ Segmentation ]`
 # capabilities = [ "Segmentation", "Retransmission" ]
 # # [OPTIONAL] listen host - specify internal listen host on entry node
@@ -36,7 +36,7 @@ version = 1
 # # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
 # hop = 1
 # # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
-# intermediates = [ "12D3KooWPq1mC4uewNRANc2YRcigkP1bEUKUFkLX1fBB5deP32Z7" ]
+# intermediates = [ "<intermediate node peer id>" ]
 
 ###
 ## session target section - where does the session connect to
@@ -53,9 +53,9 @@ version = 1
 # [wireguard]
 # # local interface IP, onboarding info will provide this
 # address = "10.34.0.8/32"
-# # public server peer id - onboarding info will provide this
-# serverPublicKey = "9QKjLa+WtcjEhTTBTW99YQ9VzdMqwpkW26dMIsT6FiM="
+# # wireguard server public peer id - onboarding info will provide this
+# serverPublicKey = "<wg server public peer id>"
 # # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
-# privateKey = "gFt1a6f9dNB73FUCFnBhJajmhSD7Ifndve1BnxoIzmM="
+# privateKey = "<wg private key>"
 # # [OPTIONAL] preshared server key - if the server provides this, set it here
-# presharedKey = "CFUW4EFgcg/jf5sR7GvPJlucUSHG4Jj6eNgSSeo7JWc="
+# presharedKey = "<wg preshared key>"
