@@ -12,10 +12,10 @@
 2. Start service binary with privileged access: `sudo ./gnosis-vpn`.
 
 3. Once started without any configuration the service will generate a wireguard priv pub keypair to use.
-Look for `****** Generated wireguard private key ******` and `****** Use this pub_key for onboarding ****** public_key=<pubkey>`.
-Copy `<pubkey>` and provide it to `CRYPTPAD_ONBOARDING_FORM`.
-Also provide a one off drop location to receive your assigned device IP.
-E.g. use [rlim](https://rlim.com/) to create a custom url and paste that url alongside with your edit code into the cryptpad form field.
+   Look for `****** Generated wireguard private key ******` and `****** Use this pub_key for onboarding ****** public_key=<pubkey>`.
+   Copy `<pubkey>` and provide it to `CRYPTPAD_ONBOARDING_FORM`.
+   Also provide a one off drop location to receive your assigned device IP.
+   E.g. use [rlim](https://rlim.com/) to create a custom url and paste that url alongside with your edit code into the cryptpad form field.
 
 4. After someone picked up your public key and added it to our session servers you will get your device IP back via your drop location.
 
@@ -40,7 +40,7 @@ address = "<the IP y ou got in your drop off location>"
 ```
 
 7. Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location
-Update parameters in `/etc/gnosisvpn/config.toml`:
+   Update parameters in `/etc/gnosisvpn/config.toml`:
 
 ```toml
 [wireguard]
@@ -59,5 +59,5 @@ port = <exit location wg port>
 ```
 
 8. At this point the you might see some notificaiton that a `wg0-gnosisvpn` interface is now connected.
-The hoprd session was opened by the service and will kept open.
-Wireguard is also connected and you will be able to use a socks5 proxy on your device.
+   The hoprd session was opened by the service and will kept open.
+   Wireguard is also connected and you will be able to use a socks5 proxy on your device.
