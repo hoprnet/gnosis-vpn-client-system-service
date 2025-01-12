@@ -21,6 +21,10 @@ Start the service with privileged access:
 sudo gnosis-vpn
 ```
 
+## Onboarding
+
+Follow [./ONBOARDING.md](ONBOARDING.md) for a detailed onboarding process.
+
 ## Development usage
 
 `cargo build`

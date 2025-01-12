@@ -2,56 +2,60 @@
 # Gnosis VPN service configuration file
 #
 # On unix this file is located in `/etc/gnosisvpn/config.toml`
-##
+###
 
-## general config file version
+# general config file version
 version = 1
 
 ###
 ## entry node section - hoprd node that acts as the connection entry point
 
 # [entryNode]
-## URL pointing to API access of entry node
+# # URL pointing to API access of entry node
 # endpoint = "http://localhost:3002"
-## API access token
+# # API access token
 # api_token = "crvTHV8LcSZ2MoGE3CBr9ltbQsdxGk2l8OGDtyZpDKQ99yAc"
 
 ###
 ## session section - connection configuration parameters
 
 # [session]
-## exit node peer id - the node where the session should terminate
+# # exit node peer id - the node where the session should terminate
 # destination = "1AdLTPhZVFueWdzyaMJxKmguwTJNPJdcV8CgrCupEEXYqB"
-## [OPTIONAL] session features - defaults to `[ Segmentation ]`
+# # [OPTIONAL] session features - defaults to `[ Segmentation ]`
 # capabilities = [ "Segmentation", "Retransmission" ]
-## [OPTIONAL] listen host - specify internal listen host on entry node
-## this is an advanced setting, which normal users should not tinker with
+# # [OPTIONAL] listen host - specify internal listen host on entry node
+# # this is an advanced setting, which normal users should not tinker with
 # listenHost = [ "0.0.0.0:60006" ]
 
 ###
 ## [OPTIONAL] session path section - specify static session path
 
-## NOTE: only intented for debugging purposes as it degrades security
+# # NOTE: only intented for debugging purposes as it degrades security
 # [session.path]
-## [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
+# # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
 # hop = 1
-## [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
+# # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
 # intermediates = [ "12D3KooWPq1mC4uewNRANc2YRcigkP1bEUKUFkLX1fBB5deP32Z7" ]
 
+###
 ## session target section - where does the session connect to
+
 # [session.target]
-## host of the session endpoint without schema
+# # host of the session endpoint without schema
 # host = "mysession.wireguard.endpoint"
-## port of the session endpoint
+# # port of the session endpoint
 # port = 51820
 
+###
 ## wireguard section - specific VPN related settings
+
 # [wireguard]
-## local interface IP, onboarding info will provide this
+# # local interface IP, onboarding info will provide this
 # address = "10.34.0.8/32"
-## public server peer id - onboarding info will provide this
+# # public server peer id - onboarding info will provide this
 # serverPublicKey = "9QKjLa+WtcjEhTTBTW99YQ9VzdMqwpkW26dMIsT6FiM="
-## [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
+# # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
 # privateKey = "gFt1a6f9dNB73FUCFnBhJajmhSD7Ifndve1BnxoIzmM="
-## [OPTIONAL] preshared server key - if the server provides this, set it here
+# # [OPTIONAL] preshared server key - if the server provides this, set it here
 # presharedKey = "CFUW4EFgcg/jf5sR7GvPJlucUSHG4Jj6eNgSSeo7JWc="
