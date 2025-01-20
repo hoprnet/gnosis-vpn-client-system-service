@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use crate::dirs;
@@ -28,6 +29,14 @@ impl Tooling {
 // const NETWORK: &str = "wg0_gnosisvpn";
 const TMP_FILE: &str = "wg0_gnosisvpn.conf";
 
+fn wg_config_file() -> Result<PathBuf, Error> {
+    let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
+    let cache_dir = p_dirs.cache_dir();
+    fs::create_dir_all(cache_dir).map_err(|e| Error::IO(e.to_string()))?;
+
+    Ok(cache_dir.join(TMP_FILE))
+}
+
 impl WireGuard for Tooling {
     fn generate_key(&self) -> Result<String, Error> {
         let output = Command::new("wg")
@@ -40,11 +49,7 @@ impl WireGuard for Tooling {
     }
 
     fn connect_session(&self, session: &ConnectSession) -> Result<(), Error> {
-        let p_dirs = dirs::project().ok_or(Error::IO("unable to create project directories".to_string()))?;
-        let cache_dir = p_dirs.cache_dir();
-        fs::create_dir_all(cache_dir).map_err(|e| Error::IO(e.to_string()))?;
-
-        let conf_file = cache_dir.join(TMP_FILE);
+        let conf_file = wg_config_file()?;
         let config = session.to_file_string();
         let content = config.as_bytes();
         fs::write(&conf_file, content).map_err(|e| Error::IO(e.to_string()))?;
