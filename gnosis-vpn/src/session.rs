@@ -1,4 +1,5 @@
 use anyhow::Result;
+use gnosis_vpn_lib::config::{SessionCapabilitiesConfig, SessionPathConfig, SessionTargetConfig, SessionTargetType};
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -7,47 +8,89 @@ use std::fmt;
 use std::thread;
 use url::Url;
 
-use crate::entry_node::{EntryNode, Path};
+use crate::entry_node::EntryNode;
 use crate::event::Event;
-use crate::exit_node::ExitNode;
 use crate::remote_data;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     // listen host
-    ip: String,
-    port: u16,
-    protocol: String,
-    target: Url,
+    pub ip: String,
+    pub port: u16,
+    pub protocol: String,
+    pub target: Url,
+}
+
+#[derive(Debug)]
+pub struct OpenSession {
+    pub endpoint: Url,
+    pub api_token: String,
+    pub destination: String,
+    pub capabilities: Option<Vec<SessionCapabilitiesConfig>>,
+    pub listen_host: Option<String>,
+    pub path: Option<SessionPathConfig>,
+    pub target: SessionTargetConfig,
 }
 
 #[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]
 pub fn open(
     client: &blocking::Client,
     sender: &crossbeam_channel::Sender<Event>,
-    en: &EntryNode,
-    xn: &ExitNode,
+    open_session: &OpenSession,
 ) -> Result<()> {
-    let headers = remote_data::authentication_headers(en.api_token.as_str())?;
-    let url = en.endpoint.join("/api/v3/session/udp")?;
+    let headers = remote_data::authentication_headers(open_session.api_token.as_str())?;
+    let url = open_session.endpoint.join("/api/v3/session/udp")?;
     let mut json = serde_json::Map::new();
-    json.insert("capabilities".to_string(), json!(["Segmentation"]));
-    json.insert("destination".to_string(), json!(xn.peer_id.to_base58()));
-    json.insert(
-        "target".to_string(),
-        json!({"Plain": "wireguard.staging.hoprnet.link:51820"}),
-    );
-    match en.path {
-        Path::Hop(hop) => {
-            json.insert("path".to_string(), json!({"Hops": hop}));
+    json.insert("destination".to_string(), json!(open_session.destination));
+    let target_json = match &open_session.target {
+        SessionTargetConfig {
+            type_: None,
+            host,
+            port,
+        } => {
+            json!({"Plain": format!("{}:{}", host, port)})
         }
-        Path::IntermediateId(id) => {
-            json.insert("path".to_string(), json!({ "IntermediatePath": [id.to_base58()]}));
+        SessionTargetConfig {
+            type_: Some(SessionTargetType::Plain),
+            host,
+            port,
+        } => {
+            json!({"Plain": format!("{}:{}", host, port)})
         }
-    }
-    if let Some(lh) = &en.listen_host {
+        SessionTargetConfig {
+            type_: Some(SessionTargetType::Sealed),
+            host,
+            port,
+        } => {
+            json!({"Sealed": format!("{}:{}", host, port)})
+        }
+    };
+    json.insert("target".to_string(), target_json);
+    let path_json = match open_session.path.clone() {
+        Some(SessionPathConfig::Hop(hop)) => {
+            json!({"Hops": hop})
+        }
+        Some(SessionPathConfig::Intermediates(ids)) => {
+            json!({ "IntermediatePath": ids.clone() })
+        }
+        None => {
+            json!({"Hops": 1})
+        }
+    };
+    json.insert("path".to_string(), path_json);
+    if let Some(lh) = &open_session.listen_host {
         json.insert("listenHost".to_string(), json!(lh));
     };
+
+    let capabilities_json = match &open_session.capabilities {
+        Some(caps) => {
+            json!(caps)
+        }
+        None => {
+            json!(["Segmentation"])
+        }
+    };
+    json.insert("capabilities".to_string(), capabilities_json);
 
     let sender = sender.clone();
     let client = client.clone();

@@ -1,7 +1,10 @@
 use anyhow::Result;
 use gnosis_vpn_lib::command::Command;
-use gnosis_vpn_lib::log_output;
-use libp2p_identity::PeerId;
+use gnosis_vpn_lib::config::Config;
+use gnosis_vpn_lib::peer_id::PeerId;
+use gnosis_vpn_lib::state::State;
+use gnosis_vpn_lib::{config, log_output, state, wireguard};
+use rand::Rng;
 use reqwest::blocking;
 use std::collections::HashMap;
 use std::fmt;
@@ -14,7 +17,7 @@ use crate::backoff;
 use crate::backoff::FromIteratorToSeries;
 use crate::entry_node;
 use crate::entry_node::{EntryNode, Path};
-use crate::event::Event; // Import the `entry_node` module // Import the `entry_node` module
+use crate::event::Event;
 use crate::exit_node::ExitNode;
 use crate::remote_data;
 use crate::remote_data::RemoteData;
@@ -23,12 +26,25 @@ use crate::session::Session;
 
 #[derive(Debug)]
 pub struct Core {
+    // http client
+    client: blocking::Client,
+    // configuration data
+    config: Config,
+    // event transmitter
+    sender: crossbeam_channel::Sender<Event>,
+    // potential non critial user visible errors
+    issues: Vec<Issue>,
+    // internal persistent application state
+    state: state::State,
+    // wg interface,
+    wg: Option<Box<dyn wireguard::WireGuard>>,
+    // random generator
+    rng: rand::rngs::ThreadRng,
+
     status: Status,
     entry_node: Option<EntryNode>,
     exit_node: Option<ExitNode>,
-    client: blocking::Client,
     fetch_data: FetchData,
-    sender: crossbeam_channel::Sender<Event>,
     session: Option<Session>,
 }
 
@@ -55,9 +71,57 @@ enum Status {
     },
 }
 
+#[derive(Debug)]
+enum Issue {
+    Config(config::Error),
+    State(state::Error),
+    WireGuardInit(wireguard::Error),
+    WireGuard(wireguard::Error),
+}
+
+fn read_config() -> (Config, Option<Issue>) {
+    match config::read() {
+        Ok(cfg) => {
+            tracing::info!("read config without issues");
+            (cfg, None)
+        }
+        Err(config::Error::NoFile) => {
+            tracing::info!("no config - using default");
+            (Config::default(), None)
+        }
+        Err(err) => {
+            tracing::warn!(warn = ?err, "failed to read config file");
+            (Config::default(), Some(Issue::Config(err)))
+        }
+    }
+}
+
+fn read_state() -> (State, Option<Issue>) {
+    match state::read() {
+        Ok(state) => (state, None),
+        Err(state::Error::NoFile) => (State::default(), None),
+        Err(err) => {
+            tracing::warn!(warn = ?err, "failed to read state file");
+            (State::default(), Some(Issue::State(err)))
+        }
+    }
+}
+
 impl Core {
     pub fn init(sender: crossbeam_channel::Sender<Event>) -> Core {
-        Core {
+        let (config, conf_issue) = read_config();
+        let mut issues = conf_issue.map(|i| vec![i]).unwrap_or(Vec::new());
+        let (wg, wg_errors) = wireguard::best_flavor();
+        let mut wg_issues = wg_errors.iter().map(|i| Issue::WireGuardInit(i.clone())).collect();
+        issues.append(&mut wg_issues);
+        let (state, state_issue) = read_state();
+        if let Some(issue) = state_issue {
+            issues.push(issue);
+        }
+
+        let mut core = Core {
+            config,
+            issues,
             status: Status::Idle,
             entry_node: None,
             exit_node: None,
@@ -68,12 +132,96 @@ impl Core {
                 list_sessions: RemoteData::NotAsked,
                 close_session: RemoteData::NotAsked,
             },
+            state,
+            wg,
+            rng: rand::thread_rng(),
             sender,
             session: None,
+        };
+        core.setup();
+        core
+    }
+
+    fn setup(&mut self) {
+        self.setup_wg_priv_key();
+        if let Err(err) = self.setup_from_config() {
+            tracing::error!(?err, "failed setup from config");
         }
     }
 
-    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    fn wg_priv_key(&self) -> Option<String> {
+        if let Some(key) = &self.config.wireguard.as_ref().and_then(|wg| wg.private_key.clone()) {
+            return Some(key.clone());
+        }
+        if let Some(key) = &self.state.wg_private_key {
+            return Some(key.clone());
+        }
+        None
+    }
+
+    fn setup_wg_priv_key(&mut self) {
+        // if wg is available check private key
+        // gengerate a new one if none
+        if let (Some(wg), None) = (&self.wg, &self.wg_priv_key()) {
+            let priv_key = match wg.generate_key() {
+                Ok(priv_key) => priv_key,
+                Err(err) => {
+                    tracing::error!(?err, "failed to generate wireguard private key");
+                    self.replace_issue(Issue::WireGuard(err));
+                    return;
+                }
+            };
+            match self.state.set_wg_private_key(priv_key.clone()) {
+                Ok(_) => match wg.public_key(priv_key.as_str()) {
+                    Ok(pub_key) => {
+                        tracing::info!("****** Generated wireguard private key ******");
+                        tracing::info!(public_key = %pub_key, "****** Use this pub_key for onboarding ******");
+                    }
+                    Err(err) => {
+                        tracing::error!(?err, "failed to generate wireguard public key");
+                        self.replace_issue(Issue::WireGuard(err));
+                    }
+                },
+                Err(err) => {
+                    tracing::error!(?err, "failed to write wireguard private key to state");
+                    self.replace_issue(Issue::State(err));
+                }
+            };
+        }
+    }
+
+    fn setup_from_config(&mut self) -> Result<()> {
+        self.check_close_session()?;
+        if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
+            let en_endpoint = entry_node.endpoint.clone();
+            let en_api_token = entry_node.api_token.clone();
+            let en_listen_host = session.listen_host.clone();
+            let path = session.path.clone().unwrap_or_default();
+            let en_path = match path {
+                config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
+                config::SessionPathConfig::Intermediates(ids) => Path::Intermediates(ids.clone()),
+            };
+            let xn_peer_id = session.destination;
+
+            // convert config to old application struture
+            self.entry_node = Some(EntryNode::new(
+                &en_endpoint,
+                &en_api_token,
+                en_listen_host.as_deref(),
+                en_path,
+            ));
+            self.exit_node = Some(ExitNode { peer_id: xn_peer_id });
+
+            self.fetch_data.addresses = RemoteData::Fetching {
+                started_at: SystemTime::now(),
+            };
+            self.fetch_addresses()?;
+            self.check_open_session()?;
+        }
+        Ok(())
+    }
+
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_cmd(&mut self, cmd: &Command) -> Result<Option<String>> {
         match cmd {
             Command::Status => Ok(self.status()),
@@ -88,7 +236,7 @@ impl Core {
         }
     }
 
-    #[instrument(level = tracing::Level::INFO, ret(level = tracing::Level::DEBUG))]
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
         match event {
             Event::FetchAddresses(evt) => self.evt_fetch_addresses(evt),
@@ -99,6 +247,30 @@ impl Core {
         }
     }
 
+    #[instrument(level = tracing::Level::INFO, skip(self), ret(level = tracing::Level::DEBUG))]
+    pub fn update_config(&mut self) {
+        tracing::info!("update config");
+        let (config, issue) = read_config();
+        self.config = config;
+        if let Some(issue) = issue {
+            self.replace_issue(issue);
+        }
+        self.setup();
+    }
+
+    fn replace_issue(&mut self, issue: Issue) {
+        // remove existing config issue
+        self.issues.retain(|i| {
+            !matches!(
+                (i, &issue),
+                (Issue::Config(_), Issue::Config(_))
+                    | (Issue::WireGuard(_), Issue::WireGuard(_))
+                    | (Issue::State(_), Issue::State(_))
+            )
+        });
+        self.issues.push(issue);
+    }
+
     fn evt_fetch_addresses(&mut self, evt: remote_data::Event) -> Result<()> {
         match evt {
             remote_data::Event::Response(value) => {
@@ -107,6 +279,7 @@ impl Core {
                     Some(en) => {
                         let addresses = serde_json::from_value::<entry_node::Addresses>(value)?;
                         en.addresses = Some(addresses);
+                        tracing::info!("fetched addresses");
                         Ok(())
                     }
                     None => anyhow::bail!("unexpected internal state: no entry node"),
@@ -118,11 +291,13 @@ impl Core {
                 } => {
                     let mut backoffs = old_backoffs.clone();
                     self.repeat_fetch_addresses(err, &mut backoffs);
+                    tracing::warn!("retrying fetch addresses");
                     Ok(())
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::get_addresses().to_vec();
                     self.repeat_fetch_addresses(err, &mut backoffs);
+                    tracing::info!("retrying fetch addresses");
                     Ok(())
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -135,13 +310,43 @@ impl Core {
         match evt {
             remote_data::Event::Response(value) => {
                 let session = serde_json::from_value::<Session>(value)?;
-                self.fetch_data.open_session = RemoteData::Success;
+                let session_port = session.port;
                 self.session = Some(session);
-                let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                self.fetch_data.open_session = RemoteData::Success;
+                let next_check = self.rng.gen_range(5..13);
+                let cancel_sender =
+                    session::schedule_check_session(time::Duration::from_secs(next_check), &self.sender);
                 self.status = Status::MonitoringSession {
                     start_time: SystemTime::now(),
                     cancel_sender,
                 };
+
+                // connect wireguard session if possible
+                if let (Some(wg), Some(privkey), Some(wg_conf), Some(en_host)) = (
+                    &self.wg,
+                    &self.wg_priv_key(),
+                    &self.config.wireguard,
+                    &self.config.entry_node.as_ref().and_then(|en| en.endpoint.host()),
+                ) {
+                    let info = wireguard::ConnectSession::new(
+                        privkey,
+                        wg_conf.address.as_str(),
+                        wg_conf.server_public_key.as_str(),
+                        format!("{}:{}", en_host, session_port).as_str(),
+                    );
+
+                    match wg.connect_session(&info) {
+                        Ok(_) => {
+                            tracing::info!("opened session and wireguard connection");
+                        }
+                        Err(err) => {
+                            tracing::warn!(?err, "openend session but failed to connect wireguard session");
+                            self.replace_issue(Issue::WireGuard(err));
+                        }
+                    }
+                } else {
+                    tracing::info!("opened session without handling wireguard");
+                }
                 Ok(())
             }
             remote_data::Event::Error(err) => match &self.fetch_data.open_session {
@@ -150,11 +355,13 @@ impl Core {
                 } => {
                     let mut backoffs = old_backoffs.clone();
                     self.repeat_fetch_open_session(err, &mut backoffs);
+                    tracing::warn!("retrying open session");
                     Ok(())
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::open_session().to_vec();
                     self.repeat_fetch_open_session(err, &mut backoffs);
+                    tracing::info!("retrying open session");
                     Ok(())
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -171,9 +378,8 @@ impl Core {
                 match res_sessions {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
-                        tracing::warn!("stopped monitoring - failed to parse sessions");
                         self.status = Status::Idle;
-                        anyhow::bail!("failed to parse sessions: {}", e);
+                        anyhow::bail!("stopped monitoring - failed to parse sessions: {}", e);
                     }
                 }
             }
@@ -182,10 +388,12 @@ impl Core {
                     backoffs: old_backoffs, ..
                 } => {
                     let mut backoffs = old_backoffs.clone();
+                    tracing::warn!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::list_sessions().to_vec();
+                    tracing::info!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -199,6 +407,7 @@ impl Core {
             remote_data::Event::Response(_) => {
                 self.fetch_data.close_session = RemoteData::Success;
                 self.status = Status::Idle;
+                tracing::info!("closed session");
                 self.check_open_session()
             }
             remote_data::Event::Error(err) => match &self.fetch_data.close_session {
@@ -206,10 +415,12 @@ impl Core {
                     backoffs: old_backoffs, ..
                 } => {
                     let mut backoffs = old_backoffs.clone();
+                    tracing::warn!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 RemoteData::Fetching { .. } => {
                     let mut backoffs = backoff::close_session().to_vec();
+                    tracing::info!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
                 _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
@@ -220,14 +431,20 @@ impl Core {
 
     fn evt_check_session(&mut self) -> Result<()> {
         match (&self.status, &self.fetch_data.list_sessions) {
-            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => Ok(()),
+            (_, RemoteData::Fetching { .. }) | (_, RemoteData::RetryFetching { .. }) => {
+                tracing::info!("skipping session check because already ongoing");
+                Ok(())
+            }
             (Status::MonitoringSession { .. }, _) => {
                 self.fetch_data.list_sessions = RemoteData::Fetching {
                     started_at: SystemTime::now(),
                 };
                 self.fetch_list_sessions()
             }
-            _ => Ok(()),
+            _ => {
+                tracing::warn!("skipping session check because not monitoring session");
+                Ok(())
+            }
         }
     }
 
@@ -306,6 +523,7 @@ impl Core {
     }
 
     fn status(&self) -> Option<String> {
+        tracing::info!("respond with status");
         Some(self.to_string())
     }
 
@@ -313,7 +531,7 @@ impl Core {
         &mut self,
         endpoint: &Url,
         api_token: &str,
-        listen_port: &Option<String>,
+        listen_host: &Option<String>,
         hop: &Option<u8>,
         intermediate_id: &Option<PeerId>,
     ) -> Result<Option<String>> {
@@ -323,15 +541,16 @@ impl Core {
         // hop has precedence over intermediate_id
         let path = match (hop, intermediate_id) {
             (Some(h), _) => Path::Hop(*h),
-            (_, Some(id)) => Path::IntermediateId(*id),
+            (_, Some(id)) => Path::Intermediates(vec![*id]),
             _ => Path::Hop(1),
         };
-        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_port.as_deref(), path));
+        self.entry_node = Some(EntryNode::new(endpoint, api_token, listen_host.as_deref(), path));
         self.fetch_data.addresses = RemoteData::Fetching {
             started_at: SystemTime::now(),
         };
         self.fetch_addresses()?;
         self.check_open_session()?;
+        tracing::info!("set entry node");
         Ok(None)
     }
 
@@ -339,22 +558,32 @@ impl Core {
         self.check_close_session()?;
         self.exit_node = Some(ExitNode { peer_id: *peer_id });
         self.check_open_session()?;
+        tracing::info!("set exit node");
         Ok(None)
     }
 
+    #[instrument(level = tracing::Level::INFO, skip(self))]
     fn check_open_session(&mut self) -> Result<()> {
-        match (&self.status, &self.entry_node, &self.exit_node) {
-            (Status::Idle, Some(_), Some(_)) => {
-                self.status = Status::OpeningSession {
-                    start_time: SystemTime::now(),
-                };
-                self.fetch_data.open_session = RemoteData::Fetching {
-                    started_at: SystemTime::now(),
-                };
-                self.fetch_open_session()
-            }
-            _ => Ok(()),
+        if !matches!(&self.status, Status::Idle) {
+            tracing::info!(status = ?self.status, "need Idle status to open session");
+            return Ok(());
         }
+
+        if self.entry_node.is_none() {
+            tracing::info!("need entry node parameters to open session");
+            return Ok(());
+        }
+        if self.config.session.is_none() {
+            tracing::info!("need session parameters to open session");
+            return Ok(());
+        }
+        self.status = Status::OpeningSession {
+            start_time: SystemTime::now(),
+        };
+        self.fetch_data.open_session = RemoteData::Fetching {
+            started_at: SystemTime::now(),
+        };
+        self.fetch_open_session()
     }
 
     fn check_close_session(&mut self) -> Result<()> {
@@ -379,29 +608,59 @@ impl Core {
 
     fn fetch_addresses(&mut self) -> Result<()> {
         match &self.entry_node {
-            Some(en) => en.query_addresses(&self.client, &self.sender),
-            _ => Ok(()),
+            Some(en) => {
+                tracing::info!("querying addresses");
+                en.query_addresses(&self.client, &self.sender)
+            }
+            _ => {
+                tracing::warn!("no entry node to fetch addresses");
+                Ok(())
+            }
         }
     }
 
     fn fetch_open_session(&mut self) -> Result<()> {
-        match (&self.entry_node, &self.exit_node) {
-            (Some(en), Some(xn)) => session::open(&self.client, &self.sender, en, xn),
-            _ => Ok(()),
+        if let (Some(en), Some(session)) = (&self.entry_node, &self.config.session) {
+            let open_session = session::OpenSession {
+                endpoint: en.endpoint.clone(),
+                api_token: en.api_token.clone(),
+                destination: session.destination.to_string(),
+                listen_host: session.listen_host.clone(),
+                path: session.path.clone(),
+                target: session.target.clone(),
+                capabilities: session.capabilities.clone(),
+            };
+            tracing::info!("opening session");
+            session::open(&self.client, &self.sender, &open_session)?;
+        } else {
+            tracing::warn!("no entry node or session to open");
         }
+        Ok(())
     }
 
     fn fetch_list_sessions(&mut self) -> Result<()> {
         match &self.entry_node {
-            Some(en) => en.list_sessions(&self.client, &self.sender),
-            _ => Ok(()),
+            Some(en) => {
+                tracing::info!("querying list sessions");
+                en.list_sessions(&self.client, &self.sender)
+            }
+            _ => {
+                tracing::warn!("no entry node to query list sessions");
+                Ok(())
+            }
         }
     }
 
     fn fetch_close_session(&mut self) -> Result<()> {
         match (&self.entry_node, &self.session) {
-            (Some(en), Some(sess)) => sess.close(&self.client, &self.sender, en),
-            _ => Ok(()),
+            (Some(en), Some(sess)) => {
+                tracing::info!("closing session");
+                sess.close(&self.client, &self.sender, en)
+            }
+            _ => {
+                tracing::warn!("no entry node or session to close");
+                Ok(())
+            }
         }
     }
 
@@ -492,7 +751,7 @@ impl Core {
 
 impl fmt::Display for ExitNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let peer = self.peer_id.to_base58();
+        let peer = self.peer_id.to_string();
         let print = HashMap::from([("peer_id", peer.as_str())]);
         let val = log_output::serialize(&print);
         write!(f, "{}", val)
@@ -519,14 +778,33 @@ impl fmt::Display for Status {
 
 impl fmt::Display for Core {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut print = HashMap::from([("status", self.status.to_string())]);
-        if let Some(en) = &self.entry_node {
-            print.insert("entry_node", en.to_string());
+        let mut print = HashMap::new();
+        if self.config == Config::default() {
+            print.insert("config", "<default>".to_string());
         }
-        if let Some(xn) = &self.exit_node {
-            print.insert("exit_node", xn.to_string());
+        if !self.issues.is_empty() {
+            print.insert(
+                "issues",
+                self.issues
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+                    .join(" | "),
+            );
         }
         let val = log_output::serialize(&print);
+        write!(f, "{}", val)
+    }
+}
+
+impl fmt::Display for Issue {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let val = match self {
+            Issue::Config(e) => format!("config file issue: {}", e),
+            Issue::WireGuardInit(e) => format!("wireguard initialization issue: {}", e),
+            Issue::State(e) => format!("storage issue: {}", e),
+            Issue::WireGuard(e) => format!("wireguard issue: {}", e),
+        };
         write!(f, "{}", val)
     }
 }

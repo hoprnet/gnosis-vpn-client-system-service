@@ -1,27 +1,29 @@
 # Gnosis VPN Client System Service
 
-The service currently opens a hoprd session and monitors that session.
-It will reopen that session if it goes down.
+The service establishes a VPN connection to a remote endpoint.
+It handles hoprd session and optinally wireguard setup.
 
 ## General usage
 
-In order to work ther service needs to be started in the background.
-Run `sudo gnosis-vpn` to start the service.
-Open a separate shell to interact with the service.
-Run `gnosis-vpn-ctl --help` to see available commands.
+The service needs to run as root in order to setup the VPN connection.
+It loads all parameters from it's configuration file.
+This is located in:
 
-A session needs to know the entry and the exit node on which it should connect.
-Here is a sample command to open a session on a local cluster:
+```sh
+/etc/gnosisvpn/config.toml
+```
 
+Copy [./sample.config.toml](sample config) to `/etc/gnosisvpn/config.toml` and adjust the values to your needs.
+
+Start the service with privileged access:
+
+```sh
+sudo gnosis-vpn
 ```
-gnosis-vpn-ctl \
-    entry-node \
-        --endpoint http://127.0.0.1:19091 \
-        --api-token ^^LOCAL-testing-123^^ \
-        --listen-host ":60006" \
-    exit-node \
-        --peer-id 12D3KooWKjT35UopfVhGHa8dxGZ6ds8r4rfQdd9rw4PiQZp8HXiA
-```
+
+## Onboarding
+
+Follow [./ONBOARDING.md](ONBOARDING.md) for a detailed onboarding process.
 
 ## Development usage
 

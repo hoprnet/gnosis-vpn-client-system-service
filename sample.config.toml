@@ -1,0 +1,61 @@
+###
+# Gnosis VPN service configuration file
+#
+# On unix this file is located in `/etc/gnosisvpn/config.toml`
+###
+
+# general config file version
+version = 1
+
+###
+## entry node section - hoprd node that acts as the connection entry point
+
+# [entryNode]
+# # URL pointing to API access of entry node
+# endpoint = "<entry node API endpoint>"
+# # API access token
+# api_token = "<entry node API token>"
+
+###
+## session section - connection configuration parameters
+
+# [session]
+# # the node where the session should terminate
+# destination = "<exit node peer id>"
+# # [OPTIONAL] session features - defaults to `[ Segmentation ]`
+# capabilities = [ "Segmentation", "Retransmission" ]
+# # [OPTIONAL] listen host - specify internal listen host on entry node
+# # this is an advanced setting, which normal users should not tinker with
+# listenHost = [ "0.0.0.0:60006" ]
+
+###
+## [OPTIONAL] session path section - specify static session path
+
+# # NOTE: only intented for debugging purposes as it degrades security
+# [session.path]
+# # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
+# hop = 1
+# # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
+# intermediates = [ "<intermediate node peer id>" ]
+
+###
+## session target section - where does the session connect to
+
+# [session.target]
+# # host of the session endpoint without schema
+# host = "mysession.wireguard.endpoint"
+# # port of the session endpoint
+# port = 51820
+
+###
+## wireguard section - specific VPN related settings
+
+# [wireguard]
+# # local interface IP, onboarding info will provide this
+# address = "10.34.0.8/32"
+# # wireguard server public peer id - onboarding info will provide this
+# serverPublicKey = "<wg server public peer id>"
+# # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
+# privateKey = "<wg private key>"
+# # [OPTIONAL] preshared server key - if the server provides this, set it here
+# presharedKey = "<wg preshared key>"
