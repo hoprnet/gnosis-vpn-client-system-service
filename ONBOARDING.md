@@ -19,10 +19,11 @@ Follow guidelines on official [WireGuard documentation](https://www.wireguard.co
 wg genkey | tee privatekey | wg pubkey > publickey
 ```
 
-4. Create a one off drop location to receive your assigned device IP.
-   Use [rlim](https://rlim.com/) and create a custom url.
+4. Create a secure input location where you will receive your assigned device IP.
+   We recommend using [rlim](https://rlim.com/) to create an editable drop location.
+   See [Create a one off drop location using rlim](#create-a-one-off-drop-location-using-rlim).
 
-5. Provide your public key and drop location to `CRYPTPAD_ONBOARDING_FORM`.
+5. Provide your public key, rlim url and edit code to `CRYPTPAD_ONBOARDING_FORM`.
 
 ```bash
 # copy public key to clipboard
@@ -34,7 +35,7 @@ Additionally paste the custom url you created with rlim and the edit code into t
 
 6. After someone picked up your public key and added it to our session servers you will get your device IP back via your drop location.
 
-7. Open `/etc/gnosisvpn/config.toml` in edit mode and provide your entry node credentials.
+7. Copy [sample config](./sample.config.toml) to `/etc/gnosisvpn/config.toml` and open it in edit mode.
 
 Uncomment `entryNode` section and adjust values as needed:
 
@@ -136,3 +137,11 @@ port = <exit location wg port>
 8. At this point the you might see some notificaiton that a `wg0-gnosisvpn` interface is now connected.
    The hoprd session was opened by the service and will kept open.
    Wireguard is also connected and you will be able to use a socks5 proxy on your device.
+
+## Create a one off drop location using rlim
+
+1. Visit [rlim](https://rlim.com/).
+2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
+3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
+4. Copy edit code from top line.
+5. Provide both the url and edit code to `CRYPTPAD_ONBOARDING_FORM`.
