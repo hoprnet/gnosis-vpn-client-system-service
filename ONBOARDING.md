@@ -10,25 +10,26 @@
 Setting up GnosisVPN PoC is quite complicated and requires multiple steps and configuration input sources.
 
 In general:
+
 - download binary and get it to work with privileged access
 - manually prepare and set up wireguard interface that can run on top of GnosisVPN session
 - GnosisVPN service configuration will be configured with info from three separate sources:
-    - your entry node credentials
-    - your assigned device IP
-    - your exit location choice
+  - your entry node credentials
+  - your assigned device IP
+  - your exit location choice
 
 ## Step by Step Guide
 
 1. Download the latest service binary for your system.
-Visit [Github release](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page and choose depending on your system:
+   Visit [Github release](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page and choose depending on your system:
 
-| system | binary |
-| --- | --- |
-| macOS with ARM chip | `gnosis-vpn-aarch64-darwin` |
-| macOS with Intel chip | `gnosis-vpn-x86_64-darwin` |
-| linux with x86 chip | `gnosis-vpn-x86_64-linux` |
-| linux with newer ARM chip | `gnosis-vpn-aarch64-linux` |
-| linux with older ARM chip | `gnosis-vpn-armv7l-linux` |
+| system                    | binary                      |
+| ------------------------- | --------------------------- |
+| macOS with ARM chip       | `gnosis-vpn-aarch64-darwin` |
+| macOS with Intel chip     | `gnosis-vpn-x86_64-darwin`  |
+| linux with x86 chip       | `gnosis-vpn-x86_64-linux`   |
+| linux with newer ARM chip | `gnosis-vpn-aarch64-linux`  |
+| linux with older ARM chip | `gnosis-vpn-armv7l-linux`   |
 
 For now just download it and keep it ready.
 
