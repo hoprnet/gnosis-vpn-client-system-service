@@ -39,7 +39,7 @@ pub fn open(
     open_session: &OpenSession,
 ) -> Result<()> {
     let headers = remote_data::authentication_headers(open_session.api_token.as_str())?;
-    let url = open_session.endpoint.join("/api/v3/session/udp")?;
+    let url = open_session.endpoint.join("/api/v3/session/udp/")?;
     let mut json = serde_json::Map::new();
     json.insert("destination".to_string(), json!(open_session.destination));
     let target_json = match &open_session.target {
@@ -226,10 +226,8 @@ impl Session {
         entry_node: &EntryNode,
     ) -> Result<()> {
         let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
-        let url = entry_node.endpoint.join("/api/v3/session/udp")?;
-        let mut json = serde_json::Map::new();
-        json.insert("listeningIp".to_string(), json!(self.ip));
-        json.insert("port".to_string(), json!(self.port));
+        let path = format!("/api/v3/session/udp/{}/{}/", self.ip, self.port);
+        let url = entry_node.endpoint.join(path.as_str())?;
 
         let sender = sender.clone();
         let client = client.clone();
@@ -244,7 +242,6 @@ impl Session {
 
             let fetch_res = client
                 .delete(url)
-                .json(&json)
                 .timeout(std::time::Duration::from_secs(30))
                 .headers(headers)
                 .send()
