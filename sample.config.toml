@@ -10,37 +10,43 @@ version = 1
 ###
 ## entry node section - hoprd node that acts as the connection entry point
 
+# # this section is used to inform about your hoprd entry node
 # [entryNode]
-# # URL pointing to API access of entry node
+# # URL pointing to API access of entry node with schema and port (e.g.: `http://123.456.7.89:3002`)
 # endpoint = "<entry node API endpoint>"
 # # API access token
-# api_token = "<entry node API token>"
+# apiToken = "<entry node API token>"
 
 ###
 ## session section - connection configuration parameters
 
+# # this section holds exit location information and transport parameters
 # [session]
-# # the node where the session should terminate
+# # the exit node peer id where the session should terminate
 # destination = "<exit node peer id>"
-# # [OPTIONAL] session features - defaults to `[ Segmentation ]`
-# capabilities = [ "Segmentation", "Retransmission" ]
-# # [OPTIONAL] listen host - specify internal listen host on entry node
-# # this is an advanced setting, which normal users should not tinker with
-# listenHost = [ "0.0.0.0:60006" ]
+
+# # # [OPTIONAL] internal session features - defaults to `[ Segmentation ]`
+# # capabilities = [ "Segmentation", "Retransmission" ]
+# # # [OPTIONAL] listen host - specify internal listen host on entry node
+# # # if you have a firewall running and can only use static ports you need to adjust this setting
+# # # same if you set up port forwarding yourself
+# # # in general if you want to establish a session on specific port, just provide this port here with a leading `:` (e.g.: `:60006`)
+# # listenHost = ":60006"
 
 ###
 ## [OPTIONAL] session path section - specify static session path
 
 # # NOTE: only intented for debugging purposes as it degrades security
 # [session.path]
-# # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
-# hop = 1
-# # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
-# intermediates = [ "<intermediate node peer id>" ]
+# # # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
+# # hop = 1
+# # # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
+# # intermediates = [ "<intermediate node peer id>" ]
 
 ###
 ## session target section - where does the session connect to
 
+# # this section holds the target information of the session
 # [session.target]
 # # host of the session endpoint without schema
 # host = "mysession.wireguard.endpoint"
@@ -50,12 +56,17 @@ version = 1
 ###
 ## wireguard section - specific VPN related settings
 
+# # this section holds the wireguard specific settings
 # [wireguard]
 # # local interface IP, onboarding info will provide this
 # address = "10.34.0.8/32"
 # # wireguard server public peer id - onboarding info will provide this
 # serverPublicKey = "<wg server public peer id>"
-# # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
-# privateKey = "<wg private key>"
-# # [OPTIONAL] preshared server key - if the server provides this, set it here
-# presharedKey = "<wg preshared key>"
+
+# # # [OPTIONAL] determine which traffic will be routed through the VPN
+# # # defaults to the smallest subnet derivable from subnet (`x.x.x.0/24`)
+# # allowedIPs = "10.34.0.0/24"
+# # # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
+# # privateKey = "<wg private key>"
+# # # [OPTIONAL] preshared server key - if the server provides this, set it here
+# # presharedKey = "<wg preshared key>"

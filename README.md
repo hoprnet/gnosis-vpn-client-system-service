@@ -1,7 +1,7 @@
 # Gnosis VPN Client System Service
 
 The service establishes a VPN connection to a remote endpoint.
-It handles hoprd session and optinally wireguard setup.
+It handles hoprd session and optinally wireguard setup (linux only).
 
 ## General usage
 
@@ -18,12 +18,13 @@ Copy [./sample.config.toml](sample config) to `/etc/gnosisvpn/config.toml` and a
 Start the service with privileged access:
 
 ```sh
-sudo gnosis-vpn
+sudo ./gnosis-vpn-<system-arch>
 ```
 
 ## Onboarding
 
-Follow [./ONBOARDING.md](ONBOARDING.md) for a detailed onboarding process.
+On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process.
+On Linux follow [ONBOARDING LINUX](./ONBOARDING-LINUX.md) for a detailed onboarding process.
 
 ## Development usage
 

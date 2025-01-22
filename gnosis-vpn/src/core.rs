@@ -328,12 +328,19 @@ impl Core {
                     &self.config.wireguard,
                     &self.config.entry_node.as_ref().and_then(|en| en.endpoint.host()),
                 ) {
-                    let info = wireguard::ConnectSession::new(
-                        privkey,
-                        wg_conf.address.as_str(),
-                        wg_conf.server_public_key.as_str(),
-                        format!("{}:{}", en_host, session_port).as_str(),
-                    );
+                    let peer_info = wireguard::PeerInfo {
+                        public_key: wg_conf.server_public_key.clone(),
+                        endpoint: format!("{}:{}", en_host, session_port),
+                    };
+                    let interface_info = wireguard::InterfaceInfo {
+                        private_key: privkey.clone(),
+                        address: wg_conf.address.clone(),
+                        allowed_ips: wg_conf.allowed_ips.clone(),
+                    };
+                    let info = wireguard::ConnectSession {
+                        interface: interface_info,
+                        peer: peer_info,
+                    };
 
                     match wg.connect_session(&info) {
                         Ok(_) => {
