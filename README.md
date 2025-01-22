@@ -23,8 +23,7 @@ sudo ./gnosis-vpn-<system-arch>
 
 ## Onboarding
 
-On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process.
-On Linux follow [ONBOARDING LINUX](./ONBOARDING-LINUX.md) for a detailed onboarding process.
+On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process ([ONBOARDING LINUX](./ONBOARDING-LINUX.md) on Linux).
 
 ## Development usage
 
