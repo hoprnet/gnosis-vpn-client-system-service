@@ -23,10 +23,10 @@ In general:
 1. Download the latest service binary for your system.
    Visit [Github release](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page and choose depending on your system:
 
-| system                    | binary                      |
-| ------------------------- | --------------------------- |
-| macOS with ARM chip       | `gnosis-vpn-aarch64-darwin` |
-| macOS with Intel chip     | `gnosis-vpn-x86_64-darwin`  |
+| system                | binary                      |
+| --------------------- | --------------------------- |
+| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
 
 For now just download it and keep it ready.
 
