@@ -63,6 +63,9 @@ version = 1
 # # wireguard server public peer id - onboarding info will provide this
 # serverPublicKey = "<wg server public peer id>"
 
+# # # [OPTIONAL] determine which traffic will be routed through the VPN
+# # # defaults to the smallest subnet derivable from subnet (`x.x.x.0/24`)
+# # allowedIPs = "10.34.0.0/24"
 # # # [OPTIONAL] private wg key - set this if you want to skip automatic key generation and provide your own private key
 # # privateKey = "<wg private key>"
 # # # [OPTIONAL] preshared server key - if the server provides this, set it here

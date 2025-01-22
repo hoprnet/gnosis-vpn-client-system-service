@@ -23,18 +23,19 @@ pub enum Error {
 }
 
 pub struct ConnectSession {
-    interface: InterfaceInfo,
-    peer: PeerInfo,
+    pub interface: InterfaceInfo,
+    pub peer: PeerInfo,
 }
 
 struct InterfaceInfo {
-    private_key: String,
-    address: String,
+    pub private_key: String,
+    pub address: String,
+    pub allowed_ips: Option<String>,
 }
 
 struct PeerInfo {
-    public_key: String,
-    endpoint: String,
+    pub public_key: String,
+    pub endpoint: String,
 }
 
 /*
@@ -74,21 +75,6 @@ pub trait WireGuard: Debug {
     fn public_key(&self, priv_key: &str) -> Result<String, Error>;
     // fn close_session(&self) -> Result<(), Error>;
     // fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
-}
-
-impl ConnectSession {
-    pub fn new(if_private_key: &str, if_address: &str, peer_public_key: &str, peer_endpoint: &str) -> Self {
-        Self {
-            interface: InterfaceInfo {
-                private_key: if_private_key.to_string(),
-                address: if_address.to_string(),
-            },
-            peer: PeerInfo {
-                public_key: peer_public_key.to_string(),
-                endpoint: peer_endpoint.to_string(),
-            },
-        }
-    }
 }
 
 /*

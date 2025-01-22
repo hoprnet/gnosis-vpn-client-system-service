@@ -150,14 +150,19 @@ impl WireGuard for Tooling {
 
 impl ConnectSession {
     fn to_file_string(&self) -> String {
-        let allowed_ips = self
-            .interface
-            .address
-            .split('.')
-            .take(3)
-            .collect::<Vec<&str>>()
-            .join(".")
-            + ".0/24";
+        let allowed_ips = match &self.interface.allowed_ips {
+            Some(allowed_ips) => allowed_ips.clone(),
+            None => {
+                self.interface
+                    .address
+                    .split('.')
+                    .take(3)
+                    .collect::<Vec<&str>>()
+                    .join(".")
+                    + ".0/24"
+            }
+        };
+
         format!(
             "[Interface]
 PrivateKey = {private_key}
