@@ -1,4 +1,4 @@
-# GnosisVPN PoC User Onboarding
+# GnosisVPN PoC User Onboarding on MacOS
 
 ## Placeholder/to be set up
 
@@ -27,22 +27,13 @@ In general:
 | ------------------------- | --------------------------- |
 | macOS with ARM chip       | `gnosis-vpn-aarch64-darwin` |
 | macOS with Intel chip     | `gnosis-vpn-x86_64-darwin`  |
-| linux with x86 chip       | `gnosis-vpn-x86_64-linux`   |
-| linux with newer ARM chip | `gnosis-vpn-aarch64-linux`  |
-| linux with older ARM chip | `gnosis-vpn-armv7l-linux`   |
 
 For now just download it and keep it ready.
 
-2. Generate WireGuard keypair:
+2. Generate WireGuard key pair.
 
-Follow guidelines on official [WireGuard documentation](https://www.wireguard.com/quickstart/#key-generation):
-
-```bash
-# linux only
-wg genkey | tee privatekey | wg pubkey > publickey
-```
-
-On macOS use the Wireguard GUI app to generate a key pair.
+Have the official [WireGuard](https://apps.apple.com/us/app/wireguard/id1451685025) application ready.
+Follow on screen instructions to generate a key pair.
 
 3. Create a secure input location where you will receive your assigned device IP.
    We recommend using [rlim](https://rlim.com/) to create an editable drop location.
@@ -50,14 +41,7 @@ On macOS use the Wireguard GUI app to generate a key pair.
 
 4. Provide your public key, rlim url and edit code to `CRYPTPAD_ONBOARDING_FORM`.
 
-```bash
-# linux only: copy public key to clipboard
-cat publickey | xclip -r -sel clip
-# macOS only:
-cat publickey | pbcopy
-```
-
-On macOS you can also manually copy the public key from the GUI app.
+Copy the public key from WireGuard GUI app.
 
 Paste the public key into the form field.
 Additionally paste the custom url you created with rlim and the edit code into the cryptpad form field.
@@ -157,33 +141,6 @@ AllowedIPs = <what traffic do you want to route - usually the base of device IP 
 ```
 
 11. Start up wireguard with `wg-quick up wg-gnosisvpn-beta`.
-
-## [OPTIONAL] Let GnosisVPN handle WireGuard connection
-
-NOTE: This is an experimental feature and only available on linux.
-
-Instead of using wireguard to generate your key pair, make sure wg-tools are installed and available on your system.
-Immediately after step 1 start the service as outlined in step 9.
-Skip step 2.
-Once started without any configuration the service will generate a wireguard priv pub keypair to use.
-
-Look for `****** Generated wireguard private key ******` and `****** Use this pub_key for onboarding ****** public_key=<pubkey>`.
-Copy `<pubkey>` and provide it in step 3.
-
-Instead of setting up wireguard manually in step 10 provide the configuration inside `/etc/gnosisvpn/config.toml`:
-
-```toml
-# this section holds the wireguard specific settings
-[wireguard]
-# local interface IP, onboarding info will provide this
-address = "10.34.0.8/32"
-# wireguard server public peer id - onboarding info will provide this
-serverPublicKey = "<wg server public peer id>"
-```
-
-At this point the you might see some notificaiton that a `wg0-gnosisvpn` interface is now connected.
-The hoprd session was opened by the service and will kept open.
-Wireguard is also connected and you will be able to use a socks5 proxy on your device.
 
 ## Create a one off drop location using rlim
 
