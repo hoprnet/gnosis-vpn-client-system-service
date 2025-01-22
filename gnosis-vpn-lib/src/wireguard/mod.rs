@@ -27,13 +27,13 @@ pub struct ConnectSession {
     pub peer: PeerInfo,
 }
 
-struct InterfaceInfo {
+pub struct InterfaceInfo {
     pub private_key: String,
     pub address: String,
     pub allowed_ips: Option<String>,
 }
 
-struct PeerInfo {
+pub struct PeerInfo {
     pub public_key: String,
     pub endpoint: String,
 }

@@ -40,10 +40,11 @@ pub struct SessionConfig {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireGuardConfig {
-    pub private_key: Option<String>,
-    pub preshared_key: Option<String>,
     pub address: String,
     pub server_public_key: String,
+    pub allowed_ips: Option<String>,
+    pub preshared_key: Option<String>,
+    pub private_key: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
