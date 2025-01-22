@@ -233,12 +233,7 @@ impl Session {
         let client = client.clone();
 
         thread::spawn(move || {
-            tracing::debug!(
-                "delete session [headers: {:?}, body: {:?}, url: {:?}",
-                headers,
-                json,
-                url
-            );
+            tracing::debug!("delete session [headers: {:?}, url: {:?}", headers, url);
 
             let fetch_res = client
                 .delete(url)
