@@ -2,7 +2,6 @@
 
 ## Placeholder/to be set up
 
-- `CRYPTPAD_ONBOARDING_FORM`
 - `GNOSISVPN_ENDPOINTS_WEBSITE`
 
 ## Outline
@@ -43,7 +42,7 @@ wg genkey | tee privatekey | wg pubkey > publickey
    We recommend using [rlim](https://rlim.com/) to create an editable drop location.
    See [Create a one off drop location using rlim](#create-a-one-off-drop-location-using-rlim).
 
-4. Provide your public key, rlim url and edit code to `CRYPTPAD_ONBOARDING_FORM`.
+4. Provide your public key, rlim url and edit code to our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 
 ```bash
 cat publickey | xclip -r -sel clip
@@ -176,4 +175,4 @@ Wireguard is also connected and you will be able to use a socks5 proxy on your d
 2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
 3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
 4. Copy edit code from top line.
-5. Provide both the url and edit code to `CRYPTPAD_ONBOARDING_FORM`.
+5. Provide both the url and edit code to our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
