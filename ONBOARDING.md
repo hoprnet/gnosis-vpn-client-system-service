@@ -37,7 +37,7 @@ Choose the binary that matches your system:
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Visit [rlim](https://rlim.com/).
+1. Visit [rlim.com](https://rlim.com/).
 2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
 3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
 4. Copy edit code from top line.
@@ -48,7 +48,7 @@ Provide your public key, the **rlim.com** URL, and the edit code in our [onboard
 
 ### 5. Wait until you get notified about receiving device IP [MacOS]
 
-After someone picked up your public key and added it to our session servers you will get your device IP back via your rlim document.
+After someone picked up your public key and added it to our session servers you will get your device IP back via your **rlim.com** document.
 
 ### 6. Configure Gnosis VPN service configuration - hoprd entry node [MacOS]
 
@@ -172,7 +172,7 @@ wg genkey | tee privatekey | wg pubkey > publickey
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Visit [rlim](https://rlim.com/).
+1. Visit [rlim.com](https://rlim.com/).
 2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
 3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
 4. Copy edit code from top line.
@@ -189,7 +189,7 @@ cat publickey | xclip -r -sel clip
 
 ### 5. Wait until you get notified about receiving device IP [Linux]
 
-After someone picked up your public key and added it to our session servers you will get your device IP back via your rlim document.
+After someone picked up your public key and added it to our session servers you will get your device IP back via your **rlim.com** document.
 
 ### 6. Configure Gnosis VPN service configuration - hoprd entry node [Linux]
 
