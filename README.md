@@ -3,6 +3,10 @@
 The service establishes a VPN connection to a remote endpoint.
 It handles hoprd session and optinally wireguard setup (linux only).
 
+## Onboarding
+
+On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process ([ONBOARDING LINUX](./ONBOARDING-LINUX.md) on Linux).
+
 ## General usage
 
 The service needs to run as root in order to setup the VPN connection.
@@ -21,10 +25,6 @@ Start the service with privileged access:
 sudo ./gnosis-vpn-<system-arch>
 ```
 
-## Onboarding
-
-On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process ([ONBOARDING LINUX](./ONBOARDING-LINUX.md) on Linux).
-
 ## Development usage
 
 `cargo build`
@@ -40,6 +40,11 @@ Send commands from control application:
 Get state of the service
 
 `RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- status`
+
+### Env vars
+
+`GNOSISVPN_CONFIG_PATH` - path to the configuration file
+`GNOSISVPN_SOCKET_PATH` - path to the control socket
 
 ## Deployment
 
