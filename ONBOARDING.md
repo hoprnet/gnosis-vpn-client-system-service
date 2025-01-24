@@ -286,11 +286,11 @@ PersistentKeepalive = 30
 
 ### 11. Start up wireguard [Linux]
 
-1. Start up wireguard with `wg-quick up wg-gnosisvpn-beta`.
+Start up wireguard with `wg-quick up wg-gnosisvpn-beta`.
 
-2. [OPTIONAL] Let GnosisVPN handle WireGuard connection:
+## [OPTIONAL][EXPERIMENTAL] Let GnosisVPN handle WireGuard connection
 
-**NOTE:** This is an experimental feature.
+**NOTE:** This is an experimental feature and only available on Linux.
 
 Instead of using wireguard to generate your key pair, make sure wg-tools are installed and available on your system.
 Immediately after step 1 start the service as outlined in step 9.
