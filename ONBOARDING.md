@@ -106,8 +106,8 @@ listenHost = ":60006"
 1. Return to your downloaded binary and make it executable:
 
 ```bash
-# <system> matches the one you chose earlier
-chmod +x ./gnosis-vpn-<system>
+chmod +x ./gnosis-vpn-aarch64-darwin
+# depending on your system, alternatively: chmod +x ./gnosis-vpn-x86_64-darwin
 ```
 
 2. Provide the path to your configuration file and a socket path to start the service binary.
@@ -115,10 +115,12 @@ chmod +x ./gnosis-vpn-<system>
 
 ```bash
 # <system> matches the one you chose earlier
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-<system>
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-aarch64-darwin
+# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-x86_64-darwin
 
 # or with privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-<system>`
+GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-aarch64-darwin`
+# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-x86_64-darwin`
 ```
 
 3. Because of macOS security settings, you may see a message that says “macOS cannot verify that this app is free from malware.”
@@ -248,21 +250,21 @@ listenHost = ":60006"
 
 ### 9. Ready to start the service binary [Linux]
 
+Replace `<gnosis-vpn-binary>` with the binary you downloaded earlier, see [step 1](#1-download-the-latest-binary-linux).
+
 1. Return to your downloaded binary and make it executable:
 
 ```bash
-# <system> matches the one you chose earlier
-chmod +x ./gnosis-vpn-<system>
+chmod +x <gnosis-vpn-binary>
 ```
 
 2. Start service binary
 
 ```bash
-# <system> matches the one you chose earlier
 # with privileged access
-sudo ./gnosis-vpn-<system>`
+sudo <gnosis-vpn-binary>
 # without privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-<system>
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnosis-vpn-binary>
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
