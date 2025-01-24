@@ -78,9 +78,15 @@ pub enum SessionPathConfig {
     Intermediates(Vec<PeerId>),
 }
 
-#[cfg(unix)]
+#[cfg(target_family = "unix")]
 pub fn path() -> PathBuf {
-    PathBuf::from("/etc/gnosisvpn/config.toml")
+    match std::env::var("GNOSISVPN_CONFIG_PATH") {
+        Ok(path) => PathBuf::from(path),
+        Err(err) => {
+            tracing::warn!(?err, "using default config path");
+            PathBuf::from("/etc/gnosisvpn/config.toml")
+        }
+    }
 }
 
 #[derive(Error, Debug)]

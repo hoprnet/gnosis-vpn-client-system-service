@@ -11,7 +11,13 @@ pub enum ReturnValue {
 
 #[cfg(target_family = "unix")]
 pub fn path() -> PathBuf {
-    PathBuf::from("/var/run/gnosis-vpn.sock")
+    match std::env::var("GNOSISVPN_SOCKET_PATH") {
+        Ok(path) => PathBuf::from(path),
+        Err(err) => {
+            tracing::warn!(?err, "using default socket path");
+            PathBuf::from("/var/run/gnosis-vpn.sock")
+        }
+    }
 }
 
 // #[cfg(target_family = "windows")]
