@@ -112,8 +112,8 @@ GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gno
 # depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-x86_64-darwin
 
 # or with privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-aarch64-darwin`
-# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-x86_64-darwin`
+sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-aarch64-darwin`
+# depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-x86_64-darwin`
 ```
 
 3. Because of macOS security settings, you may see a message that says “macOS cannot verify that this app is free from malware.”
