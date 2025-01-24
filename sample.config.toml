@@ -46,12 +46,12 @@ version = 1
 ###
 ## session target section - where does the session connect to
 
-# # this section holds the target information of the session
-# [session.target]
-# # host of the session endpoint without schema
-# host = "mysession.wireguard.endpoint"
-# # port of the session endpoint
-# port = 51820
+# this section holds the target information of the session
+[session.target]
+# host of the session endpoint without schema
+host = "127.0.0.1"
+# port of the session endpoint
+port = 51820
 
 ###
 ## wireguard section - specific VPN related settings
