@@ -45,6 +45,7 @@ Create a secure input location where you will receive your assigned device IP.
 ### 4. Provide necessary data to be eligible for GnosisVPN PoC demo [MacOS]
 
 Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 5. Wait until you get notified about receiving device IP [MacOS]
 
@@ -188,6 +189,7 @@ cat publickey | xclip -r -sel clip
 ```
 
 2. Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
+   If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 5. Wait until you get notified about receiving device IP [Linux]
 
