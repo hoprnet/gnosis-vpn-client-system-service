@@ -5,7 +5,7 @@ It handles hoprd session and optinally wireguard setup (linux only).
 
 ## Onboarding
 
-On MacOS follow [ONBOARDING MACOS](./ONBOARDING-MACOS.md) for a detailed onboarding process ([ONBOARDING LINUX](./ONBOARDING-LINUX.md) on Linux).
+Follow [ONBOARDING](./ONBOARDING.md) guide to use Gnosis VPN service.
 
 ## General usage
 
