@@ -23,10 +23,10 @@ Please select your operating system to begin:
 Download the latest service binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary that matches your system:
 
-| System                | Binary                       |
-| --------------------- | ---------------------------- |
-| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin`  |
-| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`   |
+| System                | Binary                      |
+| --------------------- | --------------------------- |
+| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
 
 ### 2. Generate Wireguard public key [MacOS]
 
@@ -108,7 +108,7 @@ chmod +x ./gnosis-vpn-<system>
 ```
 
 2. Provide the path to your configuration file and a socket path to start the service binary.
-If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's socket.
+   If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's socket.
 
 ```bash
 # <system> matches the one you chose earlier
@@ -119,7 +119,7 @@ GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-<system>`
 ```
 
 3. Because of macOS security settings, you may see a message that says “macOS cannot verify that this app is free from malware.”
-Click "Cancel", then open System Settings → Privacy & Security, scroll down to Security, and find the blocked binary. Click "Allow Anyway".
+   Click "Cancel", then open System Settings → Privacy & Security, scroll down to Security, and find the blocked binary. Click "Allow Anyway".
 
 4. In your terminal, run the command to start the binary again. MacOS will prompt you one more time to confirm if you want to open it. Click "Open".
 
@@ -194,7 +194,7 @@ After someone picked up your public key and added it to our session servers you 
 ### 6. Configure Gnosis VPN service configuration - hoprd entry node [Linux]
 
 1. Copy [sample config](./sample.config.toml) to `/etc/gnosisvpn/config.toml` and open it in edit mode.
-If you don't like the configuration file location you can override this default via `GNOSISVPN_CONFIG_PATH` env var.
+   If you don't like the configuration file location you can override this default via `GNOSISVPN_CONFIG_PATH` env var.
 
 2. Uncomment `entryNode` section and adjust values as needed:
 
