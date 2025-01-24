@@ -66,7 +66,8 @@ apiToken = "<entry node API token>"
 
 ### 7. Configure Gnosis VPN service configuration - gnosisvpn exit location [MacOS]
 
-Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location. Copy the exit node configuration into your `config.toml` or update parameters manually like this:
+Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location.
+Copy the exit node configuration into your `config.toml` or update parameters manually (after uncommenting) like this:
 
 ```toml
 # this section holds exit location information and transport parameters
@@ -86,6 +87,7 @@ port = <exit location wg port>
 
 You can configure a session to run on a static port on your entry node. This is useful if you set up a firewall rule to allow traffic on specific ports only.
 Go back to the `[session]` section and have a look at the optional `listenHost` parameter.
+Uncomment it like shown in this example to provide your static port.
 
 ```toml
 [session]
@@ -229,6 +231,7 @@ port = <exit location wg port>
 
 You can configure a session to run on a static port on your entry node. This is useful if you set up a firewall rule to allow traffic on specific ports only.
 Go back to the `[session]` section and have a look at the optional `listenHost` parameter.
+Uncomment it like shown in this example to provide your static port.
 
 ```toml
 [session]
