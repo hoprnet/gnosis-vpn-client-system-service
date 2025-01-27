@@ -14,6 +14,6 @@ api_token = "<hoprd node API token>"
 # [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
 internal_connection_port = 60006
 
-# copy this section from https://gnosisvpn/server
+# copy this section from https://gnosisvpn.com/servers
 [connection]
 destination = "<exit node peer id>"

@@ -26,7 +26,7 @@ version = 1
 
 ###
 ## connection section - connection configuration parameters
-# # copy this section from https://gnosisvpn/server
+# # copy this section from https://gnosisvpn.com/servers
 # [connection]
 
 # # the exit peer id (where the connection should terminate)
