@@ -1,5 +1,6 @@
 use anyhow::Result;
-use gnosis_vpn_lib::config::{SessionCapabilitiesConfig, SessionPathConfig, SessionTargetConfig, SessionTargetType};
+use gnosis_vpn_lib::config;
+use gnosis_vpn_lib::config::{SessionCapabilitiesConfig, SessionPathConfig, SessionTargetConfig};
 use reqwest::blocking;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -18,7 +19,7 @@ pub struct Session {
     pub ip: String,
     pub port: u16,
     pub protocol: String,
-    pub target: Url,
+    pub target: String,
 }
 
 #[derive(Debug)]
@@ -29,7 +30,7 @@ pub struct OpenSession {
     pub capabilities: Option<Vec<SessionCapabilitiesConfig>>,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
-    pub target: SessionTargetConfig,
+    pub target: Option<SessionTargetConfig>,
 }
 
 #[tracing::instrument(skip(client, sender), level = tracing::Level::DEBUG)]
@@ -39,32 +40,16 @@ pub fn open(
     open_session: &OpenSession,
 ) -> Result<()> {
     let headers = remote_data::authentication_headers(open_session.api_token.as_str())?;
-    let url = open_session.endpoint.join("/api/v3/session/udp/")?;
+    let url = open_session.endpoint.join("/api/v3/session/udp")?;
     let mut json = serde_json::Map::new();
     json.insert("destination".to_string(), json!(open_session.destination));
-    let target_json = match &open_session.target {
-        SessionTargetConfig {
-            type_: None,
-            host,
-            port,
-        } => {
-            json!({"Plain": format!("{}:{}", host, port)})
-        }
-        SessionTargetConfig {
-            type_: Some(SessionTargetType::Plain),
-            host,
-            port,
-        } => {
-            json!({"Plain": format!("{}:{}", host, port)})
-        }
-        SessionTargetConfig {
-            type_: Some(SessionTargetType::Sealed),
-            host,
-            port,
-        } => {
-            json!({"Sealed": format!("{}:{}", host, port)})
-        }
-    };
+
+    let target = open_session.target.clone().unwrap_or_default();
+    let target_type = target.type_.unwrap_or_default();
+    let target_host = target.host.unwrap_or(config::default_session_target_host());
+    let target_port = target.port.unwrap_or(config::default_session_target_port());
+
+    let target_json = json!({ target_type.to_string(): format!("{}:{}", target_host, target_port) });
     json.insert("target".to_string(), target_json);
     let path_json = match open_session.path.clone() {
         Some(SessionPathConfig::Hop(hop)) => {
@@ -226,7 +211,7 @@ impl Session {
         entry_node: &EntryNode,
     ) -> Result<()> {
         let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
-        let path = format!("/api/v3/session/udp/{}/{}/", self.ip, self.port);
+        let path = format!("/api/v3/session/udp/{}/{}", self.ip, self.port);
         let url = entry_node.endpoint.join(path.as_str())?;
 
         let sender = sender.clone();
@@ -284,10 +269,7 @@ impl Session {
 
 impl cmp::PartialEq for Session {
     fn eq(&self, other: &Self) -> bool {
-        self.ip == other.ip
-            && self.port == other.port
-            && self.protocol == other.protocol
-            && self.target.as_str().eq_ignore_ascii_case(other.target.as_str())
+        self.ip == other.ip && self.port == other.port && self.protocol == other.protocol && self.target == other.target
     }
 }
 

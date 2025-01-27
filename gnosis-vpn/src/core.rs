@@ -40,6 +40,8 @@ pub struct Core {
     wg: Option<Box<dyn wireguard::WireGuard>>,
     // random generator
     rng: rand::rngs::ThreadRng,
+    // shutdown event emitter
+    shutdown_sender: Option<crossbeam_channel::Sender<()>>,
 
     status: Status,
     entry_node: Option<EntryNode>,
@@ -137,9 +139,17 @@ impl Core {
             rng: rand::thread_rng(),
             sender,
             session: None,
+            shutdown_sender: None,
         };
         core.setup();
         core
+    }
+
+    pub fn shutdown(&mut self) -> Result<crossbeam_channel::Receiver<()>> {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        self.shutdown_sender = Some(sender);
+        self.check_close_session()?;
+        Ok(receiver)
     }
 
     fn setup(&mut self) {
@@ -282,7 +292,10 @@ impl Core {
                         tracing::info!("fetched addresses");
                         Ok(())
                     }
-                    None => anyhow::bail!("unexpected internal state: no entry node"),
+                    None => {
+                        tracing::warn!("unexpected internal state: no entry node");
+                        anyhow::bail!("unexpected internal state: no entry node");
+                    }
                 }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.addresses {
@@ -300,7 +313,10 @@ impl Core {
                     tracing::info!("retrying fetch addresses");
                     Ok(())
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_addresses(),
         }
@@ -371,7 +387,10 @@ impl Core {
                     tracing::info!("retrying open session");
                     Ok(())
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_open_session(),
         }
@@ -386,6 +405,7 @@ impl Core {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
                         self.status = Status::Idle;
+                        tracing::warn!(warn = ?e, "failed to parse sessions");
                         anyhow::bail!("stopped monitoring - failed to parse sessions: {}", e);
                     }
                 }
@@ -403,7 +423,10 @@ impl Core {
                     tracing::info!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_list_sessions(),
         }
@@ -415,7 +438,18 @@ impl Core {
                 self.fetch_data.close_session = RemoteData::Success;
                 self.status = Status::Idle;
                 tracing::info!("closed session");
-                self.check_open_session()
+                if let Some(sender) = &self.shutdown_sender {
+                    let res = sender.send(());
+                    match res {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "failed sending shutdown event after closing session");
+                        }
+                    }
+                    Ok(())
+                } else {
+                    self.check_open_session()
+                }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.close_session {
                 RemoteData::RetryFetching {
@@ -430,7 +464,10 @@ impl Core {
                     tracing::info!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_close_session(),
         }
@@ -500,7 +537,8 @@ impl Core {
             if let Status::MonitoringSession { .. } = self.status {
                 self.check_close_session()
             } else {
-                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session")
+                tracing::warn!("unexpected internal state: failed list session call while not monitoring session");
+                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session");
             }
         }
     }
@@ -524,7 +562,8 @@ impl Core {
                 self.status = Status::Idle;
                 Ok(())
             } else {
-                anyhow::bail!("unexpected internal state: failed close session call while not closing session")
+                tracing::warn!("unexpected internal state: failed close session call while not closing session");
+                anyhow::bail!("unexpected internal state: failed close session call while not closing session");
             }
         }
     }
@@ -604,12 +643,38 @@ impl Core {
                 self.status = Status::ClosingSession {
                     start_time: SystemTime::now(),
                 };
+
+                // close wireguard session if possible
+                if let Some(wg) = &self.wg {
+                    match wg.close_session() {
+                        Ok(_) => {
+                            tracing::info!("closed wireguard connection");
+                        }
+                        Err(err) => {
+                            tracing::warn!(?err, "error closing wireguard connection");
+                            self.replace_issue(Issue::WireGuard(err));
+                        }
+                    }
+                };
+
+                // close hoprd session
                 self.fetch_data.close_session = RemoteData::Fetching {
                     started_at: SystemTime::now(),
                 };
                 self.fetch_close_session()
             }
-            _ => Ok(()),
+            _ => {
+                if let Some(sender) = &self.shutdown_sender {
+                    let res = sender.send(());
+                    match res {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "failed sending shutdown event after canceling ongoing requests");
+                        }
+                    };
+                }
+                Ok(())
+            }
         }
     }
 
@@ -689,9 +754,13 @@ impl Core {
                 }
             }
             (Some(_sess), _) => {
-                anyhow::bail!("unexpected internal state: session verification while not monitoring session")
+                tracing::warn!("unexpected internal state: session verification while not monitoring session");
+                anyhow::bail!("unexpected internal state: session verification while not monitoring session");
             }
-            (None, _status) => anyhow::bail!("unexpected internal state: session verification while no session"),
+            (None, _status) => {
+                tracing::warn!("unexpected internal state: session verification while no session");
+                anyhow::bail!("unexpected internal state: session verification while no session");
+            }
         }
     }
 

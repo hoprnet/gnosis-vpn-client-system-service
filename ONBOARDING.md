@@ -75,13 +75,6 @@ Copy the exit node configuration into your `config.toml` or update parameters ma
 [session]
 # the exit node peer id where the session should terminate
 destination = "<exit node peer id>"
-
-# this section holds the target information of the session
-[session.target]
-# host of the session endpoint without schema
-host = "<exit location wg host>"
-# port of the session endpoint
-port = <exit location wg port>
 ```
 
 ### 8. Configure Gnosis VPN service configuration - static port configuration [MacOS]
@@ -119,8 +112,8 @@ GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gno
 # depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-x86_64-darwin
 
 # or with privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-aarch64-darwin`
-# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml sudo ./gnosis-vpn-x86_64-darwin`
+sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-aarch64-darwin`
+# depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-x86_64-darwin`
 ```
 
 3. Because of macOS security settings, you may see a message that says “macOS cannot verify that this app is free from malware.”
@@ -222,13 +215,6 @@ Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location. Update paramete
 [session]
 # the exit node peer id where the session should terminate
 destination = "<exit node peer id>"
-
-# this section holds the target information of the session
-[session.target]
-# host of the session endpoint without schema
-host = "<exit location wg host>"
-# port of the session endpoint
-port = <exit location wg port>
 ```
 
 ### 8. Configure Gnosis VPN service configuration - static port configuration [Linux]
