@@ -172,7 +172,7 @@ impl Core {
     fn setup_wg_priv_key(&mut self) {
         // if wg is available check private key
         // gengerate a new one if none
-        if let (Some(wg), None) = (&self.wg, &self.wg_priv_key()) {
+        if let (Some(wg), Some(_), None) = (&self.wg, &self.config.wireguard, &self.wg_priv_key()) {
             let priv_key = match wg.generate_key() {
                 Ok(priv_key) => priv_key,
                 Err(err) => {
@@ -339,8 +339,9 @@ impl Core {
                 };
 
                 // connect wireguard session if possible
-                if let (Some(wg), Some(privkey), Some(wg_conf), Some(en_host)) = (
+                if let (Some(wg), Some(_), Some(privkey), Some(wg_conf), Some(en_host)) = (
                     &self.wg,
+                    &self.config.wireguard,
                     &self.wg_priv_key(),
                     &self.config.wireguard,
                     &self.config.hoprd_node.as_ref().and_then(|en| en.endpoint.host()),
@@ -646,7 +647,7 @@ impl Core {
                 };
 
                 // close wireguard session if possible
-                if let Some(wg) = &self.wg {
+                if let (Some(wg), Some(_)) = (&self.wg, &self.config.wireguard) {
                     match wg.close_session() {
                         Ok(_) => {
                             tracing::info!("closed wireguard connection");
