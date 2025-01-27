@@ -7,7 +7,7 @@
 
 version = 1
 
-[hoprd node]
+[hoprd_node]
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
