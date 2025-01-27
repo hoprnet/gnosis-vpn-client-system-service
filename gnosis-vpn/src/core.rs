@@ -40,6 +40,8 @@ pub struct Core {
     wg: Option<Box<dyn wireguard::WireGuard>>,
     // random generator
     rng: rand::rngs::ThreadRng,
+    // shutdown event emitter
+    shutdown_sender: Option<crossbeam_channel::Sender<()>>,
 
     status: Status,
     entry_node: Option<EntryNode>,
@@ -137,9 +139,17 @@ impl Core {
             rng: rand::thread_rng(),
             sender,
             session: None,
+            shutdown_sender: None,
         };
         core.setup();
         core
+    }
+
+    pub fn shutdown(&mut self) -> Result<crossbeam_channel::Receiver<()>> {
+        let (sender, receiver) = crossbeam_channel::bounded(1);
+        self.shutdown_sender = Some(sender);
+        self.check_close_session()?;
+        Ok(receiver)
     }
 
     fn setup(&mut self) {
@@ -428,7 +438,18 @@ impl Core {
                 self.fetch_data.close_session = RemoteData::Success;
                 self.status = Status::Idle;
                 tracing::info!("closed session");
-                self.check_open_session()
+                if let Some(sender) = &self.shutdown_sender {
+                    let res = sender.send(());
+                    match res {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "failed sending shutdown event after closing session");
+                        }
+                    }
+                    Ok(())
+                } else {
+                    self.check_open_session()
+                }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.close_session {
                 RemoteData::RetryFetching {
@@ -627,7 +648,18 @@ impl Core {
                 };
                 self.fetch_close_session()
             }
-            _ => Ok(()),
+            _ => {
+                if let Some(sender) = &self.shutdown_sender {
+                    let res = sender.send(());
+                    match res {
+                        Ok(_) => {}
+                        Err(e) => {
+                            tracing::warn!(warn = ?e, "failed sending shutdown event after canceling ongoing requests");
+                        }
+                    };
+                }
+                Ok(())
+            }
         }
     }
 

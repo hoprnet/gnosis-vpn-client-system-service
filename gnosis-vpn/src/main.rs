@@ -27,7 +27,7 @@ mod session;
 struct Cli {}
 
 #[tracing::instrument(level = Level::DEBUG)]
-fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode> {
+fn ctrlc_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode> {
     let (sender, receiver) = crossbeam_channel::bounded(100);
     match ctrlc::set_handler(move || {
         let _ = sender.send(());
@@ -266,7 +266,7 @@ fn incoming_config_fs_event(
 }
 
 fn daemon(socket_path: &Path) -> exitcode::ExitCode {
-    let ctrlc_receiver = match ctrl_channel() {
+    let ctrlc_receiver = match ctrlc_channel() {
         Ok(receiver) => receiver,
         Err(exit) => return exit,
     };
@@ -286,12 +286,24 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
     let mut state = core::Core::init(sender);
 
     let mut read_config_receiver: crossbeam_channel::Receiver<Instant> = crossbeam_channel::never();
+    let mut shutdown_receiver: crossbeam_channel::Receiver<()> = crossbeam_channel::never();
+    let mut ctrc_already_triggered = false;
 
     tracing::info!("started in listening mode");
     loop {
         crossbeam_channel::select! {
             recv(ctrlc_receiver) -> _ => {
-                tracing::info!("shutting down");
+                if ctrc_already_triggered {
+                    tracing::info!("shutting down immediately");
+                    return exitcode::OK;
+                } else {
+                    ctrc_already_triggered = true;
+                    tracing::info!("initiate shutdown");
+                    shutdown_receiver = state.shutdown();
+                }
+            }
+            recv(shutdown_receiver) -> _ => {
+                tracing::info!("shutting down gracefully");
                 return exitcode::OK;
             }
             recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
