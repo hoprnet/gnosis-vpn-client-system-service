@@ -14,11 +14,11 @@ const DEFAULT_PATH: &str = "/var/run/gnosis-vpn.sock";
 #[cfg(target_family = "unix")]
 pub fn path() -> PathBuf {
     match std::env::var("GNOSISVPN_SOCKET_PATH") {
-        Ok(path) => PathBuf::from(path),
-        Err(std::env::VarError::NotPresent) => {
-            tracing::info!("using default socket path");
-            PathBuf::from(DEFAULT_PATH)
+        Ok(path) => {
+            tracing::info!(?path, "using custom socket path");
+            PathBuf::from(path)
         }
+        Err(std::env::VarError::NotPresent) => PathBuf::from(DEFAULT_PATH),
         Err(err) => {
             tracing::warn!(?err, "using default socket path");
             PathBuf::from(DEFAULT_PATH)
