@@ -118,7 +118,7 @@ impl EntryNode {
 
     pub fn query_addresses(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self.endpoint.join("/api/v3/account/addresses/")?;
+        let url = self.endpoint.join("/api/v3/account/addresses")?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {
@@ -165,7 +165,7 @@ impl EntryNode {
 
     pub fn list_sessions(&self, client: &blocking::Client, sender: &crossbeam_channel::Sender<Event>) -> Result<()> {
         let headers = remote_data::authentication_headers(self.api_token.as_str())?;
-        let url = self.endpoint.join("/api/v3/session/udp/")?;
+        let url = self.endpoint.join("/api/v3/session/udp")?;
         let sender = sender.clone();
         let client = client.clone();
         thread::spawn(move || {

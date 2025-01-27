@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::default::Default;
+use std::fmt::Display;
 use std::fs;
 use std::path::PathBuf;
 use std::vec::Vec;
@@ -34,7 +35,7 @@ pub struct SessionConfig {
     pub destination: PeerId,
     pub listen_host: Option<String>,
     pub path: Option<SessionPathConfig>,
-    pub target: SessionTargetConfig,
+    pub target: Option<SessionTargetConfig>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -51,8 +52,8 @@ pub struct WireGuardConfig {
 #[serde(rename_all = "camelCase")]
 pub struct SessionTargetConfig {
     pub type_: Option<SessionTargetType>,
-    pub host: String,
-    pub port: u16,
+    pub host: Option<String>,
+    pub port: Option<u16>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -132,4 +133,31 @@ impl Default for SessionPathConfig {
     fn default() -> Self {
         SessionPathConfig::Hop(1)
     }
+}
+
+impl Default for SessionTargetConfig {
+    fn default() -> Self {
+        SessionTargetConfig {
+            type_: Some(SessionTargetType::Plain),
+            host: Some(default_session_target_host()),
+            port: Some(default_session_target_port()),
+        }
+    }
+}
+
+impl Display for SessionTargetType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            SessionTargetType::Plain => write!(f, "Plain"),
+            SessionTargetType::Sealed => write!(f, "Sealed"),
+        }
+    }
+}
+
+pub fn default_session_target_host() -> String {
+    "127.0.0.1".to_string()
+}
+
+pub fn default_session_target_port() -> u16 {
+    51820
 }
