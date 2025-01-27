@@ -282,7 +282,10 @@ impl Core {
                         tracing::info!("fetched addresses");
                         Ok(())
                     }
-                    None => anyhow::bail!("unexpected internal state: no entry node"),
+                    None => {
+                        tracing::warn!("unexpected internal state: no entry node");
+                        anyhow::bail!("unexpected internal state: no entry node");
+                    }
                 }
             }
             remote_data::Event::Error(err) => match &self.fetch_data.addresses {
@@ -300,7 +303,10 @@ impl Core {
                     tracing::info!("retrying fetch addresses");
                     Ok(())
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_addresses(),
         }
@@ -371,7 +377,10 @@ impl Core {
                     tracing::info!("retrying open session");
                     Ok(())
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_open_session(),
         }
@@ -386,6 +395,7 @@ impl Core {
                     Ok(sessions) => self.verify_session(&sessions),
                     Err(e) => {
                         self.status = Status::Idle;
+                        tracing::warn!(warn = ?e, "failed to parse sessions");
                         anyhow::bail!("stopped monitoring - failed to parse sessions: {}", e);
                     }
                 }
@@ -403,7 +413,10 @@ impl Core {
                     tracing::info!("retrying list sessions");
                     self.repeat_fetch_list_sessions(err, &mut backoffs)
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_list_sessions(),
         }
@@ -430,7 +443,10 @@ impl Core {
                     tracing::info!("retrying close session");
                     self.repeat_fetch_close_session(err, &mut backoffs)
                 }
-                _ => anyhow::bail!("unexpected internal state: remote data result while not fetching"),
+                _ => {
+                    tracing::warn!("unexpected internal state: remote data result while not fetching");
+                    anyhow::bail!("unexpected internal state: remote data result while not fetching");
+                }
             },
             remote_data::Event::Retry => self.fetch_close_session(),
         }
@@ -500,7 +516,8 @@ impl Core {
             if let Status::MonitoringSession { .. } = self.status {
                 self.check_close_session()
             } else {
-                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session")
+                tracing::warn!("unexpected internal state: failed list session call while not monitoring session");
+                anyhow::bail!("unexpected internal state: failed list session call while not monitoring session");
             }
         }
     }
@@ -524,7 +541,8 @@ impl Core {
                 self.status = Status::Idle;
                 Ok(())
             } else {
-                anyhow::bail!("unexpected internal state: failed close session call while not closing session")
+                tracing::warn!("unexpected internal state: failed close session call while not closing session");
+                anyhow::bail!("unexpected internal state: failed close session call while not closing session");
             }
         }
     }
@@ -689,9 +707,13 @@ impl Core {
                 }
             }
             (Some(_sess), _) => {
-                anyhow::bail!("unexpected internal state: session verification while not monitoring session")
+                tracing::warn!("unexpected internal state: session verification while not monitoring session");
+                anyhow::bail!("unexpected internal state: session verification while not monitoring session");
             }
-            (None, _status) => anyhow::bail!("unexpected internal state: session verification while no session"),
+            (None, _status) => {
+                tracing::warn!("unexpected internal state: session verification while no session");
+                anyhow::bail!("unexpected internal state: session verification while no session");
+            }
         }
     }
 

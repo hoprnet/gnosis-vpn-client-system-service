@@ -19,7 +19,7 @@ pub struct Session {
     pub ip: String,
     pub port: u16,
     pub protocol: String,
-    pub target: Url,
+    pub target: String,
 }
 
 #[derive(Debug)]
