@@ -294,7 +294,7 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
         crossbeam_channel::select! {
             recv(ctrlc_receiver) -> _ => {
                 if ctrc_already_triggered {
-                    tracing::info!("shutting down immediately");
+                    tracing::info!("force shutdown immediately");
                     return exitcode::OK;
                 } else {
                     ctrc_already_triggered = true;
@@ -309,7 +309,6 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
                 }
             }
             recv(shutdown_receiver) -> _ => {
-                tracing::info!("shutting down gracefully");
                 return exitcode::OK;
             }
             recv(socket_receiver) -> stream => incoming_stream(&mut state, stream),
