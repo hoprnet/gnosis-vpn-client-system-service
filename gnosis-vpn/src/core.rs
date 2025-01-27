@@ -643,6 +643,21 @@ impl Core {
                 self.status = Status::ClosingSession {
                     start_time: SystemTime::now(),
                 };
+
+                // close wireguard session if possible
+                if let Some(wg) = &self.wg {
+                    match wg.close_session() {
+                        Ok(_) => {
+                            tracing::info!("closed wireguard connection");
+                        }
+                        Err(err) => {
+                            tracing::warn!(?err, "error closing wireguard connection");
+                            self.replace_issue(Issue::WireGuard(err));
+                        }
+                    }
+                };
+
+                // close hoprd session
                 self.fetch_data.close_session = RemoteData::Fetching {
                     started_at: SystemTime::now(),
                 };

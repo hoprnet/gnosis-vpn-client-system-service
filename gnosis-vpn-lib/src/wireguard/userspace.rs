@@ -25,4 +25,8 @@ impl WireGuard for UserSpace {
     fn public_key(&self, _priv_key: &str) -> Result<String, Error> {
         Err(Error::NotYetImplemented("connect_session".to_string()))
     }
+
+    fn close_session(&self) -> Result<(), Error> {
+        Err(Error::NotYetImplemented("close_session".to_string()))
+    }
 }

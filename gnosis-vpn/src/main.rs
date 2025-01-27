@@ -299,7 +299,13 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
                 } else {
                     ctrc_already_triggered = true;
                     tracing::info!("initiate shutdown");
-                    shutdown_receiver = state.shutdown();
+                    match state.shutdown() {
+                        Ok(r) => shutdown_receiver = r,
+                        Err(err) => {
+                            tracing::error!(?err, "failed to initiate shutdown");
+                            return exitcode::OSERR;
+                        }
+                    }
                 }
             }
             recv(shutdown_receiver) -> _ => {

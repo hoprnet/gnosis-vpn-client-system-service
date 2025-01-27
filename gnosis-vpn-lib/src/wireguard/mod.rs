@@ -73,7 +73,7 @@ pub trait WireGuard: Debug {
     fn generate_key(&self) -> Result<String, Error>;
     fn connect_session(&self, session: &ConnectSession) -> Result<(), Error>;
     fn public_key(&self, priv_key: &str) -> Result<String, Error>;
-    // fn close_session(&self) -> Result<(), Error>;
+    fn close_session(&self) -> Result<(), Error>;
     // fn verify_session(&self, session: &VerifySession) -> Result<(), Error>;
 }
 
