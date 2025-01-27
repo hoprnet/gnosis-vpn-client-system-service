@@ -269,10 +269,7 @@ impl Session {
 
 impl cmp::PartialEq for Session {
     fn eq(&self, other: &Self) -> bool {
-        self.ip == other.ip
-            && self.port == other.port
-            && self.protocol == other.protocol
-            && self.target.as_str().eq_ignore_ascii_case(other.target.as_str())
+        self.ip == other.ip && self.port == other.port && self.protocol == other.protocol && self.target == other.target
     }
 }
 
