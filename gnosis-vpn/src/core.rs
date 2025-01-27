@@ -202,10 +202,11 @@ impl Core {
 
     fn setup_from_config(&mut self) -> Result<()> {
         self.check_close_session()?;
-        if let (Some(entry_node), Some(session)) = (&self.config.entry_node, &self.config.session) {
+        if let (Some(entry_node), Some(session)) = (&self.config.hoprd_node, &self.config.connection) {
             let en_endpoint = entry_node.endpoint.clone();
             let en_api_token = entry_node.api_token.clone();
-            let en_listen_host = session.listen_host.clone();
+            let internal_port = entry_node.internal_connection_port.map(|port| format!(":{}", port));
+            let en_listen_host = session.listen_host.clone().or(internal_port);
             let path = session.path.clone().unwrap_or_default();
             let en_path = match path {
                 config::SessionPathConfig::Hop(hop) => Path::Hop(hop),
@@ -342,7 +343,7 @@ impl Core {
                     &self.wg,
                     &self.wg_priv_key(),
                     &self.config.wireguard,
-                    &self.config.entry_node.as_ref().and_then(|en| en.endpoint.host()),
+                    &self.config.hoprd_node.as_ref().and_then(|en| en.endpoint.host()),
                 ) {
                     let peer_info = wireguard::PeerInfo {
                         public_key: wg_conf.server_public_key.clone(),
@@ -616,11 +617,11 @@ impl Core {
         }
 
         if self.entry_node.is_none() {
-            tracing::info!("need entry node parameters to open session");
+            tracing::info!("need hoprd node parameters to open session");
             return Ok(());
         }
-        if self.config.session.is_none() {
-            tracing::info!("need session parameters to open session");
+        if self.config.connection.is_none() {
+            tracing::info!("need connection parameters to open session");
             return Ok(());
         }
         self.status = Status::OpeningSession {
@@ -692,12 +693,12 @@ impl Core {
     }
 
     fn fetch_open_session(&mut self) -> Result<()> {
-        if let (Some(en), Some(session)) = (&self.entry_node, &self.config.session) {
+        if let (Some(en), Some(session)) = (&self.entry_node, &self.config.connection) {
             let open_session = session::OpenSession {
                 endpoint: en.endpoint.clone(),
                 api_token: en.api_token.clone(),
                 destination: session.destination.to_string(),
-                listen_host: session.listen_host.clone(),
+                listen_host: en.listen_host.clone(),
                 path: session.path.clone(),
                 target: session.target.clone(),
                 capabilities: session.capabilities.clone(),

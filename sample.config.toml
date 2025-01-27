@@ -32,8 +32,8 @@ version = 1
 # # the exit peer id (where the connection should terminate)
 # destination = "<exit node peer id>"
 
-# # # [OPTIONAL] internal connection features - defaults to `[ Segmentation ]`
-# # capabilities = [ "Segmentation", "Retransmission" ]
+# # # [OPTIONAL] internal connection features - defaults to `[ "segmentation" ]`
+# # capabilities = [ "segmentation", "retransmission" ]
 # # # [OPTIONAL] listen host - specify internal listen host on hoprd node
 # # # if you have a firewall running and can only use static ports you need to adjust this setting
 # # # it's best to only use `internal_port` of `[hoprd node]` section - if listen_host is enabled `internal_port` is ignored

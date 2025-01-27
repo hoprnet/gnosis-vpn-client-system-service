@@ -53,7 +53,8 @@ After someone picked up your public key and added it to our session servers you 
 
 ### 6. Configure Gnosis VPN service configuration - hoprd entry node [MacOS]
 
-1. Create a copy of [sample config](./sample.config.toml) and move it to your desired location. In this guide we will just assume that you named it `config.toml`.
+1. Create a copy of either the extensively [documented config](./documented-config.toml) or the [minimal config](./minimal-config.toml).
+In this guide we will just assume that you copied it to `config.toml`.
 2. Open `config.toml` in edit mode and uncomment `entryNode` section to adjust values as needed:
 
 ```toml
