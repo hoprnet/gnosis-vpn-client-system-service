@@ -3,9 +3,9 @@
 Setting up the GnosisVPN PoC can be somewhat complex, as it involves multiple steps and configuration details:
 
 - **Download the binary** and run it with several env var parameters.
-- **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN session.
+- **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure the GnosisVPN service** using information from three separate sources:
-  1. Your entry node credentials
+  1. Your hoprd node credentials
   2. Your assigned device IP
   3. Your chosen exit location
 
@@ -49,49 +49,55 @@ If you have trouble opening cryptpad, please try to open it in incognito mode.
 
 ### 5. Wait until you get notified about receiving device IP [MacOS]
 
-After someone picked up your public key and added it to our session servers you will get your device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will get your device IP back via your **rlim.com** document.
 
-### 6. Configure Gnosis VPN service configuration - hoprd entry node [MacOS]
+### 6. Configure Gnosis VPN service configuration - hoprd node [MacOS]
 
-1. Create a copy of [sample config](./sample.config.toml) and move it to your desired location. In this guide we will just assume that you named it `config.toml`.
-2. Open `config.toml` in edit mode and uncomment `entryNode` section to adjust values as needed:
+1. Create a copy of either the extensively [documented config](./documented-config.toml) or the [minimal config](./minimal-config.toml).
+   In this guide we will just assume that you copied one of them to `config.toml`.
+2. Open `config.toml` in edit mode and uncomment `[hoprd_node]` section to adjust values as needed:
 
 ```toml
-# this section is used to inform about your hoprd entry node
-[entryNode]
-# URL pointing to API access of entry node with schema and port (e.g.: `http://123.456.7.89:3002`)
-endpoint = "<entry node API endpoint>"
-# API access token
-apiToken = "<entry node API token>"
+## hoprd node section - your hoprd node that acts as the connection entry point
+# [hoprd_node]
+
+# # URL pointing to API access of your node with schema and port (e.g.: `http://123.456.7.89:3002`)
+# endpoint = "<hoprd node API endpoint>"
+
+# # API access token
+# api_token = "<hoprd node API token>"
 ```
 
 ### 7. Configure Gnosis VPN service configuration - gnosisvpn exit location [MacOS]
 
-Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location.
-Copy the exit node configuration into your `config.toml` or update parameters manually (after uncommenting) like this:
+Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
+Copy the exit node peer id into your `config.toml` or update parameters manually (after uncommenting) like this:
 
 ```toml
-# this section holds exit location information and transport parameters
-[session]
-# the exit node peer id where the session should terminate
-destination = "<exit node peer id>"
+# # copy this section from https://gnosisvpn.com/servers
+# [connection]
+
+# # the exit peer id (where the connection should terminate)
+# destination = "<exit node peer id>"
 ```
 
 ### 8. Configure Gnosis VPN service configuration - static port configuration [MacOS]
 
-You can configure a session to run on a static port on your entry node. This is useful if you set up a firewall rule to allow traffic on specific ports only.
-Go back to the `[session]` section and have a look at the optional `listenHost` parameter.
+You can configure a GnosisVPN connection to run on a static port on your hoprd node.
+This is useful if you set up a firewall rule to allow traffic on specific ports only.
+Go back to the `[hoprd_node]` section and have a look at the optional `internal_connection_port` parameter.
 Uncomment it like shown in this example to provide your static port.
 
 ```toml
-[session]
+# [hoprd_node]
 
-...
+# ... (endpoint and api_token configs)
 
-# [OPTIONAL] listen host - specify internal listen host on entry node
-# if you have a firewall running and can only use static ports you need to adjust this setting
-# in general if you want to establish a session on specific port, just provide this port here with a leading `:` (e.g.: `:60006`)
-listenHost = ":60006"
+# [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
+# this is NOT your API port which must be specified in the `endpoint` field
+# this port is an addiontal port used to establish the tunnel connection on your hoprd node
+# in general if you want to establish a connection on specific port, just provide this port here
+internal_connection_port = 60006
 ```
 
 ### 9. Ready to start the service binary [MacOS]
@@ -104,7 +110,7 @@ chmod +x ./gnosis-vpn-aarch64-darwin
 ```
 
 2. Provide the path to your configuration file and a socket path to start the service binary.
-   If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's socket.
+   If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
 # <system> matches the one you chose earlier
@@ -134,8 +140,8 @@ PrivateKey = <Generated automatic by WireGuard app>
 Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
-PublicKey = <wg server pub key - listed on GNOSISVPN_ENDPOINTS_WEBSITE>
-Endpoint = <entry node IP:60006 - the port needs to match your listenHost configuraiton>
+PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
+Endpoint = <hoprd node IP:60006 - the port needs to match your `internal_connection_port` configuraiton>
 AllowedIPs = <what traffic do you want to route - usually the base of device IP would be a good start, e.g.: 20.0.0.0/24, set to 0.0.0.0/0 to route all traffic>
 PersistentKeepalive = 30
 ```
@@ -188,50 +194,56 @@ cat publickey | xclip -r -sel clip
 
 ### 5. Wait until you get notified about receiving device IP [Linux]
 
-After someone picked up your public key and added it to our session servers you will get your device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will get your device IP back via your **rlim.com** document.
 
-### 6. Configure Gnosis VPN service configuration - hoprd entry node [Linux]
+### 6. Configure Gnosis VPN service configuration - hoprd node [Linux]
 
-1. Copy [sample config](./sample.config.toml) to `/etc/gnosisvpn/config.toml` and open it in edit mode.
+1. Copy [documented config](./documented-config.toml) to `/etc/gnosisvpn/config.toml` and open it in edit mode.
    If you don't like the configuration file location you can override this default via `GNOSISVPN_CONFIG_PATH` env var.
 
-2. Uncomment `entryNode` section and adjust values as needed:
+2. Uncomment `[hoprd_node]` section and adjust values as needed:
 
 ```toml
-# this section is used to inform about your hoprd entry node
-[entryNode]
-# URL pointing to API access of entry node with schema and port (e.g.: `http://123.456.7.89:3002`)
-endpoint = "<entry node API endpoint>"
-# API access token
-apiToken = "<entry node API token>"
+## hoprd node section - your hoprd node that acts as the connection entry point
+# [hoprd_node]
+
+# # URL pointing to API access of your node with schema and port (e.g.: `http://123.456.7.89:3002`)
+# endpoint = "<hoprd node API endpoint>"
+
+# # API access token
+# api_token = "<hoprd node API token>"
 ```
 
 ### 7. Configure Gnosis VPN service configuration - gnosisvpn exit location [Linux]
 
-Visit `GNOSISVPN_ENDPOINTS_WEBSITE` and choose an exit location. Update parameters in `/etc/gnosisvpn/config.toml`:
+Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
+Update parameters in `/etc/gnosisvpn/config.toml`:
 
 ```toml
-# this section holds exit location information and transport parameters
-[session]
-# the exit node peer id where the session should terminate
-destination = "<exit node peer id>"
+# # copy this section from https://gnosisvpn.com/servers
+# [connection]
+
+# # the exit peer id (where the connection should terminate)
+# destination = "<exit node peer id>"
 ```
 
 ### 8. Configure Gnosis VPN service configuration - static port configuration [Linux]
 
-You can configure a session to run on a static port on your entry node. This is useful if you set up a firewall rule to allow traffic on specific ports only.
-Go back to the `[session]` section and have a look at the optional `listenHost` parameter.
+You can configure a GnosisVPN connection to run on a static port on your hoprd node.
+This is useful if you set up a firewall rule to allow traffic on specific ports only.
+Go back to the `[hoprd_node]` section and have a look at the optional `internal_connection_port` parameter.
 Uncomment it like shown in this example to provide your static port.
 
 ```toml
-[session]
+# [hoprd_node]
 
-...
+# ... (endpoint and api_token configs)
 
-# [OPTIONAL] listen host - specify internal listen host on entry node
-# if you have a firewall running and can only use static ports you need to adjust this setting
-# in general if you want to establish a session on specific port, just provide this port here with a leading `:` (e.g.: `:60006`)
-listenHost = ":60006"
+# [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
+# this is NOT your API port which must be specified in the `endpoint` field
+# this port is an addiontal port used to establish the tunnel connection on your hoprd node
+# in general if you want to establish a connection on specific port, just provide this port here
+internal_connection_port = 60006
 ```
 
 ### 9. Ready to start the service binary [Linux]
@@ -256,7 +268,7 @@ GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnos
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
 The binary should tell you which setting parameter might be wrong.
 
-### 10. Create a wireguard interface and connect to the created session [Linux]
+### 10. Create a wireguard interface and use the established GnosisVPN connection [Linux]
 
 Create a file called `wg-gnosisvpn-beta.conf` inside `/etc/wireguard/` with the following content:
 
@@ -266,8 +278,8 @@ PrivateKey = <content privatekey>
 Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
-PublicKey = <wg server pub key - listed on GNOSISVPN_ENDPOINTS_WEBSITE>
-Endpoint = <entry node IP:60006 - the port needs to match your listenHost configuraiton>
+PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
+Endpoint = <hoprd node IP:60006 - the port needs to match your `internal_connection_port` configuraiton>
 AllowedIPs = <what traffic do you want to route - usually the base of device IP would be a good start, e.g.: 20.0.0.0/24, set to 0.0.0.0/0 to route all traffic>
 PersistentKeepalive = 30
 ```
@@ -291,14 +303,15 @@ Copy `<pubkey>` and provide it in step 3.
 Instead of setting up wireguard manually in step 10 provide the configuration inside `/etc/gnosisvpn/config.toml`:
 
 ```toml
+# Caution: this section is experimental at best and will only work on Linux
 # this section holds the wireguard specific settings
 [wireguard]
 # local interface IP, onboarding info will provide this
 address = "10.34.0.8/32"
 # wireguard server public peer id - onboarding info will provide this
-serverPublicKey = "<wg server public peer id>"
+server_public_key = "<wg server public peer id>"
 ```
 
 At this point the you might see some notificaiton that a `wg0-gnosisvpn` interface is now connected.
-The hoprd session was opened by the service and will kept open.
+The GnosisVPN connection was opened by the service and will kept open.
 Wireguard is also connected and you will be able to use a socks5 proxy on your device.

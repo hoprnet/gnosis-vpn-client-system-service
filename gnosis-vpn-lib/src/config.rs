@@ -13,23 +13,21 @@ use crate::peer_id::PeerId;
 const SUPPORTED_CONFIG_VERSIONS: [u8; 1] = [1];
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub version: u8,
-    pub entry_node: Option<EntryNodeConfig>,
-    pub session: Option<SessionConfig>,
+    pub hoprd_node: Option<EntryNodeConfig>,
+    pub connection: Option<SessionConfig>,
     pub wireguard: Option<WireGuardConfig>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct EntryNodeConfig {
     pub endpoint: Url,
     pub api_token: String,
+    pub internal_connection_port: Option<u16>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SessionConfig {
     pub capabilities: Option<Vec<SessionCapabilitiesConfig>>,
     pub destination: PeerId,
@@ -39,7 +37,6 @@ pub struct SessionConfig {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct WireGuardConfig {
     pub address: String,
     pub server_public_key: String,
@@ -49,7 +46,6 @@ pub struct WireGuardConfig {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SessionTargetConfig {
     pub type_: Option<SessionTargetType>,
     pub host: Option<String>,
@@ -57,15 +53,15 @@ pub struct SessionTargetConfig {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum SessionCapabilitiesConfig {
     #[default]
+    #[serde(alias = "segmentation")]
     Segmentation,
+    #[serde(alias = "retransmission")]
     Retransmission,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum SessionTargetType {
     #[default]
     Plain,
@@ -73,9 +69,10 @@ pub enum SessionTargetType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum SessionPathConfig {
+    #[serde(alias = "hop")]
     Hop(u8),
+    #[serde(alias = "intermediates")]
     Intermediates(Vec<PeerId>),
 }
 
@@ -128,8 +125,8 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             version: 1,
-            entry_node: None,
-            session: None,
+            hoprd_node: None,
+            connection: None,
             wireguard: None,
         }
     }
