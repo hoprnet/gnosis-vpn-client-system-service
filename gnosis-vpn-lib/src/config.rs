@@ -70,7 +70,9 @@ pub enum SessionTargetType {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum SessionPathConfig {
+    #[serde(alias = "hop")]
     Hop(u8),
+    #[serde(alias = "intermediates")]
     Intermediates(Vec<PeerId>),
 }
 

@@ -26,7 +26,7 @@ version = 1
 
 ###
 ## connection section - connection configuration parameters
-# copy this section from https://gnosisvpn/server
+# # copy this section from https://gnosisvpn/server
 # [connection]
 
 # # the exit peer id (where the connection should terminate)
@@ -44,21 +44,21 @@ version = 1
 
 # # Caution: only intented for debugging purposes as it degrades security
 # [connection.path]
-# # # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
-# # hop = 1
-# # # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
-# # intermediates = [ "<intermediate node peer id>" ]
+# # [OPTIONAL] hop number of hops to take through the mixnet - defaults to 1
+# hop = 1
+# # [OPTIONAL] ## specify manual path through the mixnet - only available in debug mode
+# intermediates = [ "<intermediate node peer id>" ]
 
 ###
-## connection target section - where does the exit node connect to
-# leave this as is if you don't know what you're doing
+## [OPTIONAL] connection target section - where does the exit node connect to
 
 # # this section holds the target information of the connection exit node
+# # Caution: leave this as is if you don't know what you're doing
 # [connection.target]
-# # # [OPTIONAL] target host of the connection exit without schema, defaults to localhost wg endpoint
-# # host = "127.0.0.1"
-# # # [OPTIONAL] target port of the connection exit, defaults to default wg port
-# # port = 51820
+# # [OPTIONAL] target host of the connection exit without schema, defaults to localhost wg endpoint
+# host = "127.0.0.1"
+# # [OPTIONAL] target port of the connection exit, defaults to default wg port
+# port = 51820
 
 ###
 ## wireguard section - specific VPN related settings
