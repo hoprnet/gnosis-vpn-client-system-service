@@ -22,7 +22,7 @@ version = 1
 # # # this is NOT your API port which must be specified in the `endpoint` field
 # # # this port is an addiontal port used to establish the tunnel connection on your hoprd node
 # # # in general if you want to establish a connection on specific port, just provide this port here
-# # internal_connection_port = 60006
+# # internal_port = 60006
 
 ###
 ## connection section - connection configuration parameters

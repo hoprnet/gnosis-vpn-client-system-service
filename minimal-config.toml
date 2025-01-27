@@ -1,0 +1,19 @@
+###
+# Gnosis VPN service configuration file
+#
+# On unix the default config path is `/etc/gnosisvpn/config.toml`
+# However you can override this by using `GNOSISVPN_CONFIG_PATH` env var
+###
+
+version = 1
+
+[hoprd node]
+endpoint = "http://123.456.7.89:3002"
+api_token = "<hoprd node API token>"
+
+# [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
+internal_connection_port = 60006
+
+# copy this section from https://gnosisvpn/server
+[connection]
+destination = "<exit node peer id>"
