@@ -20,7 +20,7 @@ Please select your operating system to begin:
 
 ### 1. Download the latest binary [MacOS]
 
-Download the latest service binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary that matches your system:
 
 | System                | Binary                      |
@@ -100,7 +100,7 @@ Uncomment it like shown in this example to provide your static port.
 internal_connection_port = 60006
 ```
 
-### 9. Ready to start the service binary [MacOS]
+### 9. Ready to start the GnosisVPN binary [MacOS]
 
 1. Return to your downloaded binary and make it executable:
 
@@ -109,7 +109,7 @@ chmod +x ./gnosis-vpn-aarch64-darwin
 # depending on your system, alternatively: chmod +x ./gnosis-vpn-x86_64-darwin
 ```
 
-2. Provide the path to your configuration file and a socket path to start the service binary.
+2. Provide the path to your configuration file and a socket path to start the GnosisVPN binary.
    If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
@@ -152,7 +152,7 @@ PersistentKeepalive = 30
 
 ### 1. Download the latest binary [Linux]
 
-Download the latest service binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Download the latest GnosisVPN binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary that matches your system:
 
 | system                    | binary                     |
@@ -246,7 +246,7 @@ Uncomment it like shown in this example to provide your static port.
 internal_connection_port = 60006
 ```
 
-### 9. Ready to start the service binary [Linux]
+### 9. Ready to start the GnosisVPN binary [Linux]
 
 Replace `<gnosis-vpn-binary>` with the binary you downloaded earlier, see [step 1](#1-download-the-latest-binary-linux).
 
@@ -256,7 +256,7 @@ Replace `<gnosis-vpn-binary>` with the binary you downloaded earlier, see [step 
 chmod +x <gnosis-vpn-binary>
 ```
 
-2. Start service binary
+2. Start GnosisVPN binary
 
 ```bash
 # with privileged access
