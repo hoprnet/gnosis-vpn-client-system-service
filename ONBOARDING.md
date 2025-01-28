@@ -2,7 +2,7 @@
 
 Setting up the GnosisVPN PoC can be somewhat complex, as it involves multiple steps and configuration details:
 
-- **Download the binary** and run it with several env var parameters.
+- **Download the binary file** and run it with several env var parameters.
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure the GnosisVPN service** using information from three separate sources:
   1. Your hoprd node credentials
@@ -18,12 +18,12 @@ Please select your operating system to begin:
 
 ## Instructions for MacOS
 
-### 1. Download the latest binary [MacOS]
+### 1. Download the latest binary file [MacOS]
 
-Download the latest GnosisVPN binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
-Choose the binary that matches your system:
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Choose the binary file that matches your system:
 
-| System                | Binary                      |
+| System                | Binary file                      |
 | --------------------- | --------------------------- |
 | macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
 | macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
@@ -85,17 +85,18 @@ destination = "<exit node peer id>"
 
 Save and close the configuration file.
 
-### 8. Launch the GnosisVPN binary [MacOS]
+### 8. Launch the GnosisVPN binary file [MacOS]
 
-1. Return to your downloaded binary and make it executable:
+1. Return to your downloaded binary file and make it executable:
 
 ```bash
 chmod +x ./gnosis-vpn-aarch64-darwin
 # depending on your system, alternatively: chmod +x ./gnosis-vpn-x86_64-darwin
 ```
 
-2. Provide the path to your configuration file and a socket path to start the GnosisVPN binary.
-   If you do not want to provide that socket path, you can also start the binary with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
+2. Provide the path to your configuration file and a socket path to start the GnosisVPN binary file.
+The socket path is only used for communication with the GnosisVPN service which is out of scope for this guide.
+   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
 # <system> matches the one you chose earlier
@@ -107,13 +108,13 @@ sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-aarch64-darwin`
 # depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-x86_64-darwin`
 ```
 
-3. Because of macOS security settings, you may see a message that says “macOS cannot verify that this app is free from malware.”
-   Click "Cancel", then open System Settings → Privacy & Security, scroll down to Security, and find the blocked binary. Click "Allow Anyway".
+3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
+   Click "Cancel" or "Done", then open System Settings → Privacy & Security, scroll down to Security, and find the blocked binary file. Click "Allow Anyway".
 
-4. In your terminal, run the command to start the binary again. MacOS will prompt you one more time to confirm if you want to open it. Click "Open".
+4. In your terminal, run the command to start the binary file again. MacOS will prompt you one more time to confirm if you want to open it. Click "Open" or "Open anyway".
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary should tell you which setting parameter might be wrong.
+The binary file should tell you which setting parameter might be wrong.
 
 ### 10. Edit the newly created WireGuard tunnel [MacOS]
 
@@ -135,12 +136,12 @@ PersistentKeepalive = 30
 
 ## Instructions for Linux
 
-### 1. Download the latest binary [Linux]
+### 1. Download the latest binary file [Linux]
 
-Download the latest GnosisVPN binary for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
-Choose the binary that matches your system:
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Choose the binary file that matches your system:
 
-| system                    | binary                     |
+| system                    | binary file                     |
 | ------------------------- | -------------------------- |
 | linux with x86 chip       | `gnosis-vpn-x86_64-linux`  |
 | linux with newer ARM chip | `gnosis-vpn-aarch64-linux` |
@@ -231,17 +232,17 @@ Uncomment it like shown in this example to provide your static port.
 internal_connection_port = 60006
 ```
 
-### 9. Ready to start the GnosisVPN binary [Linux]
+### 9. Ready to start the GnosisVPN binary file [Linux]
 
-Replace `<gnosis-vpn-binary>` with the binary you downloaded earlier, see [step 1](#1-download-the-latest-binary-linux).
+Replace `<gnosis-vpn-binary>` with the binary file you downloaded earlier, see [step 1](#1-download-the-latest-binary-linux).
 
-1. Return to your downloaded binary and make it executable:
+1. Return to your downloaded binary file and make it executable:
 
 ```bash
 chmod +x <gnosis-vpn-binary>
 ```
 
-2. Start GnosisVPN binary
+2. Launch GnosisVPN binary file
 
 ```bash
 # with privileged access
@@ -251,7 +252,7 @@ GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnos
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
-The binary should tell you which setting parameter might be wrong.
+The binary file should tell you which setting parameter might be wrong.
 
 ### 10. Create a wireguard interface and use the established GnosisVPN connection [Linux]
 

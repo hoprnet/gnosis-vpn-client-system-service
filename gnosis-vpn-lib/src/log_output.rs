@@ -22,7 +22,7 @@ pub fn elapsed(timestamp: &SystemTime) -> String {
 fn truncate_after_second_space(s: &str) -> &str {
     let spaces = s.match_indices(' ').take(2);
     if let Some((index, _)) = spaces.last() {
-        &s[..index + 1]
+        &s[..index]
     } else {
         s
     }
