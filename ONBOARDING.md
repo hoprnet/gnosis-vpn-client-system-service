@@ -37,24 +37,24 @@ Choose the binary that matches your system:
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Visit [rlim.com](https://rlim.com/).
-2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
-3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
-4. Copy edit code from top line.
+1. Go to rlim.com.
+2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`).
+3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
+4. Note the edit code at the top for the next step.
 
 ### 4. Provide necessary data to be eligible for GnosisVPN PoC demo [MacOS]
 
 Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 5. Wait until you get notified about receiving device IP [MacOS]
+### 5. Wait until you get notified about your assigned device IP [MacOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will get your device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will get your assigned device IP back via your **rlim.com** document.
 
 ### 6. Configure Gnosis VPN service configuration - hoprd node [MacOS]
 
-1. Create a copy of either the extensively [documented config](./documented-config.toml) or the [minimal config](./minimal-config.toml).
-   In this guide we will just assume that you copied one of them to `config.toml`.
+1. Download a copy of either the [minimal config](./minimal-config.toml) or the extensively [documented config](./documented-config.toml).
+   In this guide we will just assume that you downloaded one of them next to the downloaded binary and renamed the file as `config.toml`.
 2. Open `config.toml` in edit mode and uncomment `[hoprd_node]` section to adjust values as needed:
 
 ```toml
@@ -68,7 +68,7 @@ After someone picked up your public key and added it to our WireGuard servers yo
 # api_token = "<hoprd node API token>"
 ```
 
-### 7. Configure Gnosis VPN service configuration - gnosisvpn exit location [MacOS]
+### 7. Configure Gnosis VPN service configuration - GnosisVPN exit location [MacOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the exit node peer id into your `config.toml` or update parameters manually (after uncommenting) like this:
@@ -176,10 +176,10 @@ wg genkey | tee privatekey | wg pubkey > publickey
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Visit [rlim.com](https://rlim.com/).
-2. Enter "Custom url" input field and provide some input (e.g.: `toms-feedback-gvpn`).
-3. Copy url from browser address bar (e.g.: `https://rlim.com/toms-feedback-gvpn`).
-4. Copy edit code from top line.
+1. Go to rlim.com.
+2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`).
+3. Copy the updated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
+4. Copy the edit code displayed on the top line of the page.
 
 ### 4. Provide necessary data to be eligible for GnosisVPN PoC demo [Linux]
 
@@ -192,9 +192,9 @@ cat publickey | xclip -r -sel clip
 2. Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
    If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 5. Wait until you get notified about receiving device IP [Linux]
+### 5. Wait until you get notified about your assigned device IP [Linux]
 
-After someone picked up your public key and added it to our WireGuard servers you will get your device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will get your assigned device IP back via your **rlim.com** document.
 
 ### 6. Configure Gnosis VPN service configuration - hoprd node [Linux]
 
