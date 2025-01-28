@@ -53,54 +53,39 @@ After someone picked up your public key and added it to our WireGuard servers yo
 
 ### 6. Configure Gnosis VPN service configuration - hoprd node [MacOS]
 
-1. Download a copy of either the [minimal config](./minimal-config.toml) or the extensively [documented config](./documented-config.toml).
-   In this guide we will just assume that you downloaded one of them next to the downloaded binary and renamed the file as `config.toml`.
-2. Open `config.toml` in edit mode and uncomment `[hoprd_node]` section to adjust values as needed:
+1. Download [config](./config.toml) and place it next to the downloaded binary file.
+2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
 
 ```toml
-## hoprd node section - your hoprd node that acts as the connection entry point
-# [hoprd_node]
+[hoprd_node]
+endpoint = "http://123.456.7.89:3002"
+api_token = "<hoprd node API token>"
 
-# # URL pointing to API access of your node with schema and port (e.g.: `http://123.456.7.89:3002`)
-# endpoint = "<hoprd node API endpoint>"
-
-# # API access token
-# api_token = "<hoprd node API token>"
-```
-
-### 7. Configure Gnosis VPN service configuration - GnosisVPN exit location [MacOS]
-
-Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
-Copy the exit node peer id into your `config.toml` or update parameters manually (after uncommenting) like this:
-
-```toml
-# # copy this section from https://gnosisvpn.com/servers
-# [connection]
-
-# # the exit peer id (where the connection should terminate)
-# destination = "<exit node peer id>"
-```
-
-### 8. Configure Gnosis VPN service configuration - static port configuration [MacOS]
-
-You can configure a GnosisVPN connection to run on a static port on your hoprd node.
-This is useful if you set up a firewall rule to allow traffic on specific ports only.
-Go back to the `[hoprd_node]` section and have a look at the optional `internal_connection_port` parameter.
-Uncomment it like shown in this example to provide your static port.
-
-```toml
-# [hoprd_node]
-
-# ... (endpoint and api_token configs)
-
-# [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
-# this is NOT your API port which must be specified in the `endpoint` field
-# this port is an addiontal port used to establish the tunnel connection on your hoprd node
-# in general if you want to establish a connection on specific port, just provide this port here
 internal_connection_port = 60006
 ```
 
-### 9. Ready to start the GnosisVPN binary [MacOS]
+`endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+`api_token` is the API access token of your node.
+`internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
+
+Note: If you have a firewall running on your hoprd node, you need to update your port forwarding rules accordingly.
+
+If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
+
+### 7. Configure Gnosis VPN service configuration - exit location [MacOS]
+
+Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
+Copy the exit node peer id into your `config.toml` or update parameters manually:
+
+```toml
+# copy this section from https://gnosisvpn.com/servers
+[connection]
+destination = "<exit node peer id>"
+```
+
+Save and close the configuration file.
+
+### 8. Launch the GnosisVPN binary [MacOS]
 
 1. Return to your downloaded binary and make it executable:
 
@@ -214,7 +199,7 @@ After someone picked up your public key and added it to our WireGuard servers yo
 # api_token = "<hoprd node API token>"
 ```
 
-### 7. Configure Gnosis VPN service configuration - gnosisvpn exit location [Linux]
+### 7. Configure Gnosis VPN service configuration - exit location [Linux]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Update parameters in `/etc/gnosisvpn/config.toml`:
@@ -235,7 +220,7 @@ Go back to the `[hoprd_node]` section and have a look at the optional `internal_
 Uncomment it like shown in this example to provide your static port.
 
 ```toml
-# [hoprd_node]
+[hoprd_node]
 
 # ... (endpoint and api_token configs)
 
