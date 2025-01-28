@@ -743,7 +743,9 @@ impl Core {
             (Some(sess), Status::MonitoringSession { start_time, .. }) => {
                 if sess.verify_open(sessions) {
                     tracing::info!(session = ?sess, since = log_output::elapsed(start_time), "verified session open");
-                    let cancel_sender = session::schedule_check_session(time::Duration::from_secs(9), &self.sender);
+                    let next_check = self.rng.gen_range(5..13);
+                    let cancel_sender =
+                        session::schedule_check_session(time::Duration::from_secs(next_check), &self.sender);
                     self.status = Status::MonitoringSession {
                         start_time: *start_time,
                         cancel_sender,

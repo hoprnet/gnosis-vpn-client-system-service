@@ -23,7 +23,7 @@ Please select your operating system to begin:
 Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary file that matches your system:
 
-| System                | Binary file                      |
+| System                | Binary file                 |
 | --------------------- | --------------------------- |
 | macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
 | macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
@@ -85,7 +85,14 @@ destination = "<exit node peer id>"
 
 Save and close the configuration file.
 
-### 8. Launch the GnosisVPN binary file [MacOS]
+### 8. Ensure pathfinding to GnosisVPN exit nodes [MacOS]
+
+Caution: If you have channel auto funding enabled, you might drain your funds quickly.
+
+In order for GnosisVPN to open working connections you need to have some channels open to relay nodes maintained by HOPR.
+These nodes can be found on the [GnosisVPN relayers](https://gnosisvpn.com/relayers) page.
+
+### 9. Launch the GnosisVPN binary file [MacOS]
 
 1. Return to your downloaded binary file and make it executable:
 
@@ -95,7 +102,7 @@ chmod +x ./gnosis-vpn-aarch64-darwin
 ```
 
 2. Provide the path to your configuration file and a socket path to start the GnosisVPN binary file.
-The socket path is only used for communication with the GnosisVPN service which is out of scope for this guide.
+   The socket path is only used for communication with the GnosisVPN service which is out of scope for this guide.
    If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
@@ -141,7 +148,7 @@ PersistentKeepalive = 30
 Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
 Choose the binary file that matches your system:
 
-| system                    | binary file                     |
+| system                    | binary file                |
 | ------------------------- | -------------------------- |
 | linux with x86 chip       | `gnosis-vpn-x86_64-linux`  |
 | linux with newer ARM chip | `gnosis-vpn-aarch64-linux` |
