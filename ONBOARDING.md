@@ -2,12 +2,14 @@
 
 Setting up the GnosisVPN PoC can be somewhat complex, as it involves multiple steps and configuration details:
 
-- **Download the binary file** and run it with several env var parameters.
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
+- **Configure your hopd node** to allow a GnosisVPN connection.
+- **Download the binary file** and run it with several env var parameters.
 - **Configure the GnosisVPN service** using information from three separate sources:
   1. Your hoprd node credentials
   2. Your assigned device IP
   3. Your chosen exit location
+- **Configure Firefox proxy settings** to use the GnosisVPN connection.
 
 Please select your operating system to begin:
 
@@ -18,22 +20,12 @@ Please select your operating system to begin:
 
 ## Instructions for MacOS
 
-### 1. Download the latest binary file [MacOS]
-
-Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
-Choose the binary file that matches your system:
-
-| System                | Binary file                 |
-| --------------------- | --------------------------- |
-| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
-| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
-
-### 2. Generate Wireguard public key [MacOS]
+### 1. Generate Wireguard public key [MacOS]
 
 1. Download the [WireGuard app](https://apps.apple.com/us/app/wireguard/id1451685025) from the Mac App Store.
 2. Launch WireGuard, create an **Empty tunnel**, name it, and save. Copy the public key of the newly created tunnel.
 
-### 3. Prepare secure input to receive assigned device IP [MacOS]
+### 2. Prepare secure input to receive assigned device IP [MacOS]
 
 Create a secure input location where you will receive your assigned device IP.
 
@@ -42,14 +34,55 @@ Create a secure input location where you will receive your assigned device IP.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
-### 4. Provide necessary data to be eligible for GnosisVPN PoC demo [MacOS]
+### 3. Provide necessary data to be eligible for GnosisVPN PoC demo [MacOS]
 
 Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 5. Wait until you get notified about your assigned device IP [MacOS]
+### 4. Wait until you get notified about your assigned device IP [MacOS]
 
 After someone picked up your public key and added it to our WireGuard servers you will get your assigned device IP back via your **rlim.com** document.
+
+### 5. Configure your hoprd node to allow GnosisVPN connections [MacOS]
+
+GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 50005).
+The usual way of running horpd is in a docker container.
+This means you need to configure docker to forward that port.
+
+Depending on your setup this can be done in different ways.
+
+#### Hoprd for Docker [MacOS]
+
+Update the run command to inlude the port forwarding: `docker run ... -p 50005:50005/udp ...`.
+
+#### Hoprd for Docker Compose [MacOS]
+
+Locate `docker-compose.yaml` update update the `ports:` section of `hoprd:`:
+
+```yaml
+services:
+  hoprd:
+    ...
+    ports:
+      ...
+      - "50005:50005/udp"
+```
+
+#### Hoprd for Dappnode [MacOS]
+
+In the network tab of your hoprd node locate `Public port mapping` section.
+Add a new port entry, set the `HOST PORT` and `PACKAGE PORT NUMBER` to 50005 and choose `PROTOCOL` UDP.
+Click `Update port mappings`.
+
+### 6. Download the latest binary file [MacOS]
+
+Download the latest GnosisVPN binary file for your system by visiting the [GitHub releases](https://github.com/hoprnet/gnosis-vpn-client-system-service/releases) page.
+Choose the binary file that matches your system:
+
+| System                | Binary file                 |
+| --------------------- | --------------------------- |
+| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
 
 ### 6. Configure Gnosis VPN service configuration - hoprd node [MacOS]
 
@@ -61,14 +94,12 @@ After someone picked up your public key and added it to our WireGuard servers yo
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
-internal_connection_port = 60006
+internal_connection_port = 50005
 ```
 
 `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
 `api_token` is the API access token of your node.
 `internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
-
-Note: If you have a firewall running on your hoprd node, you need to update your port forwarding rules accordingly.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
@@ -83,14 +114,21 @@ Copy the exit node peer id into your `config.toml` or update parameters manually
 destination = "<exit node peer id>"
 ```
 
+Do the same for the `connection target host`:
+
+```toml
+[connection.target]
+host = "<exit node connection target host>"
+```
+
 Save and close the configuration file.
 
 ### 8. Ensure pathfinding to GnosisVPN exit nodes [MacOS]
 
 Caution: If you have channel auto funding enabled, you might drain your funds quickly.
 
-In order for GnosisVPN to open working connections you need to have some channels open to relay nodes maintained by HOPR.
-These nodes can be found on the [GnosisVPN relayers](https://gnosisvpn.com/relayers) page.
+GnosisVPN can only establish connections via relay nodes maintained by HOPR for now.
+You need to have some channels open to these nodes, which can be found on the [GnosisVPN relayers](https://gnosisvpn.com/relayers) page.
 
 ### 9. Launch the GnosisVPN binary file [MacOS]
 
@@ -123,7 +161,7 @@ sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-aarch64-darwin`
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.
 The binary file should tell you which setting parameter might be wrong.
 
-### 10. Edit the newly created WireGuard tunnel [MacOS]
+### 10. Update the newly created WireGuard tunnel and launch WireGuard [MacOS]
 
 In the WireGuard app, edit the tunnel you created:
 
@@ -134,10 +172,26 @@ Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:60006 - the port needs to match your `internal_connection_port` configuraiton>
-AllowedIPs = <what traffic do you want to route - usually the base of device IP would be a good start, e.g.: 20.0.0.0/24, set to 0.0.0.0/0 to route all traffic>
+Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuraiton>
+AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
+
+Now you can activate this interface to establish a connection.
+
+### 11. Use GnosisVPN connection to browse the internet [MacOS]
+
+For now we only allow SOCKS v5 proxy connections tunneled through GnosisVPN.
+The easiest way to do this is to change the Firefox proxy settings.
+
+1. Open Network Connection Settings by navigating into Settings → General → Network Settings or search "proxy" in the settings search bar and click on the "Settings" button.
+2. Choose manual proxy configuration and enter:
+   - SOCKS Host: `20.0.0.1`
+   - Port: `3128`
+   - Socks v5
+3. Clik "OK" to save the settings.
+
+Start browsing through GnosisVPN.
 
 ---
 
@@ -267,13 +321,13 @@ Create a file called `wg-gnosisvpn-beta.conf` inside `/etc/wireguard/` with the 
 
 ```conf
 [Interface]
-PrivateKey = <content privatekey>
+PrivateKey = <generated in step 2.>
 Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
 Endpoint = <hoprd node IP:60006 - the port needs to match your `internal_connection_port` configuraiton>
-AllowedIPs = <what traffic do you want to route - usually the base of device IP would be a good start, e.g.: 20.0.0.0/24, set to 0.0.0.0/0 to route all traffic>
+AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
 
