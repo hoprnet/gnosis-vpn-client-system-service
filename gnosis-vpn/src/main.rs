@@ -24,7 +24,8 @@ mod session;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
-struct Cli {}
+#[command(version)]
+struct Cli { }
 
 #[tracing::instrument(level = Level::DEBUG)]
 fn ctrlc_channel() -> Result<crossbeam_channel::Receiver<()>, exitcode::ExitCode> {
