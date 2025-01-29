@@ -1,10 +1,11 @@
-use gnosis_vpn_ctl::{cli, Command};
 use gnosis_vpn_lib::{command, socket};
 
-fn as_internal_cmd(cmd: &Command) -> command::Command {
+mod cli;
+
+fn as_internal_cmd(cmd: &cli::Command) -> command::Command {
     match cmd {
-        Command::Status => command::Command::Status,
-        Command::EntryNode {
+        cli::Command::Status => command::Command::Status,
+        cli::Command::EntryNode {
             endpoint,
             api_token,
             listen_host,
@@ -17,7 +18,7 @@ fn as_internal_cmd(cmd: &Command) -> command::Command {
             hop: *hop,
             intermediate_id: *intermediate_id,
         },
-        Command::ExitNode { peer_id } => command::Command::ExitNode { peer_id: *peer_id },
+        cli::Command::ExitNode { peer_id } => command::Command::ExitNode { peer_id: *peer_id },
     }
 }
 
@@ -25,7 +26,7 @@ fn main() {
     // install global collector configured based on RUST_LOG env var.
     tracing_subscriber::fmt::init();
 
-    let options = cli().run();
+    let options = cli::cli().run();
 
     tracing::debug!(?options, "Options parsed");
 

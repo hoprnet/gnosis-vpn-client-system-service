@@ -84,6 +84,9 @@ Choose the binary file that matches your system:
 | macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
 | macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
 
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
+
 ### 7. Configure Gnosis VPN service configuration - hoprd node [MacOS]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
@@ -279,6 +282,9 @@ Choose the binary file that matches your system:
 | linux with x86 chip       | `gnosis-vpn-x86_64-linux`  |
 | linux with newer ARM chip | `gnosis-vpn-aarch64-linux` |
 | linux with older ARM chip | `gnosis-vpn-armv7l-linux`  |
+
+Ignore the `*-ctl-*` sibling files.
+We do not need them for now.
 
 ### 7. Configure Gnosis VPN service configuration - hoprd node [Linux]
 

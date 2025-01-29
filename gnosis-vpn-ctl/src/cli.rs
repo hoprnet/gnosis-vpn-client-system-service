@@ -3,7 +3,7 @@ use gnosis_vpn_lib::peer_id::PeerId;
 use url::Url;
 
 #[derive(Debug, Clone, Bpaf)]
-#[bpaf(options)]
+#[bpaf(options, version)]
 pub struct Cli {
     #[bpaf(external(command), many)]
     pub commands: Vec<Command>,
