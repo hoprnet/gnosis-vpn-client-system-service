@@ -29,7 +29,7 @@ Please select your operating system to begin:
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Go to rlim.com.
+1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`).
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
@@ -210,7 +210,7 @@ wg genkey | tee privatekey | wg pubkey > publickey
 
 Create a secure input location where you will receive your assigned device IP.
 
-1. Go to rlim.com.
+1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`).
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
