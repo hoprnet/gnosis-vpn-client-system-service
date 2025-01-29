@@ -40,7 +40,7 @@ pub fn open(
     open_session: &OpenSession,
 ) -> Result<()> {
     let headers = remote_data::authentication_headers(open_session.api_token.as_str())?;
-    let url = open_session.endpoint.join("/api/v3/session/udp")?;
+    let url = open_session.endpoint.join("api/v3/session/udp")?;
     let mut json = serde_json::Map::new();
     json.insert("destination".to_string(), json!(open_session.destination));
 
@@ -211,7 +211,7 @@ impl Session {
         entry_node: &EntryNode,
     ) -> Result<()> {
         let headers = remote_data::authentication_headers(entry_node.api_token.as_str())?;
-        let path = format!("/api/v3/session/udp/{}/{}", self.ip, self.port);
+        let path = format!("api/v3/session/udp/{}/{}", self.ip, self.port);
         let url = entry_node.endpoint.join(path.as_str())?;
 
         let sender = sender.clone();
