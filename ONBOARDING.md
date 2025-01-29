@@ -121,14 +121,21 @@ Do the same for the `connection target host`:
 host = "<exit node connection target host>"
 ```
 
+Lastly copy the special relayer that will work with that exit node:
+
+```toml
+[connection.path]
+intermediates = [ `<relay node peer id>` ]
+```
+
 Save and close the configuration file.
 
 ### 9. Ensure pathfinding to GnosisVPN exit nodes [MacOS]
 
 Caution: If you have channel auto funding enabled, you might drain your funds quickly.
 
-GnosisVPN can only establish connections via relay nodes maintained by HOPR for now.
-You need to have some channels open to these nodes, which can be found on the [GnosisVPN relayers](https://gnosisvpn.com/relayers) page.
+GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
+You need to have a channel open to the relayer node for your chosen exit node, which can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
 ### 10. Launch the GnosisVPN binary file [MacOS]
 
@@ -310,14 +317,21 @@ Do the same for the `connection target host`:
 host = "<exit node connection target host>"
 ```
 
+Lastly copy the special relayer that will work with that exit node:
+
+```toml
+[connection.path]
+intermediates = [ `<relay node peer id>` ]
+```
+
 Save and close the configuration file.
 
 ### 9. Ensure pathfinding to GnosisVPN exit nodes [Linux]
 
 Caution: If you have channel auto funding enabled, you might drain your funds quickly.
 
-GnosisVPN can only establish connections via relay nodes maintained by HOPR for now.
-You need to have some channels open to these nodes, which can be found on the [GnosisVPN relayers](https://gnosisvpn.com/relayers) page.
+GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
+You need to have a channel open to the relayer node for your chosen exit node, which can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
