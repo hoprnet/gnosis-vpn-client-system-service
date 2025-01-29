@@ -97,9 +97,9 @@ api_token = "<hoprd node API token>"
 internal_connection_port = 50005
 ```
 
-`endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
-`api_token` is the API access token of your node.
-`internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `api_token` is the API access token of your node.
+- `internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
@@ -285,9 +285,9 @@ api_token = "<hoprd node API token>"
 internal_connection_port = 50005
 ```
 
-`endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
-`api_token` is the API access token of your node.
-`internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
+- `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
+- `api_token` is the API access token of your node.
+- `internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
