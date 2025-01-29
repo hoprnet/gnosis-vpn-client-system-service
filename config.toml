@@ -11,8 +11,7 @@ version = 1
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
-# [OPTIONAL] internal port - use this if you have a firewall running and only forward a specific port
-internal_connection_port = 60006
+internal_connection_port = 50005
 
 # copy this section from https://gnosisvpn.com/servers
 [connection]

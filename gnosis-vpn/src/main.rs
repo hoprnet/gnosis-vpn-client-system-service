@@ -24,6 +24,7 @@ mod session;
 
 /// Gnosis VPN system service - offers interaction commands on Gnosis VPN to other applications.
 #[derive(Parser)]
+#[command(version)]
 struct Cli {}
 
 #[tracing::instrument(level = Level::DEBUG)]
