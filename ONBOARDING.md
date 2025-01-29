@@ -168,6 +168,7 @@ In the WireGuard app, edit the tunnel you created:
 ```conf
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
+ListenPort = 51820
 Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
@@ -349,6 +350,7 @@ Create a file called `gnovpnbeta.conf` inside `/etc/wireguard/` with the followi
 ```conf
 [Interface]
 PrivateKey = <generated in step 1>
+ListenPort = 51820
 Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
