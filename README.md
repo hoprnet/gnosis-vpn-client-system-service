@@ -13,7 +13,7 @@ The client is meant to run as a service binary with privileged access.
 The default configuration file is located in `/etc/gnosisvpn/config.toml`.
 However you can start the client with
 
-`GNOSISVPN_CONFIG_PATH=<config_file> GNOSISVPN_SOCKET_PATH=<socket_path> ./gnosis-vpn-<system-arch>`
+`GNOSISVPN_CONFIG_PATH=<config_file> GNOSISVPN_SOCKET_PATH=<socket_path> ./gnosis_vpn-<system-arch>`
 
 from userspace (`socket_path` being some accessible file location, e.g. ./gnosisvpn.sock).
 
@@ -35,12 +35,12 @@ Build for a target, e.g. `x86_64-linux`:
 
 `nix build .#gnosisvpn-x86_64-linux`
 
-The resulting binaries are in `results/bin/`:
+The resulting binaries are in `result/bin/`:
 
 ```
 $ ls -l result*/bin/
 result/bin/:
 total 4752
--r-xr-xr-x 1 root root 4863368 Jan  1  1970 gnosis-vpn
--r-xr-xr-x 1 root root 1740048 Jan  1  1970 gnosis-vpn-ctl
+-r-xr-xr-x 1 root root 4863368 Jan  1  1970 gnosis_vpn
+-r-xr-xr-x 1 root root 1740048 Jan  1  1970 gnosis_vpn-ctl
 ```

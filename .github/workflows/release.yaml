@@ -70,17 +70,17 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "gnosis-vpn-client - v${{ steps.environment.outputs.release_version }}"
+          name: "gnosis_vpn-client - v${{ steps.environment.outputs.release_version }}"
           tag_name: v${{ steps.environment.outputs.release_version }}
       - name: Publish binaries
         run: |
           architectures=("aarch64-linux" "x86_64-linux" "armv7l-linux" "aarch64-darwin" "x86_64-darwin" )
           mkdir -p binaries
           for architecture in "${architectures[@]}"; do
-              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-${architecture} --destination=./binaries --local-filename=gnosis-vpn-${architecture}
-              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis-vpn:${{ steps.environment.outputs.release_version }}:gnosis-vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis-vpn-ctl-${architecture}
-              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-${architecture}" --clobber
-              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis-vpn-ctl-${architecture}" --clobber
+              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-${architecture} --destination=./binaries --local-filename=gnosis_vpn-${architecture}
+              gcloud artifacts files download --project=hoprassociation --location=europe-west3 --repository=rust-binaries gnosis_vpn:${{ steps.environment.outputs.release_version }}:gnosis_vpn-ctl-${architecture} --destination=./binaries --local-filename=gnosis_vpn-ctl-${architecture}
+              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-${architecture}" --clobber
+              gh release upload v${{ steps.environment.outputs.release_version }} "$PWD/binaries/gnosis_vpn-ctl-${architecture}" --clobber
           done
         env:
           GH_TOKEN: ${{ secrets.GH_RUNNER_TOKEN }}
@@ -142,4 +142,4 @@ jobs:
           to: "Releases"
           topic: "main"
           content: |-
-            I'm thrilled to inform the new **gnosis-vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.
+            I'm thrilled to inform the new **gnosis_vpn-client** version **${{ steps.environment.outputs.release_version }}** has been released.

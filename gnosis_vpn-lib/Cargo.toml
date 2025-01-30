@@ -1,5 +1,5 @@
 [package]
-name = "gnosis-vpn-lib"
+name = "gnosis_vpn-lib"
 version = { workspace = true }
 edition = { workspace = true }
 

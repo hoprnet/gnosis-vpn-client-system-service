@@ -1,11 +1,11 @@
 [workspace]
-members = ["gnosis-vpn", "gnosis-vpn-ctl", "gnosis-vpn-lib"]
+members = ["gnosis_vpn", "gnosis_vpn-ctl", "gnosis_vpn-lib"]
 resolver = "2"
 
 [workspace.package]
 version = "0.5.5"
 edition = "2021"
-name = "gnosis-vpn"
+name = "gnosis_vpn"
 
 [workspace.dependencies]
 anyhow = { version = "1.0", features = ["backtrace"] }
@@ -31,4 +31,4 @@ url = { version = "2.5.4", features = ["serde"] }
 # use exclusively because it supports command chaining
 bpaf = { version = "0.9.15", features = ["autocomplete", "derive"] }
 
-gnosis-vpn-lib = { path = "gnosis-vpn-lib" }
+gnosis_vpn-lib = { path = "gnosis_vpn-lib" }
