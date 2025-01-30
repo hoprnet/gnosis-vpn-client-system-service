@@ -1,45 +1,24 @@
-# Gnosis VPN Client System Service
+# GnosisVPN Client
 
-The service establishes a VPN connection to a remote endpoint.
-It handles hoprd session and optinally wireguard setup (linux only).
+The client establishes a VPN connection to a remote endpoint.
+It acts as a monitoring/management layer of hoprd session handling and WireGuard setup (Linux only).
 
 ## Onboarding
 
-Follow [ONBOARDING](./ONBOARDING.md) guide to use Gnosis VPN service.
+Follow [ONBOARDING](./ONBOARDING.md) guide to use GnosisVPN.
 
 ## General usage
 
-The service needs to run as root in order to setup the VPN connection.
-It loads all parameters from it's configuration file.
-This is located in:
+The client is meant to run as a service binary with privileged access.
+The default configuration file is located in `/etc/gnosisvpn/config.toml`.
+However you can start the client with
 
-```sh
-/etc/gnosisvpn/config.toml
-```
+`GNOSISVPN_CONFIG_PATH=<config_file> GNOSISVPN_SOCKET_PATH=<socket_path> ./gnosis-vpn-<system-arch>`
 
-Copy [./sample.config.toml](sample config) to `/etc/gnosisvpn/config.toml` and adjust the values to your needs.
+from userspace (`socket_path` being some accessible file location, e.g. ./gnosisvpn.sock).
 
-Start the service with privileged access:
-
-```sh
-sudo ./gnosis-vpn-<system-arch>
-```
-
-## Development usage
-
-`cargo build`
-
-Start system service:
-
-`sudo RUST_LOG=debug ./target/debug/gnosis-vpn`
-
-Send commands from control application:
-
-`RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- entry-node --endpoint http://127.0.0.1:19091 --api-token ^^LOCAL-testing-123^^ --listen-host "ip://0.0.0.0:60006" exit-node --peer-id 12D3KooWDsMBB9BiK8zg4ZbA6cgNFpAWikTyyYPKqcNHDaq8samm`
-
-Get state of the service
-
-`RUST_LOG=info cargo run --bin gnosis-vpn-ctl -- status`
+A minimal configuration file is [config.toml](./config.toml).
+Use [documented-config.toml](./documented-config.toml) as a full reference.
 
 ### Env vars
 
