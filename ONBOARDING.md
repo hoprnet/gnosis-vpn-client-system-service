@@ -138,7 +138,7 @@ Save and close the configuration file.
 Caution: If you have channel auto funding enabled, you might drain your funds quickly.
 
 GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
-You need to have a channel open to the relayer node for your chosen exit node, which can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+You need to have a channel open from your entry node to the relayer node of your chosen exit node, which can be found on [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
 ### 10. Launch the GnosisVPN binary file [MacOS]
 
@@ -337,7 +337,7 @@ Save and close the configuration file.
 Caution: If you have channel auto funding enabled, you might drain your funds quickly.
 
 GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
-You need to have a channel open to the relayer node for your chosen exit node, which can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+You need to have a channel open from your entry node to the relayer node of your chosen exit node, which can be found on [GnosisVPN servers](https://gnosisvpn.com/servers) page.
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
