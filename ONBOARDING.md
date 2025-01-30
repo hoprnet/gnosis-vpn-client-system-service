@@ -5,7 +5,7 @@ Setting up the GnosisVPN PoC can be somewhat complex, as it involves multiple st
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hopd node** to allow a GnosisVPN connection.
 - **Download the binary file** and run it with several env var parameters.
-- **Configure the GnosisVPN service** using information from three separate sources:
+- **Configure GnosisVPN client** using information from three separate sources:
   1. Your hoprd node credentials
   2. Your assigned device IP
   3. Your chosen exit location
@@ -87,7 +87,7 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
-### 7. Configure Gnosis VPN service configuration - hoprd node [MacOS]
+### 7. Configure GnosisVPN client - hoprd node [MacOS]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
 2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
@@ -102,11 +102,11 @@ internal_connection_port = 50005
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
+- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
-### 8. Configure Gnosis VPN service configuration - exit location [MacOS]
+### 8. Configure GnosisVPN client - exit location [MacOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the exit node peer id into your `config.toml` or update parameters manually:
@@ -150,7 +150,7 @@ chmod +x ./gnosis-vpn-aarch64-darwin
 ```
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
-   The socket path is only used for communication with the GnosisVPN service which is out of scope for this guide.
+   The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
    If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
@@ -286,7 +286,7 @@ Choose the binary file that matches your system:
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
 
-### 7. Configure Gnosis VPN service configuration - hoprd node [Linux]
+### 7. Configure GnosisVPN client - hoprd node [Linux]
 
 1. Download [config](./config.toml) and place it next to the downloaded binary file.
 2. Open `config.toml` in edit mode and locate `[hoprd_node]` section to adjust these values:
@@ -301,11 +301,11 @@ internal_connection_port = 50005
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
 - `api_token` is the API access token of your node.
-- `internal_connection_port` is the static UDP port of your hoprd node on which Gnosis VPN will establish a connection.
+- `internal_connection_port` is the static UDP port of your hoprd node on which GnosisVPN will establish a connection.
 
 If you like a more extensively documented configuration file try using [documented config](./documented-config.toml).
 
-### 8. Configure Gnosis VPN service configuration - exit location [Linux]
+### 8. Configure GnosisVPN client - exit location [Linux]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
 Copy the exit node peer id into your `config.toml` or update parameters manually:
@@ -350,7 +350,7 @@ chmod +x <gnosis-vpn-binary>
 ```
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
-   The socket path is only used for communication with the GnosisVPN service which is out of scope for this guide.
+   The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
    If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
 
 ```bash
