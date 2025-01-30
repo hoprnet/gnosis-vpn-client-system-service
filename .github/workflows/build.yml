@@ -25,7 +25,7 @@ jobs:
       - name: Use Nix Cache
         uses: cachix/cachix-action@v15
         with:
-          name: gnosis-vpn-client
+          name: gnosis_vpn-client
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
         env:
           USER: runner

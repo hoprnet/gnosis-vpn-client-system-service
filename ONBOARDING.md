@@ -81,8 +81,8 @@ Choose the binary file that matches your system:
 
 | System                | Binary file                 |
 | --------------------- | --------------------------- |
-| macOS with ARM chip   | `gnosis-vpn-aarch64-darwin` |
-| macOS with Intel chip | `gnosis-vpn-x86_64-darwin`  |
+| macOS with ARM chip   | `gnosis_vpn-aarch64-darwin` |
+| macOS with Intel chip | `gnosis_vpn-x86_64-darwin`  |
 
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
@@ -145,8 +145,8 @@ You need to have a channel open from your entry node to the relayer node of your
 1. Return to your downloaded binary file and make it executable:
 
 ```bash
-chmod +x ./gnosis-vpn-aarch64-darwin
-# depending on your system, alternatively: chmod +x ./gnosis-vpn-x86_64-darwin
+chmod +x ./gnosis_vpn-aarch64-darwin
+# depending on your system, alternatively: chmod +x ./gnosis_vpn-x86_64-darwin
 ```
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
@@ -155,12 +155,12 @@ chmod +x ./gnosis-vpn-aarch64-darwin
 
 ```bash
 # <system> matches the one you chose earlier
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-aarch64-darwin
-# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis-vpn-x86_64-darwin
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis_vpn-aarch64-darwin
+# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis_vpn-x86_64-darwin
 
 # or with privileged access
-sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-aarch64-darwin`
-# depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis-vpn-x86_64-darwin`
+sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin`
+# depending on your system, alternatively: sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-x86_64-darwin`
 ```
 
 3. Because of macOS security settings, you will see a message that says binary file “cannot be opened because the developer cannot be verified”.
@@ -279,9 +279,9 @@ Choose the binary file that matches your system:
 
 | system                    | binary file                |
 | ------------------------- | -------------------------- |
-| linux with x86 chip       | `gnosis-vpn-x86_64-linux`  |
-| linux with newer ARM chip | `gnosis-vpn-aarch64-linux` |
-| linux with older ARM chip | `gnosis-vpn-armv7l-linux`  |
+| linux with x86 chip       | `gnosis_vpn-x86_64-linux`  |
+| linux with newer ARM chip | `gnosis_vpn-aarch64-linux` |
+| linux with older ARM chip | `gnosis_vpn-armv7l-linux`  |
 
 Ignore the `*-ctl-*` sibling files.
 We do not need them for now.
@@ -341,12 +341,12 @@ You need to have a channel open from your entry node to the relayer node of your
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
-Replace `<gnosis-vpn-binary>` with the binary file you downloaded earlier, see [step 6](#6-download-the-latest-binary-file-linux).
+Replace `<gnosis_vpn-binary>` with the binary file you downloaded earlier, see [step 6](#6-download-the-latest-binary-file-linux).
 
 1. Return to your downloaded binary file and make it executable:
 
 ```bash
-chmod +x <gnosis-vpn-binary>
+chmod +x <gnosis_vpn-binary>
 ```
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
@@ -355,9 +355,9 @@ chmod +x <gnosis-vpn-binary>
 
 ```bash
 # without privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnosis-vpn-binary>
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnosis_vpn-binary>
 # with privileged access
-sudo GNOSISVPN_CONFIG_PATH=./config.toml <gnosis-vpn-binary>
+sudo GNOSISVPN_CONFIG_PATH=./config.toml <gnosis_vpn-binary>
 ```
 
 If you see immediate errors on startup it is most likely due to errors in your configuration settings.

@@ -9,7 +9,7 @@ pub enum ReturnValue {
     NoResponse,
 }
 
-const DEFAULT_PATH: &str = "/var/run/gnosis-vpn.sock";
+const DEFAULT_PATH: &str = "/var/run/gnosis_vpn.sock";
 
 #[cfg(target_family = "unix")]
 pub fn path() -> PathBuf {

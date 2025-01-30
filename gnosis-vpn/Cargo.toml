@@ -1,5 +1,5 @@
 [package]
-name = "gnosis-vpn"
+name = "gnosis_vpn"
 version = { workspace = true }
 edition = { workspace = true }
 
@@ -12,7 +12,7 @@ crossbeam-channel = { workspace = true }
 ctrlc = { workspace = true }
 exitcode = { workspace = true }
 exponential-backoff = { workspace = true }
-gnosis-vpn-lib = { workspace = true }
+gnosis_vpn-lib = { workspace = true }
 libp2p-identity = { workspace = true }
 notify = { workspace = true }
 rand = { workspace = true }
