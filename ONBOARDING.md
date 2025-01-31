@@ -192,7 +192,7 @@ Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuraiton>
+Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuration>
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
@@ -393,7 +393,7 @@ Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuraiton>
+Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuration>
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
