@@ -383,7 +383,7 @@ The binary file should tell you which setting parameter might be wrong.
 
 ### 11. Create a wireguard interface to use the established GnosisVPN connection [Linux]
 
-Create a file called `gnovpnbeta.conf` inside `/etc/wireguard/` with the following content:
+Create a file called `gnosisvpnpoc.conf` inside `/etc/wireguard/` with the following content:
 
 ```conf
 [Interface]
@@ -398,7 +398,7 @@ AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
 
-Activate the WireGuard device with `wg-quick up gnovpnbeta`.
+Activate the WireGuard device with `wg-quick up gnosisvpnpoc`.
 
 ### 12. Use GnosisVPN connection to browse the internet [Linux]
 
