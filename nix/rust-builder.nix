@@ -39,7 +39,10 @@ let
 
   cargoTarget =
     if hostPlatform.config == "armv7l-unknown-linux-gnueabihf" then
-      "armv7-unknown-linux-gnueabihf" else hostPlatform.config;
+      "armv7-unknown-linux-gnueabihf"
+    else if hostPlatform.config == "x86_64-unknown-linux-gnu" then
+      pkgs.lib.systems.examples.musl64.config
+    else hostPlatform.config;
 
   rustToolchain =
     if useRustNightly
@@ -52,6 +55,7 @@ let
 
   buildEnv = {
     CARGO_BUILD_TARGET = cargoTarget;
+    CARGO_BUILD_RUSTFLAGS = "-C target-feature=+crt-static";
     "CARGO_TARGET_${envCase cargoTarget}_LINKER" = "${pkgs.stdenv.cc.targetPrefix}cc";
     HOST_CC = "${pkgs.stdenv.cc.nativePrefix}cc";
   };
