@@ -70,9 +70,15 @@ services:
 
 #### Hoprd for Dappnode [MacOS]
 
-In the network tab of your hoprd node locate `Public port mapping` section.
-Add a new port entry, set the `HOST PORT` and `PACKAGE PORT NUMBER` to 50005 and choose `PROTOCOL` UDP.
-Click `Update port mappings`.
+1. Connect to your Dappnode.
+2. Navigate to the **HOPR package**.
+3. Go to the **Network** tab and locate the **Public Port Mapping** section.
+4. Add a new port entry by clicking on **New port +**.
+5. Configure the following settings:
+   - **HOST PORT**: `50005`
+   - **PACKAGE PORT NUMBER**: `50005`
+   - **PROTOCOL**: Select **UDP**.
+6. Click **Update Port Mappings** to save your changes.
 
 ### 6. Download the latest binary file [MacOS]
 
@@ -271,9 +277,15 @@ services:
 
 #### Hoprd for Dappnode [Linux]
 
-In the network tab of your hoprd node locate `Public port mapping` section.
-Add a new port entry, set the `HOST PORT` and `PACKAGE PORT NUMBER` to 50005 and choose `PROTOCOL` UDP.
-Click `Update port mappings`.
+1. Connect to your Dappnode.
+2. Navigate to the **HOPR package**.
+3. Go to the **Network** tab and locate the **Public Port Mapping** section.
+4. Add a new port entry by clicking on **New port +**.
+5. Configure the following settings:
+   - **HOST PORT**: `50005`
+   - **PACKAGE PORT NUMBER**: `50005`
+   - **PROTOCOL**: Select **UDP**.
+6. Click **Update Port Mappings** to save your changes.
 
 ### 6. Download the latest binary file [Linux]
 
