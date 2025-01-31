@@ -5,9 +5,6 @@
     flake-utils.url = github:numtide/flake-utils;
     flake-parts.url = github:hercules-ci/flake-parts;
     nixpkgs.url = github:NixOS/nixpkgs/release-24.11;
-    nixpkgs-libc-2-39.url = github:NixOS/nixpkgs/release-24.05;
-    nixpkgs-libc-2-38.url = github:NixOS/nixpkgs/release-23.11;
-    nixpkgs-libc-2-36.url = github:NixOS/nixpkgs/release-22.11;
     rust-overlay.url = github:oxalica/rust-overlay/master;
     # using a fork with an added source filter
     crane.url = github:hoprnet/crane/tb/20240117-find-filter;
@@ -24,7 +21,7 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-libc-2-36, nixpkgs-libc-2-39, nixpkgs-libc-2-38, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
+  outputs = { self, nixpkgs, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.treefmt-nix.flakeModule
@@ -35,12 +32,8 @@
           rev = toString (self.shortRev or self.dirtyShortRev);
           fs = lib.fileset;
           localSystem = system;
-          nixpkgsglibc = (import nixpkgs-libc-2-36 { inherit localSystem; });
           overlays = [
             (import rust-overlay)
-            (self: super: {
-              glibc = nixpkgsglibc.glibc;
-            })
           ];
           pkgs = import nixpkgs {
             inherit localSystem overlays;
@@ -80,32 +73,7 @@
           };
 
           rust-builder-x86_64-linux = import ./nix/rust-builder.nix
-            {
-              inherit nixpkgs rust-overlay crane localSystem;
-              overlays = [
-                (self: super: {
-                  glibc = nixpkgsglibc.glibc;
-                })
-              ];
-            };
-
-          rust-builder-x86_64-linux-libc-2-39 = import
-            ./nix/rust-builder.nix
-            {
-              inherit rust-overlay crane localSystem;
-              nixpkgs = nixpkgs-libc-2-39;
-              crossSystem = pkgs.lib.systems.examples.gnu64;
-              isCross = true;
-            };
-
-          rust-builder-x86_64-linux-libc-2-38 = import
-            ./nix/rust-builder.nix
-            {
-              inherit rust-overlay crane localSystem;
-              nixpkgs = nixpkgs-libc-2-38;
-              crossSystem = pkgs.lib.systems.examples.gnu64;
-              isCross = true;
-            };
+            { inherit nixpkgs rust-overlay crane localSystem; };
 
           rust-builder-x86_64-darwin = import
             ./nix/rust-builder.nix
@@ -149,13 +117,7 @@
             ./nix/rust-package.nix
             gnosisvpnBuildArgs;
 
-          gnosisvpn-x86_64-linux-libc-2-40 = rust-builder-x86_64-linux.callPackage
-            ./nix/rust-package.nix
-            gnosisvpnBuildArgs;
-          gnosisvpn-x86_64-linux-libc-2-39 = rust-builder-x86_64-linux-libc-2-39.callPackage
-            ./nix/rust-package.nix
-            gnosisvpnBuildArgs;
-          gnosisvpn-x86_64-linux-libc-2-38 = rust-builder-x86_64-linux-libc-2-38.callPackage
+          gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage
             ./nix/rust-package.nix
             gnosisvpnBuildArgs;
 
@@ -250,7 +212,7 @@
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
             inherit gnosisvpn-test;
-            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux-libc-2-40 gnosisvpn-x86_64-linux-libc-2-39 gnosisvpn-x86_64-linux-libc-2-38;
+            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux;
             # FIXME: Darwin cross-builds are currently broken.
             # Follow https://github.com/nixos/nixpkgs/pull/256590
             inherit gnosisvpn-aarch64-darwin gnosisvpn-x86_64-darwin;
