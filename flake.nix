@@ -7,6 +7,7 @@
     nixpkgs.url = github:NixOS/nixpkgs/release-24.11;
     nixpkgs-libc-2-39.url = github:NixOS/nixpkgs/release-24.05;
     nixpkgs-libc-2-38.url = github:NixOS/nixpkgs/release-23.11;
+    nixpkgs-libc-2-36.url = github:NixOS/nixpkgs/release-22.11;
     rust-overlay.url = github:oxalica/rust-overlay/master;
     # using a fork with an added source filter
     crane.url = github:hoprnet/crane/tb/20240117-find-filter;
@@ -23,7 +24,7 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-libc-2-39, nixpkgs-libc-2-38, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-libc-2-36, nixpkgs-libc-2-39, nixpkgs-libc-2-38, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.treefmt-nix.flakeModule
@@ -34,7 +35,7 @@
           rev = toString (self.shortRev or self.dirtyShortRev);
           fs = lib.fileset;
           localSystem = system;
-          nixpkgsglibc = (import nixpkgs-libc-2-38 { inherit localSystem; });
+          nixpkgsglibc = (import nixpkgs-libc-2-36 { inherit localSystem; });
           overlays = [
             (import rust-overlay)
             (self: super: {
