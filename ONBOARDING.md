@@ -383,7 +383,7 @@ The binary file should tell you which setting parameter might be wrong.
 
 ### 11. Create a wireguard interface to use the established GnosisVPN connection [Linux]
 
-Create a file called `gosisvpnpoc.conf` inside `/etc/wireguard/` with the following content:
+Create a file called `gnosisvpnpoc.conf` inside `/etc/wireguard/` with the following content:
 
 ```conf
 [Interface]
