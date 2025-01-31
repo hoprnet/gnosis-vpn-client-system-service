@@ -30,9 +30,7 @@ on:
       architecture:
         type: choice
         options:
-          - x86_64-linux-libc-2-40
-          - x86_64-linux-libc-2-39
-          - x86_64-linux-libc-2-38
+          - x86_64-linux
           - aarch64-linux
           - aarch64-darwin
           - x86_64-darwin

@@ -39,11 +39,7 @@ jobs:
     strategy:
       matrix:
         binary:
-          - architecture: x86_64-linux-libc-2-40
-            runner: self-hosted-hoprnet-big
-          - architecture: x86_64-linux-libc-2-39
-            runner: self-hosted-hoprnet-big
-          - architecture: x86_64-linux-libc-2-38
+          - architecture: x86_64-linux
             runner: self-hosted-hoprnet-big
           - architecture: aarch64-linux
             runner: self-hosted-hoprnet-big
