@@ -109,24 +109,15 @@ If you like a more extensively documented configuration file try using [document
 ### 8. Configure GnosisVPN client - exit location [MacOS]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
-Copy the exit node peer id into your `config.toml` or update parameters manually:
+Copy the settings into your `config.toml`:
 
 ```toml
-# copy this section from https://gnosisvpn.com/servers
 [connection]
 destination = "<exit node peer id>"
-```
 
-Do the same for the `connection target host`:
-
-```toml
 [connection.target]
 host = "<exit node connection target host>"
-```
 
-Lastly copy the special relayer that will work with that exit node:
-
-```toml
 [connection.path]
 intermediates = [ `<relay node peer id>` ]
 ```
@@ -308,24 +299,15 @@ If you like a more extensively documented configuration file try using [document
 ### 8. Configure GnosisVPN client - exit location [Linux]
 
 Visit [GnosisVPN servers](https://gnosisvpn.com/servers) and choose an exit location.
-Copy the exit node peer id into your `config.toml` or update parameters manually:
+Copy the settings into your `config.toml`:
 
 ```toml
-# copy this section from https://gnosisvpn.com/servers
 [connection]
 destination = "<exit node peer id>"
-```
 
-Do the same for the `connection target host`:
-
-```toml
 [connection.target]
 host = "<exit node connection target host>"
-```
 
-Lastly copy the special relayer that will work with that exit node:
-
-```toml
 [connection.path]
 intermediates = [ `<relay node peer id>` ]
 ```
