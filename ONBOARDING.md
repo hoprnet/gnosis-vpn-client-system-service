@@ -124,12 +124,24 @@ intermediates = [ `<relay node peer id>` ]
 
 Save and close the configuration file.
 
-### 9. Ensure pathfinding to GnosisVPN exit nodes [MacOS]
+### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [MacOS]
 
-Caution: If you have channel auto funding enabled, you might drain your funds quickly.
+**Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
+To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
 
-GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
-You need to have a channel open from your entry node to the relayer node of your chosen exit node, which can be found on [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+**Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
+To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
+Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+
+#### Steps to Open a Payment Channel [MacOS]
+
+1. Connect to your node via **Admin UI**.
+2. Navigate to the **PEERS** page.
+3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
+4. Click on **OPEN outgoing channel**.
+5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
 ### 10. Launch the GnosisVPN binary file [MacOS]
 
@@ -314,12 +326,24 @@ intermediates = [ `<relay node peer id>` ]
 
 Save and close the configuration file.
 
-### 9. Ensure pathfinding to GnosisVPN exit nodes [Linux]
+### 9. Ensure Pathfinding to GnosisVPN Exit Nodes [Linux]
 
-Caution: If you have channel auto funding enabled, you might drain your funds quickly.
+**Caution:** If you have **channel auto-funding** enabled, you might drain your funds quickly.
+To verify this, connect to your node via **Admin UI** and navigate to the **Configuration** page.
+Look at the **Strategies** section and ensure that `!AutoFunding` is **not** enabled.
 
-GnosisVPN can only establish connections via high profile relay nodes maintained by the community for now.
-You need to have a channel open from your entry node to the relayer node of your chosen exit node, which can be found on [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+**Important Note:** Currently GnosisVPN can only establish connections through high-profile relay nodes maintained by the community.
+To use GnosisVPN, you must have an open payment channel from your entry node to the relayer node associated with your chosen exit node.
+Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com/servers) page.
+
+#### Steps to Open a Payment Channel [Linux]
+
+1. Connect to your node via **Admin UI**.
+2. Navigate to the **PEERS** page.
+3. Search for the peer you’ve chosen as a relayer node from [GnosisVPN servers](https://gnosisvpn.com/servers).
+4. Click on **OPEN outgoing channel**.
+5. Enter funding amount (recommended: **10 wxHOPR**) and click **Open Channel**.
+6. Once the channel is successfully opened, it will appear under the **CHANNELS: OUT** page.
 
 ### 10. Ready to start the GnosisVPN binary file [Linux]
 
