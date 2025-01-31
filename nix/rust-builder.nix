@@ -4,7 +4,6 @@
 , localSystem
 , nixpkgs
 , rust-overlay
-, overlays ? [ ]
 , useRustNightly ? false
 } @ args:
 let
@@ -13,7 +12,7 @@ in
 let
   pkgsLocal = import nixpkgs {
     localSystem = args.localSystem;
-    overlays = [ rust-overlay.overlays.default ] ++ overlays;
+    overlays = [ rust-overlay.overlays.default ];
   };
 
   localSystem = pkgsLocal.lib.systems.elaborate args.localSystem;
@@ -25,7 +24,7 @@ let
 
   pkgs = import nixpkgs {
     inherit localSystem crossSystem;
-    overlays = [ rust-overlay.overlays.default ] ++ overlays;
+    overlays = [ rust-overlay.overlays.default ];
   };
 
   # `hostPlatform` is the cross-compilation output platform;
