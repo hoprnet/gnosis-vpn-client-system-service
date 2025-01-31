@@ -6,7 +6,7 @@
     flake-parts.url = github:hercules-ci/flake-parts;
     nixpkgs.url = github:NixOS/nixpkgs/release-24.11;
     nixpkgs-libc-2-39.url = github:NixOS/nixpkgs/release-24.05;
-    nixpkgs-old.url = github:NixOS/nixpkgs/release-23.11;
+    nixpkgs-libc-2-38.url = github:NixOS/nixpkgs/release-23.11;
     rust-overlay.url = github:oxalica/rust-overlay/master;
     # using a fork with an added source filter
     crane.url = github:hoprnet/crane/tb/20240117-find-filter;
@@ -23,7 +23,7 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-libc-2-39, nixpkgs-old, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-libc-2-39, nixpkgs-libc-2-38, flake-utils, flake-parts, flake-root, rust-overlay, crane, pre-commit, treefmt-nix, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         inputs.treefmt-nix.flakeModule
@@ -84,9 +84,9 @@
             isCross = true;
           };
 
-          rust-builder-x86_64-linux-old = import ./nix/rust-builder.nix {
+          rust-builder-x86_64-linux-libc-2-38 = import ./nix/rust-builder.nix {
             inherit rust-overlay crane localSystem;
-            nixpkgs = nixpkgs-old;
+            nixpkgs = nixpkgs-libc-2-38;
             crossSystem = pkgs.lib.systems.examples.gnu64;
             isCross = true;
           };
@@ -125,7 +125,7 @@
 
           gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           gnosisvpn-x86_64-linux-libc-2-39 = rust-builder-x86_64-linux-libc-2-39.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
-          gnosisvpn-x86_64-linux-old = rust-builder-x86_64-linux-old.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn-x86_64-linux-libc-2-38 = rust-builder-x86_64-linux-libc-2-38.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
           gnosisvpn-aarch64-linux = rust-builder-aarch64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           gnosisvpn-armv7l-linux = rust-builder-armv7l-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
@@ -201,7 +201,7 @@
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
             inherit gnosisvpn-test;
-            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux gnosisvpn-x86_64-linux-libc-2-39 gnosisvpn-x86_64-linux-old;
+            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux gnosisvpn-x86_64-linux-libc-2-39 gnosisvpn-x86_64-linux-libc-2-38;
             # FIXME: Darwin cross-builds are currently broken.
             # Follow https://github.com/nixos/nixpkgs/pull/256590
             inherit gnosisvpn-aarch64-darwin gnosisvpn-x86_64-darwin;
