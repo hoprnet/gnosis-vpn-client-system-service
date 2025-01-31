@@ -123,7 +123,7 @@
 
           gnosisvpn = rust-builder-local.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
-          gnosisvpn-x86_64-linux = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
+          gnosisvpn-x86_64-linux-libc-2-40 = rust-builder-x86_64-linux.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           gnosisvpn-x86_64-linux-libc-2-39 = rust-builder-x86_64-linux-libc-2-39.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
           gnosisvpn-x86_64-linux-libc-2-38 = rust-builder-x86_64-linux-libc-2-38.callPackage ./nix/rust-package.nix gnosisvpnBuildArgs;
 
@@ -201,7 +201,7 @@
           packages = {
             inherit gnosisvpn gnosisvpn-debug;
             inherit gnosisvpn-test;
-            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux gnosisvpn-x86_64-linux-libc-2-39 gnosisvpn-x86_64-linux-libc-2-38;
+            inherit gnosisvpn-aarch64-linux gnosisvpn-armv7l-linux gnosisvpn-x86_64-linux-libc-2-40 gnosisvpn-x86_64-linux-libc-2-39 gnosisvpn-x86_64-linux-libc-2-38;
             # FIXME: Darwin cross-builds are currently broken.
             # Follow https://github.com/nixos/nixpkgs/pull/256590
             inherit gnosisvpn-aarch64-darwin gnosisvpn-x86_64-darwin;
