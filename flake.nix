@@ -32,11 +32,14 @@
           rev = toString (self.shortRev or self.dirtyShortRev);
           fs = lib.fileset;
           localSystem = system;
-          overlays = [
-            (import rust-overlay)
-          ];
+          overlays = [ (import rust-overlay) ];
           pkgs = import nixpkgs {
             inherit localSystem overlays;
+            packageOverrides = pkgs: {
+              openssl = pkgs.openssl.override {
+                static = true;
+              };
+            };
           };
           rustNightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
           craneLibNightly = (crane.mkLib pkgs).overrideToolchain rustNightly;
