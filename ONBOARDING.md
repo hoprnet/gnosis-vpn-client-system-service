@@ -1,6 +1,10 @@
 # Onboarding
 
-Setting up the GnosisVPN PoC can be somewhat complex, as it involves multiple steps and configuration details:
+Setting up the GnosisVPN PoC can be somewhat complex, as it was conceived as a technical show case and not a full-fledged product. If you are not comfortable with editing configuration files and using your terminal, please wait for the next version, which will have a streamlined user experience.
+
+The proof of concept is a work in progress which should not be used in situations which require full anonymity. To manage load and aid with testing, an allow list of sites is currently enforced: the full allow list can be viewed [here](https://gnosisvpn.com/servers). For testing and debugging, exit nodes currently gather logs. These logs do not reveal user IPs or any other identifying information, and are deleted after seven days.
+
+Contents:
 
 - **Manually prepare** and configure a WireGuard interface on top of your GnosisVPN connection.
 - **Configure your hopd node** to allow a GnosisVPN connection.
