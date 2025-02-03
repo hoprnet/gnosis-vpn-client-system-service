@@ -13,11 +13,6 @@ let
   pkgsLocal = import nixpkgs {
     localSystem = args.localSystem;
     overlays = [ rust-overlay.overlays.default ];
-    packageOverrides = pkgs: {
-      openssl = pkgs.openssl.override {
-        static = true;
-      };
-    };
   };
 
   localSystem = pkgsLocal.lib.systems.elaborate args.localSystem;
@@ -30,11 +25,6 @@ let
   pkgs = import nixpkgs {
     inherit localSystem crossSystem;
     overlays = [ rust-overlay.overlays.default ];
-    packageOverrides = pkgs: {
-      openssl = pkgs.openssl.override {
-        static = true;
-      };
-    };
   };
 
   # `hostPlatform` is the cross-compilation output platform;
