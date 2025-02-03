@@ -302,8 +302,8 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
                     tracing::info!("initiate shutdown");
                     match state.shutdown() {
                         Ok(r) => shutdown_receiver = r,
-                        Err(err) => {
-                            tracing::error!(?err, "failed to initiate shutdown");
+                        Err(e) => {
+                            tracing::error!(error = ?e, "failed to initiate shutdown");
                             return exitcode::OSERR;
                         }
                     }
