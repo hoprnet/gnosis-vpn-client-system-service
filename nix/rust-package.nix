@@ -11,10 +11,10 @@
 , lib
 , libiconv
 , makeSetupHook
-, openssl
 , pandoc
 , pkg-config
 , pkgs
+, pkgsStatic
 , postInstall ? null
 , rev
 , runClippy ? false
@@ -27,6 +27,11 @@ let
   # `buildPlatform` is the platform we are compiling on
   buildPlatform = stdenv.buildPlatform;
   hostPlatform = stdenv.hostPlatform;
+
+  # when building for Linux amd64 use musl to build static binaries
+  useMusl = hostPlatform.config == "x86_64-unknown-linux-gnu";
+
+  pkgs = if useMusl then pkgsStatic else pkgs;
 
   targetInterpreter =
     if hostPlatform.isLinux && hostPlatform.isx86_64 then "/lib64/ld-linux-x86-64.so.2"
@@ -73,11 +78,10 @@ let
 
     # FIXME: some dev dependencies depend on OpenSSL, would be nice to remove
     # this dependency
-    nativeBuildInputs = [ pkg-config pkgs.pkgsBuildHost.openssl libiconv ] ++ stdenv.extraNativeBuildInputs ++ darwinNativeBuildInputs;
-    buildInputs = [ openssl ] ++ stdenv.extraBuildInputs ++ darwinBuildInputs;
+    nativeBuildInputs = [ pkg-config libiconv ] ++ stdenv.extraNativeBuildInputs ++ darwinNativeBuildInputs;
+    buildInputs = with pkgs; [ openssl ] ++ stdenv.extraBuildInputs ++ darwinBuildInputs;
 
     CARGO_HOME = ".cargo";
-    RUST_MIN_STACK = "16777216"; # 16MB required to run the tests and compilation
     cargoExtraArgs = "--offline -p ${pname} ${cargoExtraArgs}";
     # this env var is used by utoipa-swagger-ui to prevent internet access
     CARGO_FEATURE_VENDORED = "true";
