@@ -31,7 +31,7 @@ let
   # when building for Linux amd64 use musl to build static binaries
   useMusl = hostPlatform.config == "x86_64-unknown-linux-gnu";
 
-  pkgs = if useMusl then pkgsStatic else pkgs;
+  pkgsStatOrDyn = if useMusl then pkgsStatic else pkgs;
 
   targetInterpreter =
     if hostPlatform.isLinux && hostPlatform.isx86_64 then "/lib64/ld-linux-x86-64.so.2"
@@ -63,7 +63,7 @@ let
 
   darwinBuildInputs =
     if isDarwinForDarwin || isDarwinForNonDarwin then
-      with pkgs.pkgsBuildHost.darwin.apple_sdk.frameworks; [
+      with pkgsStatOrDyn.pkgsBuildHost.darwin.apple_sdk.frameworks; [
         CoreFoundation
         CoreServices
         Security
@@ -79,7 +79,7 @@ let
     # FIXME: some dev dependencies depend on OpenSSL, would be nice to remove
     # this dependency
     nativeBuildInputs = [ pkg-config libiconv ] ++ stdenv.extraNativeBuildInputs ++ darwinNativeBuildInputs;
-    buildInputs = with pkgs; [ openssl ] ++ stdenv.extraBuildInputs ++ darwinBuildInputs;
+    buildInputs = [ pkgsStatOrDyn.openssl ] ++ stdenv.extraBuildInputs ++ darwinBuildInputs;
 
     CARGO_HOME = ".cargo";
     cargoExtraArgs = "--offline -p ${pname} ${cargoExtraArgs}";
@@ -109,7 +109,7 @@ let
     cargoDocExtraArgs = "--workspace --no-deps";
     RUSTDOCFLAGS = "--enable-index-page -Z unstable-options";
     CARGO_TARGET_DIR = "target/";
-    LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.pkgsBuildHost.openssl ];
+    LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgsStatOrDyn.pkgsBuildHost.openssl ];
     postBuild = ''
       ${pandoc}/bin/pandoc -f markdown+hard_line_breaks -t html README.md > readme.html
       mv target/''${CARGO_BUILD_TARGET}/doc target/
