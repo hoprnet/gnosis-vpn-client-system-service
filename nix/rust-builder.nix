@@ -42,13 +42,12 @@ let
   buildPlatform = pkgs.stdenv.buildPlatform;
   hostPlatform = pkgs.stdenv.hostPlatform;
 
-
   envCase = triple: pkgsLocal.lib.strings.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] triple);
-
 
   cargoTarget =
     if hostPlatform.config == "armv7l-unknown-linux-gnueabihf" then
       "armv7-unknown-linux-gnueabihf"
+    # when building for Linux amd64 use musl to build static binaries
     else if hostPlatform.config == "x86_64-unknown-linux-gnu" then
       pkgs.lib.systems.examples.musl64.config
     else hostPlatform.config;
