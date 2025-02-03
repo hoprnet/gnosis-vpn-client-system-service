@@ -194,7 +194,7 @@ impl Core {
                 },
                 Err(e) => {
                     tracing::error!(error = ?e, "failed to write wireguard private key to state");
-                    self.replace_issue(Issue::State(err));
+                    self.replace_issue(Issue::State(e));
                 }
             };
         }
