@@ -293,7 +293,6 @@ fn daemon(socket_path: &Path) -> exitcode::ExitCode {
         Ok(_) => (),
         Err(e) => {
             tracing::warn!(error = %e, "failed removing socket");
-            ()
         }
     }
 
