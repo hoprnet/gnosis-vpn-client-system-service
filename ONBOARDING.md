@@ -398,7 +398,7 @@ AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
 
-Activate the WireGuard device with `wg-quick up gnosisvpnpoc`.
+Activate the WireGuard device with `sudo wg-quick up gnosisvpnpoc`.
 
 ### 12. Use GnosisVPN connection to browse the internet [Linux]
 
