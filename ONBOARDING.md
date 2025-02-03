@@ -151,7 +151,7 @@ Relay node address can be found on the [GnosisVPN servers](https://gnosisvpn.com
 
 ### 10. Launch the GnosisVPN binary file [MacOS]
 
-1. Return to your downloaded binary file and make it executable:
+1. Return to your downloaded binary file and make it executable by executing the following command in your terminal:
 
 ```bash
 chmod +x ./gnosis_vpn-aarch64-darwin
