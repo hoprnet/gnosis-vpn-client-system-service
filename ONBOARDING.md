@@ -169,12 +169,12 @@ chmod +x ./gnosis_vpn-aarch64-darwin
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
    The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
-   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
+   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosis_vpn.sock` as it's communication socket.
 
 ```bash
 # <system> matches the one you chose earlier
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis_vpn-aarch64-darwin
-# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock ./gnosis_vpn-x86_64-darwin
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock ./gnosis_vpn-aarch64-darwin
+# depending on your system, alternatively: GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock ./gnosis_vpn-x86_64-darwin
 
 # or with privileged access
 sudo GNOSISVPN_CONFIG_PATH=./config.toml ./gnosis_vpn-aarch64-darwin`
@@ -378,11 +378,11 @@ chmod +x <gnosis_vpn-binary>
 
 2. Provide the path to your configuration file and a socket path to launch the GnosisVPN binary file.
    The socket path is only used for communication with the GnosisVPN client which is out of scope for this guide.
-   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosisvpn.sock` as it's communication socket.
+   If you do not want to provide a socket path, you can also start the binary file with privileged access and it will use `/var/run/gnosis_vpn.sock` as it's communication socket.
 
 ```bash
 # without privileged access
-GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosisvpn.sock <gnosis_vpn-binary>
+GNOSISVPN_CONFIG_PATH=./config.toml GNOSISVPN_SOCKET_PATH=./gnosis_vpn.sock <gnosis_vpn-binary>
 # with privileged access
 sudo GNOSISVPN_CONFIG_PATH=./config.toml <gnosis_vpn-binary>
 ```
