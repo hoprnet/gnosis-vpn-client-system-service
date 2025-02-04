@@ -48,9 +48,11 @@ Create a secure input location where you will receive your assigned device IP.
 Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
 If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get notified about your assigned device IP [MacOS]
+### 4. Wait until you get your assigned device IP [MacOS]
 
-After someone picked up your public key and added it to our WireGuard servers you will get your assigned device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+If you provided a communication channel (email/telegram) in the onboarding form, you will be notified.
+Otherwise, you will just have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [MacOS]
 
@@ -255,9 +257,11 @@ cat publickey | xclip -r -sel clip
 2. Provide your public key, the **rlim.com** URL, and the edit code in our [onboarding form](https://cryptpad.fr/form/#/2/form/view/bigkDtjj+9G3S4DWCHPTOjfL70MJXdEWTDjkZRrUH9Y/).
    If you have trouble opening cryptpad, please try to open it in incognito mode.
 
-### 4. Wait until you get notified about your assigned device IP [Linux]
+### 4. Wait until you get your assigned device IP [Linux]
 
-After someone picked up your public key and added it to our WireGuard servers you will get your assigned device IP back via your **rlim.com** document.
+After someone picked up your public key and added it to our WireGuard servers you will find your assigned device IP at your **rlim.com** document.
+If you provided a communication channel (email/telegram) in the onboarding form, you will be notified.
+Otherwise, you will just have to check your **rlim.com** document yourself after a reasonable amount of time.
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
 
