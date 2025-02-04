@@ -199,11 +199,11 @@ In the WireGuard app, edit the tunnel you created:
 [Interface]
 PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
+Address = <device IP> # received via drop location, e.g.: 20.0.0.5/32
 
 [Peer]
-PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:1422 - the port needs to match your `internal_connection_port` configuration>
+PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
+Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
@@ -400,13 +400,13 @@ Create a file called `gnosisvpnpoc.conf` inside `/etc/wireguard/` with the follo
 
 ```conf
 [Interface]
-PrivateKey = <generated in step 1>
+PrivateKey = <Generated automatic by WireGuard app>
 ListenPort = 51820
-Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
+Address = <device IP> # received via drop location, e.g.: 20.0.0.5/32
 
 [Peer]
-PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:1422 - the port needs to match your `internal_connection_port` configuration>
+PublicKey = <wg server pub key> # listed on https://gnosisvpn.com/servers
+Endpoint = <hoprd node IP:1422> # port needs to match your `internal_connection_port` configuration
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
