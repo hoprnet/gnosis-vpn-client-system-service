@@ -57,7 +57,12 @@ Otherwise, you will just have to check your **rlim.com** document yourself after
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [MacOS]
 
-GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 1422).
+GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
+
+Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
+If you set up any firewall rules or port forwarding for those ports you will need to do the same for GnosisVPN port.
+
+Additionally you need to configure your hoprd node to allow GnosisVPN connections.
 The usual way of running horpd is in a docker container.
 This means you need to configure docker to forward that port.
 
@@ -268,7 +273,12 @@ Otherwise, you will just have to check your **rlim.com** document yourself after
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
 
-GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 1422).
+GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: `1422`).
+
+Treat this as an additional port for hoprd that needs the same treatment as the peer-to-peer port and API port.
+If you set up any firewall rules or port forwarding for those ports you will need to do the same for GnosisVPN port.
+
+Additionally you need to configure your hoprd node to allow GnosisVPN connections.
 The usual way of running horpd is in a docker container.
 This means you need to configure docker to forward that port.
 
