@@ -40,7 +40,7 @@ Create a secure input location where you will receive your assigned device IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
-Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
+   Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
@@ -194,7 +194,8 @@ The binary file should tell you which setting parameter might be wrong.
 
 ### 11. Update the newly created WireGuard tunnel and launch WireGuard [MacOS]
 
-In the WireGuard app, edit the tunnel you created:
+In the WireGuard app, edit the tunnel you created.
+Replace placeholders `<...>` with the actual values as documented.
 
 ```conf
 [Interface]
@@ -244,7 +245,7 @@ Create a secure input location where you will receive your assigned device IP.
 
 1. Go to [rlim.com](https://rlim.com).
 2. Locate the "Custom URL" input field and enter your desired text (e.g., `toms-feedback-gvpn`). Click on "Post".
-Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
+   Leave the "Custom Edit Code" field empty. An edit code will be generated automatically.
 3. Save the generated URL from the browser's address bar (e.g., `https://rlim.com/toms-feedback-gvpn`).
 4. Note the edit code at the top for the next step.
 
@@ -398,7 +399,8 @@ The binary file should tell you which setting parameter might be wrong.
 
 ### 11. Create a wireguard interface to use the established GnosisVPN connection [Linux]
 
-Create a file called `gnosisvpnpoc.conf` inside `/etc/wireguard/` with the following content:
+Create a file called `gnosisvpnpoc.conf` inside `/etc/wireguard/` with the following content.
+Replace placeholders `<...>` with the actual values as documented.
 
 ```conf
 [Interface]
