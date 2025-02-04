@@ -56,7 +56,7 @@ Otherwise, you will just have to check your **rlim.com** document yourself after
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [MacOS]
 
-GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 50005).
+GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 1422).
 The usual way of running horpd is in a docker container.
 This means you need to configure docker to forward that port.
 
@@ -64,7 +64,7 @@ Depending on your setup this can be done in different ways.
 
 #### Hoprd for Docker [MacOS]
 
-Update the run command to inlude the port forwarding: `docker run ... -p 50005:50005/udp ...`.
+Update the run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
 
 #### Hoprd for Docker Compose [MacOS]
 
@@ -76,7 +76,7 @@ services:
     ...
     ports:
       ...
-      - "50005:50005/udp"
+      - "1422:1422/udp"
 ```
 
 #### Hoprd for Dappnode [MacOS]
@@ -86,8 +86,8 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
-   - **HOST PORT**: `50005`
-   - **PACKAGE PORT NUMBER**: `50005`
+   - **HOST PORT**: `1422`
+   - **PACKAGE PORT NUMBER**: `1422`
    - **PROTOCOL**: Select **UDP**.
 6. Click **Update Port Mappings** to save your changes.
 
@@ -114,7 +114,7 @@ We do not need them for now.
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
-internal_connection_port = 50005
+internal_connection_port = 1422
 ```
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
@@ -203,7 +203,7 @@ Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuration>
+Endpoint = <hoprd node IP:1422 - the port needs to match your `internal_connection_port` configuration>
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
@@ -265,7 +265,7 @@ Otherwise, you will just have to check your **rlim.com** document yourself after
 
 ### 5. Configure your hoprd node to allow GnosisVPN connections [Linux]
 
-GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 50005).
+GnosisVPN will create UDP connection to your hoprd node on a specified port (e.g.: 1422).
 The usual way of running horpd is in a docker container.
 This means you need to configure docker to forward that port.
 
@@ -273,7 +273,7 @@ Depending on your setup this can be done in different ways.
 
 #### Hoprd for Docker [Linux]
 
-Update the run command to inlude the port forwarding: `docker run ... -p 50005:50005/udp ...`.
+Update the run command to inlude the port forwarding: `docker run ... -p 1422:1422/udp ...`.
 
 #### Hoprd for Docker Compose [Linux]
 
@@ -285,7 +285,7 @@ services:
     ...
     ports:
       ...
-      - "50005:50005/udp"
+      - "1422:1422/udp"
 ```
 
 #### Hoprd for Dappnode [Linux]
@@ -295,8 +295,8 @@ services:
 3. Go to the **Network** tab and locate the **Public Port Mapping** section.
 4. Add a new port entry by clicking on **New port +**.
 5. Configure the following settings:
-   - **HOST PORT**: `50005`
-   - **PACKAGE PORT NUMBER**: `50005`
+   - **HOST PORT**: `1422`
+   - **PACKAGE PORT NUMBER**: `1422`
    - **PROTOCOL**: Select **UDP**.
 6. Click **Update Port Mappings** to save your changes.
 
@@ -324,7 +324,7 @@ We do not need them for now.
 endpoint = "http://123.456.7.89:3002"
 api_token = "<hoprd node API token>"
 
-internal_connection_port = 50005
+internal_connection_port = 1422
 ```
 
 - `endpoint` is the URL (including port) pointing to the API access of your node (e.g., `http://123.456.7.89:3002`).
@@ -406,7 +406,7 @@ Address = <device IP - received via drop location, e.g.: 20.0.0.5/32>
 
 [Peer]
 PublicKey = <wg server pub key - listed on https://gnosisvpn.com/servers>
-Endpoint = <hoprd node IP:50005 - the port needs to match your `internal_connection_port` configuration>
+Endpoint = <hoprd node IP:1422 - the port needs to match your `internal_connection_port` configuration>
 AllowedIPs = 20.0.0.0/24
 PersistentKeepalive = 30
 ```
