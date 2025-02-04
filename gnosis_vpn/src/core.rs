@@ -363,6 +363,14 @@ impl Core {
                     match wg.connect_session(&info) {
                         Ok(_) => {
                             tracing::info!("opened session and wireguard connection");
+                            tracing::info!(
+                                r"
+
+    /---==========================---\
+    |   VPN CONNECTION ESTABLISHED   |
+    \---==========================---/
+"
+                            );
                         }
                         Err(e) => {
                             tracing::warn!(warn = ?e, "openend session but failed to connect wireguard session");
@@ -371,6 +379,14 @@ impl Core {
                     }
                 } else {
                     tracing::info!("opened session without handling wireguard");
+                    tracing::info!(
+                        r"
+
+    /---============================---\
+    |   HOPRD CONNECTION ESTABLISHED   |
+    \---============================---/
+"
+                    );
                 }
                 Ok(())
             }
